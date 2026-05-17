@@ -7,7 +7,8 @@
 
         <title inertia>{{ config('app.name', 'VantageJobs') }}</title>
 
-        @routes
+        @php($cspNonce = request()->attributes->get('csp_nonce'))
+        @routes(nonce: $cspNonce)
         @viteReactRefresh
         @vite(['resources/css/app.css', 'resources/js/app.tsx'])
         @inertiaHead

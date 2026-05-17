@@ -13,14 +13,14 @@ interface Props {
 }
 
 export default function ProfilePage({ user }: Props) {
-    const { data, setData, patch, processing, errors, recentlySuccessful } = useForm({
+    const { data, setData, put, processing, errors, recentlySuccessful } = useForm({
         name: user.name ?? '',
         email: user.email,
     });
 
     const submit: FormEventHandler = (event) => {
         event.preventDefault();
-        patch('/user/profile-information', { preserveScroll: true });
+        put('/user/profile-information', { preserveScroll: true });
     };
 
     return (
