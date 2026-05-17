@@ -6,6 +6,13 @@
                 "artisan",
                 "boost:mcp"
             ]
+        },
+        "uidotsh": {
+            "type": "http",
+            "url": "https://ui.sh/mcp?agent=claude",
+            "headers": {
+                "Authorization": "Bearer Cg6w96gtRNMO2YwwIjI02Cjxq6Qwg5KF"
+            }
         }
     }
 }
