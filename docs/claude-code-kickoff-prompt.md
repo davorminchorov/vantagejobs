@@ -54,15 +54,17 @@ When you've read everything, summarize in 5-8 bullets what you understood as the
 ## The stack (from the PRD, for quick reference)
 
 - Laravel 13 + PHP 8.5
-- FrankenPHP in classic mode (no worker mode in v1)
-- PostgreSQL 18
+- FrankenPHP in classic mode (no worker mode in v1), managed by Laravel Cloud in prod and via Spin (Docker Compose, `serversideup/php` images) locally at `https://vantagejobs.test`
+- PostgreSQL 18 (Cloud-managed in prod, Spin service locally)
 - Inertia.js + React 19 + TypeScript
 - Tailwind CSS v4 + shadcn/ui primitives
 - Vite for frontend build
 - Laravel Fortify for auth (email + password + TOTP 2FA, no public registration)
+- Hand-rolled row-level multi-tenancy (`tenant_id` on every domain table, `BelongsToTenant` global scope, `TenantContext` service); single active Tenant in v1
 - Guzzle for HTTP (with Pool for concurrency)
-- Cron-driven artisan commands for scraping (no Horizon in v1)
-- Deploy target: single VPS (Hetzner), single user
+- Scheduled artisan commands invoked by a Laravel Cloud scheduled task every minute (no host cron). Horizon is installed but parked until a real queue workload appears.
+- Deploy target: Laravel Cloud (EU region). Earlier drafts targeted a Hetzner VPS; PRD v3 reversed that decision.
+- Local execution rule (from project CLAUDE.md): every `php`, `artisan`, `composer`, `vendor/bin/*`, and `npm` command runs through `spin run php` / `spin run node` (or `spin exec` when the stack is up). Never invoke them directly on the host.
 
 If anything in this stack feels wrong for what we're building, say so before starting.
 
@@ -70,11 +72,13 @@ If anything in this stack feels wrong for what we're building, say so before sta
 
 Per PRD section 10, Phase 0 is the foundation:
 
-> Laravel 13 scaffold with FrankenPHP (classic mode), PHP 8.5, Postgres 18, Tailwind v4, Inertia + React + TypeScript with shadcn/ui primitives, base schema for Company, Role, Event, Source, Note, User, AuditLog. Fortify configured with login, password reset, and TOTP 2FA support. Single user seeded from `.env`. Registration route disabled. First-run wizard for empty state. Seed with 10 real companies (mix of Greenhouse, Lever, Ashby). Deploy to VPS with HTTPS. Responsive layout shell.
+> Laravel 13 scaffold (already in repo) on PHP 8.5 with FrankenPHP (classic mode) via Spin locally and Laravel Cloud in production. Postgres 18, Tailwind v4, Inertia + React + TypeScript with shadcn/ui primitives. Tenancy primitives in place: `tenants` table, `Tenant` model, `BelongsToTenant` trait + observer, `TenantContext` service, and `tenant_id` columns on every domain table. Base schema for Tenant, User, Company, Role, Event, Source, Note, AuditLog. Fortify configured with login, password reset, and TOTP 2FA support. Single tenant and single user seeded from `.env`. Registration route disabled. First-run wizard for empty state. Seed with 10 real companies (mix of Greenhouse, Lever, Ashby), all attached to the seeded tenant. First Laravel Cloud deploy with HTTPS on the custom domain. Responsive layout shell.
 >
-> **Ship criterion:** I can log in, log out, change my password, enable 2FA, and see a placeholder dashboard. The platform is private and exposed to the public internet safely.
+> **Ship criterion:** I can log in, log out, change my password, enable 2FA, and see a placeholder dashboard. The platform is deployed to Laravel Cloud, served over HTTPS on the production domain, and exposed to the public internet safely.
 
 Phase 0 does **not** include actual scrapers, parsers, signals, or the triage queue. Those are Phases 1-4. Don't let scope creep pull us forward.
+
+Note: the Laravel 13 scaffold (with Horizon, Octane, Boost, Pail, Pint, PHPUnit, Spin) is already in the repo. Phase 0 is an adaptation onto that scaffold, not a `composer create-project` from scratch.
 
 ## How to start
 
@@ -92,7 +96,7 @@ Instead, in this first response, do all of the following:
    - Frontend conventions (component organization, naming, css strategy within Tailwind)
    - Testing approach (Pest vs PHPUnit, frontend testing, what to test from day one)
    - Schema specifics (UUID vs autoincrement IDs, soft deletes, naming of pivot tables, audit log shape)
-   - Deployment plan (Forge vs. manual, when to provision the VPS, environment management)
+   - Deployment plan (when to wire up Laravel Cloud, custom domain, env-var management via `cloud env:set`)
    - Anything else genuinely material before we start
 4. **Propose a Phase 0 task breakdown** — a checklist of 8 to 15 concrete steps you'd execute in order, each shippable on its own. We'll work through that list together, stopping after each step for me to review.
 

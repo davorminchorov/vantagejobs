@@ -1,10 +1,11 @@
 # PRD: Personal Job-Hunting Platform
 
-**Status:** Draft v2 (ready for implementation)
+**Status:** Draft v3 (ready for implementation; scaffold underway)
 **Author:** You
 **Date:** May 2026
-**Stack:** Laravel 13, PHP 8.5, FrankenPHP, PostgreSQL 18, Inertia + React, Tailwind, self-hosted VPS
-**Scope:** Single-user with authentication (no multi-tenancy, no sharing)
+**Stack:** Laravel 13, PHP 8.5, FrankenPHP, PostgreSQL 18, Inertia + React, Tailwind, Laravel Cloud (EU)
+**Local dev:** Spin (Docker Compose) wrapping `serversideup/php` images, `vantagejobs.test`
+**Scope:** Single active tenant in v1 (just me), but the schema and code paths are tenant-aware from day one. No public registration, no sharing UI, no team accounts. The intent is to pay the small upfront cost of tenant scoping so future migration to "me plus one or two friends" is a seeder change, not a rewrite.
 
 ---
 
@@ -36,7 +37,7 @@ The platform fixes this by being a passive intelligence tool for a single user, 
 - Be cheap to run (less than $15/month all-in) and trivial to back up.
 
 ### Non-Goals (Out of Scope for v1)
-- Multi-user support, sharing, social features, or team accounts.
+- User-facing multi-tenancy: no sharing UI, no team accounts, no cross-tenant features, no social surfaces. (The schema is tenant-aware so a future expansion is cheap; the experience is single-user.)
 - Public sign-ups, role-based permissions, or user management UI.
 - Any LLM or AI features (parsing, matching, suggestions, cover letters).
 - Auto-apply, resume generation, or interview prep tooling.
@@ -58,9 +59,11 @@ Personal-tool metrics, measured against my own behavior:
 
 ## 5. Users
 
-Just me. One user. No personas section needed.
+Just me. One active user, one active tenant. No personas section needed.
 
 Relevant context for design decisions: senior/staff backend and fullstack engineer, based in Skopje (CET/CEST), targeting global remote, EU-friendly companies preferred, comfortable with technical complexity, will iterate on the tool over months.
+
+The tenant model exists in the schema so that "let a trusted friend run their own search inside the same instance" is a future seeder change, not a rewrite. No second tenant is created or exposed in v1, and no UI surface in v1 references tenants at all.
 
 ---
 
@@ -543,7 +546,7 @@ Single profile, no themes, no multi-user UI.
 The platform has one user (me) but is exposed to the public internet, so it needs real auth. The model is "private single-tenant tool with login," not "SaaS with sign-ups."
 
 **Auth model:**
-- One pre-seeded user account. No public registration page.
+- One pre-seeded tenant and one pre-seeded user account belonging to that tenant. No public registration page.
 - Email + password login, with the option to require a TOTP second factor.
 - Sessions, not API tokens. Inertia-friendly. Standard Laravel session cookies, signed and encrypted, `SameSite=Lax`, `Secure`, `HttpOnly`.
 - Remember-me cookie supported with a long expiry (30 days) so I don't re-login from my laptop every week.
@@ -557,8 +560,10 @@ The platform has one user (me) but is exposed to the public internet, so it need
 
 **Registration disabled:**
 - No `/register` route is exposed publicly.
-- The initial user is created via a database seeder (`php artisan db:seed --class=CreateAdminUserSeeder`) reading credentials from `.env`. Re-running the seeder is a no-op.
+- The initial tenant is created via a database seeder (`php artisan db:seed --class=CreateInitialTenantSeeder`) reading the tenant name/slug from `.env`. Idempotent.
+- The initial user is created via a database seeder (`php artisan db:seed --class=CreateAdminUserSeeder`) reading credentials from `.env` and attaching the user to the initial tenant. Re-running the seeder is a no-op.
 - A `php artisan user:reset-password` command exists for offline recovery if I lock myself out.
+- A `php artisan tenant:create` command exists but is not surfaced in the UI. It exists so that a future "let a friend in" decision is a one-line operation. It writes to the AuditLog.
 
 **Account management UI (`/settings/account`):**
 - Change email
@@ -669,38 +674,40 @@ Not in scope. The UI ships in English only. All dates use the user's timezone (s
 - Database backed up nightly to S3 or Backblaze B2.
 
 ### 8.4 Cost
-- Total monthly run cost: under $15.
-  - $5 VPS (Hetzner CX22 or similar)
-  - $3-5 Postmark/Resend (notifications)
-  - $1 domain amortized
-  - $1-2 backup storage
+- Target monthly run cost: under $30, with a stretch goal of under $20 once Laravel Cloud usage stabilises.
+  - Laravel Cloud compute (1 environment, low traffic): roughly $10-20/mo depending on idle scaling and scrape burst usage.
+  - Laravel Cloud Postgres (smallest tier, EU region): roughly $5-10/mo.
+  - Postmark or Resend (notifications): $3-5/mo.
+  - Domain amortized: $1/mo.
+  - Off-platform backup storage (Backblaze B2 for the periodic `pg_dump` exports): $1-2/mo.
 - No third-party paid APIs. All data sources are free.
+- If Cloud usage materially exceeds this envelope, revisit by tuning idle-scale, moving scrape workloads to scheduled tasks (which sleep between runs) rather than always-on workers, or downsizing the Postgres tier.
 
 ### 8.5 Compliance
 - All ATS public API usage attributes the source where required (Remotive, WWR).
 - Respect each source's published rate limits.
 - User-Agent string identifies the bot and provides contact info.
 - No PII stored beyond what I manually enter for contacts.
-- Database stays inside the EU (Hetzner Germany or similar) for GDPR comfort.
+- Database and compute pinned to an EU Laravel Cloud region (Frankfurt or equivalent) for GDPR comfort.
 
 ### 8.6 Security
-- HTTPS everywhere, terminated by FrankenPHP's embedded Caddy with auto-renewing Let's Encrypt certificates.
-- HSTS header enabled with a 1-year max-age after the first deploy confirms HTTPS works end-to-end.
+- HTTPS everywhere. TLS termination, certificate provisioning, and renewal are managed by Laravel Cloud's edge (FrankenPHP behind Cloud's load balancer); no Caddy or Let's Encrypt to operate by hand.
+- HSTS header enabled with a 1-year max-age after the first Cloud deploy confirms HTTPS works end-to-end on the custom domain.
 - Standard security headers via middleware: `Content-Security-Policy`, `X-Frame-Options: DENY`, `Referrer-Policy: strict-origin-when-cross-origin`, `X-Content-Type-Options: nosniff`.
 - Passwords hashed with bcrypt at Laravel's default cost (currently 12), upgraded automatically when the default rises.
 - CSRF protection on every state-changing request (Inertia's `_token` handling makes this transparent).
 - Rate limiting on login (5/min/IP) and password reset (3/hour/IP).
 - Session fixation protection: regenerate session ID on login.
-- Sensitive environment variables (`APP_KEY`, DB password, Postmark/Resend keys, S3/B2 credentials) live in `.env` only. Never committed. Rotated quarterly.
-- Database connections use TLS even on localhost (cheap insurance).
-- Backup files encrypted at rest in B2 via B2's server-side encryption.
+- Sensitive environment variables (`APP_KEY`, DB password, Postmark/Resend keys, B2 credentials) live in Laravel Cloud's encrypted secrets store for production and `.env` locally. Never committed. Rotated quarterly.
+- Database connections use TLS (enforced by Laravel Cloud Postgres; verified locally against the Spin Postgres container with `sslmode=prefer`).
+- Off-platform `pg_dump` backups encrypted at rest in Backblaze B2 via B2's server-side encryption. Laravel Cloud's managed backups are encrypted at rest by Cloud itself.
 - All admin actions (login, 2FA changes, password changes, session revocation) get logged to a dedicated `AuditLog` table with timestamp, IP, user-agent, and outcome.
 
 ### 8.7 Operability
-- One-command deployment: `git push` triggers deploy via Forge or a simple CI workflow.
-- Logs are queryable (Postgres-backed log table or Telescope in production with retention).
-- Health check endpoint (`/up`) returns 200 if DB and at least one scraper has run successfully in the last 48h. Public (no auth) but exposes no internal state.
-- Backup restore tested quarterly.
+- Deployments via Laravel Cloud: `git push` to `main` triggers a Cloud build and deploy. The `cloud` CLI handles environment configuration, secrets, and manual rollbacks.
+- Logs are queryable through Laravel Cloud's log viewer with retention configured per environment; Telescope is installed in production behind auth (7-day retention) for HTTP/cache/job inspection during real debugging.
+- Health check endpoint (`/up`) returns 200 if the app is alive (no DB query). A private `/health` endpoint (auth required) returns detailed JSON: DB connectivity, last successful scrape per source, queue depth.
+- Backup strategy: Laravel Cloud's managed Postgres backups (point-in-time recovery) are the primary safety net; a scheduled `php artisan backup:run` pushes a `pg_dump` to Backblaze B2 nightly as off-platform insurance. Restore tested quarterly against both sources.
 
 ### 8.8 Time, Dates, and Time Zones
 
@@ -743,20 +750,28 @@ Brief, since this is a personal tool. Detailed design lives in separate ADRs.
 
 - **Framework:** Laravel 13 (released 17 March 2026). Headline gains for this project are the new PHP 8 attributes across models / controllers / jobs (`#[Table]`, `#[Middleware]`, `#[Authorize]`, `#[Tries]`, `#[Backoff]`, `#[Timeout]`, `#[FailOnTimeout]`), centralized queue routing via `Queue::route(...)`, and the hardened `PreventRequestForgery` middleware with origin-aware verification. The first-party Laravel AI SDK shipped stable with 13 — we will **not** use it (no AI features in scope) but having it in the framework is harmless.
 - **PHP:** 8.5 (released 20 November 2025). Laravel 13's minimum is PHP 8.3, so 8.5 is well within the supported range. We pick up the pipe operator (`|>`) which is genuinely nice for the scraper pipeline (parse → normalize → validate → persist), the new `Uri\Rfc3986\Uri` extension for parsing job-posting URLs without relying on legacy `parse_url()`, the `clone()` with-properties syntax for value-object-style models, and `#[\NoDiscard]` for marking methods like scraper-result objects whose return values should not be silently ignored.
-- **Web server:** FrankenPHP in classic (request-per-process) mode, not worker mode. Single binary, automatic HTTPS via embedded Caddy, no separate Nginx + PHP-FPM stack to maintain. Worker mode is deferred until performance pressure justifies the operational tax (it won't, for a single-user tool).
-- **Database:** PostgreSQL 18 (single instance, no replicas). Latest stable as of May 2026 (18.4 released 11 May 2026). We get the operational improvements landed in 18 (asynchronous I/O subsystem, faster vacuuming, native UUIDv7 generation, improved query planner heuristics) for free; none of those features are required, but they're nice to have on a system that does heavy upsert traffic from scrapers.
+- **Web server (production):** FrankenPHP managed by Laravel Cloud, running in classic (request-per-process) mode in v1. Laravel Cloud handles TLS, edge routing, and scaling; we get the FrankenPHP runtime without owning the systemd / Caddy / Let's Encrypt operational surface. Worker mode is available via Octane if performance pressure justifies it later; off by default in v1.
+- **Web server (local):** FrankenPHP via the `serversideup/php` Docker images, orchestrated through Spin (Docker Compose). Local domain is `vantagejobs.test`. The Spin `dev` overlay is the source of truth for which services run locally; `ci` mirrors it for CI parity.
+- **Database:** PostgreSQL 18, managed by Laravel Cloud (single instance, no replicas). Latest stable as of May 2026 (18.4 released 11 May 2026). We get the operational improvements landed in 18 (asynchronous I/O subsystem, faster vacuuming, native UUIDv7 generation, improved query planner heuristics) for free; none of those features are required, but they're nice to have on a system that does heavy upsert traffic from scrapers. Locally, Postgres 18 runs as a Spin service.
 - **Frontend:** Inertia.js bridging Laravel and React 19. TypeScript. Server-driven routing, no separate API layer.
 - **Styling:** Tailwind CSS v4. shadcn/ui for primitives (Button, Dialog, Card, Table, etc.).
 - **State:** TanStack Query for any client-side fetching beyond Inertia page loads (e.g., scrape status polling, parser stats). Zustand if we ever need shared client state, which we probably won't.
 - **Forms:** Inertia's `useForm` hook for everything. Server validation via Laravel Form Requests, errors flow back through Inertia's shared props.
 - **Auth:** Laravel Fortify (headless, Inertia-friendly). Email + password with optional TOTP 2FA. Session-based, no API tokens in v1. Single seeded user, no public registration. See section 7.6.
-- **Background jobs:** `php artisan schedule:run` from cron, no Horizon needed in v1. Long-running scrapes are artisan commands. Add Horizon in Phase 6 only if queue throughput demands it.
+- **Multi-tenancy:** Single-database, single-schema, row-level tenancy. Every domain table carries a `tenant_id` foreign key (Company, Role, Event, Source, Note, AuditLog, AggregatorListing, Contact, Dossier, CalendarEvent, ParseCorrection, ScrapeRun, ScrapeRunArtifact, Bookmark, Template, Setting, Tag, CompanySnapshot, DismissedCompany). A `BelongsToTenant` trait applies a global Eloquent scope that filters on the resolved current tenant, and a model observer auto-sets `tenant_id` on insert. A `TenantContext` service is the single source of truth for "who am I serving right now," resolved from `auth()->user()->tenant_id` on web requests and from `$tenant->setCurrent()` inside artisan commands and scheduled tasks. Cross-tenant access is impossible by construction in the application layer; nothing in the v1 UI offers a tenant switcher because there is only one tenant. No `stancl/tenancy` or `spatie/laravel-multitenancy` package in v1: hand-rolled is fewer moving parts and easier to reason about for the scale we operate at. Revisit if/when v2 ever wants subdomain routing or per-tenant database isolation.
+- **Background jobs:** Laravel's scheduler runs as a Cloud scheduled task (no host cron to babysit). Long-running scrapes are artisan commands invoked by the scheduler. Horizon is installed in the scaffold and available behind a managed Cloud Redis instance, but in v1 scrape and signal commands run synchronously inside the scheduled task; queues only get spun up when a Phase 6+ workload genuinely needs them.
 - **HTTP client:** Guzzle via Laravel's `Http` facade, with `Http::pool()` and raw Guzzle `Pool` for concurrent fetches with per-host concurrency caps.
-- **Build tooling:** Vite, with Laravel's official Vite plugin and the Inertia React preset.
-- **Deploy target:** Single VPS (Hetzner CX22, ~$5/mo, Germany region for GDPR comfort), Laravel Forge or a small Ansible playbook. FrankenPHP runs as a systemd service.
-- **Backups:** `pg_dump` nightly to Backblaze B2.
+- **Build tooling:** Vite, with Laravel's official Vite plugin and the Inertia React preset. Frontend asset builds run inside the `node` Spin service locally and on Laravel Cloud's build step in production.
+- **Deploy target:** Laravel Cloud, EU region (Frankfurt or equivalent for GDPR). Single environment in v1 (`production`); a `staging` environment can be added later if I ever need a real preview before pushing to prod.
+- **Deploy mechanism:** `git push` to `main` triggers Laravel Cloud's build pipeline (composer install, `npm ci && npm run build`, `php artisan migrate --force`, config/route/view cache). The `cloud` CLI handles secrets, environment variables, rollbacks, and ad-hoc shell access.
+- **Backups:** Laravel Cloud managed Postgres backups (point-in-time + nightly snapshots) as primary. A scheduled `php artisan backup:run` exports `pg_dump` to Backblaze B2 nightly for off-platform redundancy.
+- **Tooling (already installed in the scaffold):** Laravel Boost (MCP server with project-aware tools), Laravel Pail (live log tail), Laravel Pint (code formatter, project standard is `--format agent`), Spin (Docker Compose wrapper for dev/CI), PHPUnit 12. Local execution rule: every `php`, `artisan`, `composer`, `vendor/bin/*`, and `npm` command runs through `spin run php` / `spin run node` (or `spin exec` when the stack is up); host-side invocation is not supported.
 
-Why FrankenPHP in classic mode, not worker mode: we discussed this. Worker mode optimizes for high RPS and amortized boot cost across many concurrent requests. A single-user dashboard sees ~50-200 page views per day. Worker mode buys nothing here and introduces real costs: memory leaks from singletons that don't reset per request, weirder debugging, package compatibility surprises. Classic FrankenPHP still gives us the things that matter: single binary, embedded Caddy, automatic HTTPS, modern deployment story. If this ever becomes a multi-user product, switching to worker mode is a config flag.
+Why FrankenPHP in classic mode, not worker mode: we discussed this. Worker mode optimizes for high RPS and amortized boot cost across many concurrent requests. A single-user dashboard sees ~50-200 page views per day. Worker mode buys nothing here and introduces real costs: memory leaks from singletons that don't reset per request, weirder debugging, package compatibility surprises. Classic FrankenPHP still gives us the things that matter: managed runtime on Cloud, modern deployment story, and a clean path to flip to worker mode if and when usage justifies it.
+
+Why tenant-aware schema in v1 when there's only one user: retrofitting tenancy onto a single-user schema two years in is a known-painful migration (every domain table, every query, every test, every export). Front-loading the `tenant_id` column plus the `BelongsToTenant` global scope is cheap (one trait, one observer, a handful of migrations), invisible at runtime when there's only one tenant, and free to leave dormant. The exit cost is what we're optimising against, not the entry cost.
+
+Why Laravel Cloud, not a Hetzner VPS: an earlier draft of this PRD targeted a single-VPS deploy via Forge or Ansible. Reversed for two reasons. First, operating a VPS for a personal tool is exactly the kind of long-tail toil this project is supposed to remove from my life; TLS renewal failures, kernel upgrades, Postgres point-releases, and disk-fill incidents are not work I want to do on weekends three years from now. Second, Cloud's pricing for a low-traffic single-user app is within striking distance of the VPS-plus-managed-Postgres total once you account for backups, monitoring, and time. Lifting the operational floor by ~$10-15/mo is a trade I'm willing to make. The escape hatch is intact: Laravel Cloud apps are still Laravel apps, and a future migration back to a VPS or to a different managed platform is a few days of work, not a rewrite.
 
 Why Inertia + React, not Livewire or a separate SPA: Inertia adds a TypeScript and React build step, but gains us a real component ecosystem (shadcn/ui, lucide icons, recharts), better client-side ergonomics for the Kanban pipeline and the triage queue, and skill transfer to other projects. Inertia avoids the tax of building a separate API plus SPA: no API design, no auth tokens, no CORS, no duplicated validation. Each page is a Laravel controller returning an Inertia response with a typed page-props object; the React side just renders.
 
@@ -769,9 +784,9 @@ Why not SQLite: company-quality-score recalculation and analytics queries (hirin
 Six phases, each shippable on its own. Each phase ends with the platform being usable, not partly built.
 
 ### Phase 0: Foundation (1 weekend)
-Laravel 13 scaffold with FrankenPHP (classic mode), PHP 8.5, Postgres 18, Tailwind v4, Inertia + React + TypeScript with shadcn/ui primitives, base schema for Company, Role, Event, Source, Note, User, AuditLog. Fortify configured with login, password reset, and TOTP 2FA support. Single user seeded from `.env`. Registration route disabled. First-run wizard for empty state. Seed with 10 real companies (mix of Greenhouse, Lever, Ashby). Deploy to VPS with HTTPS. Responsive layout shell.
+Laravel 13 scaffold (already in repo) on PHP 8.5 with FrankenPHP (classic mode) via Spin locally and Laravel Cloud in production. Postgres 18, Tailwind v4, Inertia + React + TypeScript with shadcn/ui primitives. Tenancy primitives in place: `tenants` table, `Tenant` model, `BelongsToTenant` trait + observer, `TenantContext` service, and `tenant_id` columns on every domain table. Base schema for Tenant, User, Company, Role, Event, Source, Note, AuditLog. Fortify configured with login, password reset, and TOTP 2FA support. Single tenant and single user seeded from `.env`. Registration route disabled. First-run wizard for empty state. Seed with 10 real companies (mix of Greenhouse, Lever, Ashby), all attached to the seeded tenant. First Laravel Cloud deploy with HTTPS on the custom domain. Responsive layout shell.
 
-**Ship criterion:** I can log in, log out, change my password, enable 2FA, and see a placeholder dashboard. The platform is private and exposed to the public internet safely.
+**Ship criterion:** I can log in, log out, change my password, enable 2FA, and see a placeholder dashboard. The platform is deployed to Laravel Cloud, served over HTTPS on the production domain, and exposed to the public internet safely.
 
 ### Phase 1: ATS Pipeline (1-2 weekends)
 Scrapers for Greenhouse, Lever, Ashby. Concurrent fetching via Guzzle Pool. Diff and dedup logic. Events created for new roles. Companies UI (list, create, edit, detail) with basic filters. Working scrape command runnable from cron. CSV import wizard for spreadsheet migration. Tags model on Companies. Global search palette (Cmd/Ctrl-K) for Companies and Roles.
@@ -817,7 +832,7 @@ Total estimated build time: 9 to 13 weekends. Reality is probably 16 to 20 by th
 
 **Source ToS shifts.** Any source could change terms or rate limits without notice. Mitigation: per-source health monitoring with email alerts, plus a "swap to backup" pattern documented per source.
 
-**Data growth.** At 500 tracked companies polled every 6h with full role history retained, the DB will grow. Estimate: 500 companies × 5 roles average × 4 fetches/day × 365 days = ~3.6M role-snapshot rows/year. Postgres handles this fine but indexes and partitioning may be needed by year 2. Mitigation: aggressive use of soft-delete and a yearly archive script.
+**Data growth.** At 500 tracked companies polled every 6h with full role history retained, the DB will grow. Estimate: 500 companies × 5 roles average × 4 fetches/day × 365 days = ~3.6M role-snapshot rows/year. Postgres handles this fine but indexes and partitioning may be needed by year 2. On Laravel Cloud, growth also nudges the managed-Postgres tier and the monthly bill, so watch storage as a cost signal, not just a performance one. Mitigation: aggressive use of soft-delete on closed roles and a yearly archive script.
 
 **Self-discipline.** The tool only works if I actually use it. Mitigation: the daily digest forces touchpoints. If I notice I'm ignoring digests for a week, that's a signal the tool is failing me, not me failing the tool.
 
@@ -838,6 +853,10 @@ These were open during PRD drafting and have since been resolved:
 - **Parser confidence threshold for auto-linking:** Hard-coded at 0.85 in v1. If the false-positive or false-negative rate becomes a problem in practice, promote to a database-backed Setting in a future patch.
 - **CSV importer column support:** Out of scope as a separate concern. The wizard auto-detects whatever columns exist in the uploaded CSV with manual override; no fixed schema. Free-form notes field stays as a catch-all destination for unmapped columns.
 - **Watchlist of people:** Not in scope. Deferred indefinitely. Following individual engineers across companies is interesting but adds enough surface area (people identity resolution, LinkedIn integration pressure, privacy considerations) that it deserves its own future PRD if it ever happens.
+- **Hosting target:** Laravel Cloud (EU region), not a self-hosted Hetzner VPS. Earlier drafts targeted a $5 Hetzner box managed via Forge or Ansible. Reversed in v3 of this PRD: see section 9 for the rationale (lower operational toil over a multi-year horizon, acceptable cost delta for a single-user app). VPS plus Forge stays viable as a future migration path if Cloud pricing or behavior becomes a problem.
+- **Local dev stack:** Spin (Docker Compose) wrapping `serversideup/php` images. All artisan, composer, npm, pint, and test commands run through `spin run php` / `spin run node` (or `spin exec` when the dev stack is up). Host-side PHP invocation is not supported. This is project policy, codified in CLAUDE.md and the README.
+- **Already-installed tooling kept from the scaffold:** Laravel Boost (project-aware MCP server), Laravel Pail (live log tail), Laravel Pint (formatter, run with `--format agent`), Spin (Docker wrapper), and PHPUnit 12. Horizon and Octane are installed but disabled in v1: Horizon awaits a real queue workload, Octane awaits a real reason to enable FrankenPHP worker mode.
+- **Multi-tenancy (v3 decision):** Hand-rolled, single-database, single-schema, row-level tenancy from day one. Every domain table carries `tenant_id`. `BelongsToTenant` trait applies a global Eloquent scope and a model observer auto-fills `tenant_id` on insert. `TenantContext` service resolves the current tenant per request (from `auth()->user()->tenant_id`) and per artisan command (explicit `$tenant->setCurrent()` at the top of any command that touches tenant-scoped data). One seeded tenant in v1, no UI to switch tenants, no public `/register` route. See section 9 for the rationale.
 
 ### 11.3 Currently Open Questions
 
@@ -854,7 +873,7 @@ To prevent scope creep, the following are NOT v1 features and require an explici
 - **Cover letter generation.** Out.
 - **Auto-apply.** Never.
 - **LinkedIn integration.** No scraping, no DM automation, no contact sync.
-- **Multi-user, sharing, comments, "social" features.** Single-user, end of story.
+- **Multi-tenant UX.** The schema is tenant-aware, but v1 ships one tenant, no sharing UI, no comments, no team features, no tenant switcher. Adding a second tenant is an artisan command, not a product feature.
 - **Browser extension.** Maybe ever. Not v1.
 - **Mobile app.** The web UI is responsive enough.
 - **Calendar integration.** Manual entry of interview dates is fine.
@@ -869,6 +888,8 @@ To prevent scope creep, the following are NOT v1 features and require an explici
 ## 13. Appendices
 
 ### Appendix A: Glossary
+- **Tenant:** The top-level data ownership boundary. Every domain row belongs to exactly one Tenant via `tenant_id`. In v1 there is exactly one Tenant (mine); the schema and code paths are tenant-aware so a future second tenant is a seeder change, not a refactor.
+- **TenantContext:** The application-layer service that knows which Tenant is "current" for a given request, command, or job. Drives the global Eloquent scope applied by `BelongsToTenant`.
 - **Company:** A canonical employer entity in the watch list.
 - **Role:** A specific job posting at a Company, tied to one external ID from the source ATS.
 - **Event:** A timestamped fact about a Company (new_role, funding, layoff, blog_post, hire, departure, restored, my_note).

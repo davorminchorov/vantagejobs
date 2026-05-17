@@ -27,8 +27,10 @@
 | Need to rotate a secret | [Secret rotation](#secret-rotation) |
 | GitHub API rate-limited | [GitHub API issues](#github-api-issues) |
 | Triage queue is overwhelmed | [Triage queue overflow](#triage-queue-overflow) |
-| FrankenPHP won't start | [FrankenPHP troubleshooting](#frankenphp-troubleshooting) |
-| Cron isn't running | [Cron debugging](#cron-debugging) |
+| Production runtime won't boot | [Cloud runtime troubleshooting](#cloud-runtime-troubleshooting) |
+| Scheduled tasks aren't running | [Scheduler debugging](#scheduler-debugging) |
+| Local Spin stack misbehaving | [Local dev troubleshooting](#local-dev-troubleshooting) |
+| Suspect a tenant_id leak | [Tenancy invariants](#tenancy-invariants) |
 
 ---
 
@@ -38,19 +40,25 @@
 
 **Symptom:** Login attempts fail. Password reset email doesn't arrive, or I forgot the email.
 
-**Recovery from server (SSH access required):**
+**Recovery via Laravel Cloud shell:**
 
 ```bash
-ssh deploy@your-server
-cd /var/www/jobs
+cloud shell --env=production
 php artisan user:reset-password
 ```
 
 This prompts for the new password and writes it directly. Logs the action to `AuditLog`.
 
+Locally, run the same command via Spin:
+
+```bash
+spin exec -T php php artisan user:reset-password
+```
+
 **If 2FA is the problem (lost authenticator):**
 
 ```bash
+cloud shell --env=production
 php artisan user:disable-2fa
 ```
 
@@ -81,23 +89,34 @@ Then rotate `APP_KEY` (see [Secret rotation](#secret-rotation)) and reset your p
 **Step 1:** Identify the failure pattern.
 
 ```bash
+cloud shell --env=production
 php artisan tinker
 >>> App\Models\ScrapeRun::latest()->where('source', 'greenhouse')->take(5)->get(['status', 'error_message', 'started_at']);
 ```
 
+Local equivalent: `spin exec -T php php artisan tinker`.
+
 **Step 2:** Inspect a raw artifact (within 7-day retention window).
 
 ```bash
-ls -la storage/scrape-artifacts/$(date +%Y-%m-%d)/greenhouse/
-# Or query: App\Models\ScrapeRunArtifact::where('source', 'greenhouse')->latest()->first()
+cloud shell --env=production
+php artisan tinker
+>>> App\Models\ScrapeRunArtifact::where('source', 'greenhouse')->latest()->first();
 ```
+
+Artifacts live in `storage/scrape-artifacts/` on the running container; they reset on each Cloud release, so persistent debugging uses the DB-backed `ScrapeRunArtifact` records.
 
 If the artifact has unexpected JSON shape or HTML where JSON should be, the upstream API changed. Update the scraper or parser accordingly.
 
 **Step 3:** Run the scraper manually with verbose output.
 
 ```bash
+# Production
+cloud shell --env=production
 php artisan scrape:source greenhouse --company={slug} --verbose
+
+# Local
+spin exec -T php php artisan scrape:source greenhouse --company={slug} --verbose
 ```
 
 **Step 4:** Common causes by source:
@@ -114,11 +133,11 @@ php artisan scrape:source greenhouse --company={slug} --verbose
 ### All scrapers failing simultaneously
 
 **Likely causes:**
-- Server-wide network issue. Check `ping 8.8.8.8` from the box.
-- DNS issue. Check `dig api.lever.co`.
-- Server time skew (TLS handshakes fail). Check `timedatectl status`.
-- Disk full preventing artifact writes. `df -h`.
-- Database connection refused. `systemctl status postgresql`.
+- Laravel Cloud incident affecting outbound network. Check Cloud's status page first.
+- DNS issue. From `cloud shell`: `getent hosts api.lever.co`.
+- Cloud Postgres connectivity. `cloud shell` → `php artisan tinker` → `DB::connection()->getPdo();`.
+- Filesystem near full on the compute instance (rare; ephemeral on Cloud). Check via Cloud's metrics panel.
+- Tenant context not resolved inside the scheduler. Check that the scheduled command sets `TenantContext` before doing tenant-scoped work.
 
 ### A company appears to be "stuck"
 
@@ -256,6 +275,8 @@ php artisan queue:work --once --queue=alerts
 
 **Symptom:** Page loads taking >2 seconds, especially `/admin/runs` or trend charts.
 
+Get a SQL session via Laravel Cloud's managed Postgres console (or `cloud db:shell`); locally use `spin exec -T postgres psql -U vantagejobs vantagejobs`.
+
 **Step 1:** Check connection count and active queries.
 
 ```sql
@@ -302,31 +323,22 @@ LIMIT 10;
 
 A table with many sequential scans and few index scans likely needs an index.
 
-### Disk filling up
+### Storage filling up
 
-**Symptom:** Disk free < 20% on the VPS.
+**Symptom:** Cloud's metrics panel shows the Postgres tier nearing its storage limit, or the compute container is alarming on ephemeral disk.
 
-**Step 1:** Find the culprit.
+**On Laravel Cloud Postgres:**
+- Storage usage and tier are visible in the Cloud dashboard. If you're near the ceiling, either upgrade the tier or run archival (see [Database growth](#database-growth-tracking) below). There is no "free up disk by deleting random files" lever on managed Postgres; growth is structural.
 
-```bash
-du -sh /var/* 2>/dev/null | sort -hr | head -10
-du -sh /var/www/jobs/storage/* 2>/dev/null | sort -hr | head -10
-```
-
-**Step 2:** Likely candidates:
-
-- **Postgres data** at `/var/lib/postgresql/{version}/main` — see [Database growth](#database-growth) below.
-- **Scrape artifacts** at `storage/scrape-artifacts/` — should auto-purge after 7 days. Verify the purge job is running:
+**On the compute container:**
+- Scrape artifacts live in `storage/scrape-artifacts/` and should auto-purge after 7 days. Verify the purge job is running:
   ```bash
+  cloud shell --env=production
   php artisan schedule:list | grep purge
   php artisan artifacts:purge --dry-run
   ```
-- **Laravel logs** at `storage/logs/` — rotate them:
-  ```bash
-  truncate -s 0 storage/logs/laravel.log
-  # Or configure log rotation in config/logging.php
-  ```
-- **Backup files** — backups should be on B2, not the VPS. If `pg_dump` files are accumulating locally, the upload step is broken.
+- Container storage is ephemeral; logs do not accumulate across releases. If you're seeing alerts during a single release, the purge job is failing.
+- **Off-platform backup files (Backblaze B2)** — these should not accumulate inside Cloud; they're streamed out to B2 by `php artisan backup:run`. If `pg_dump` files appear inside the container after a backup run, the upload step is broken; check `BACKUP_B2_*` env vars in Cloud's secret store.
 
 ### Database growth tracking
 
@@ -352,68 +364,79 @@ php artisan db:archive-old-roles --days=365
 
 ## Backup restore
 
-### Verify your backups exist and work
+### Restore paths
+
+Two backup sources exist. Choose based on the failure mode.
+
+| Failure | Restore from |
+|---|---|
+| Bad migration, accidental delete, single-table corruption | Laravel Cloud Postgres PITR (fastest, finest granularity) |
+| Cloud-side incident, account compromise, region failure | Off-platform Backblaze B2 `pg_dump` (slowest, most independent) |
+
+### Primary restore: Laravel Cloud Postgres PITR
+
+Use Cloud's dashboard or `cloud db:restore --to '2026-05-18T14:32:00Z'`. PITR rolls the production database back to the chosen timestamp. Verify in the Cloud console before promoting the restored snapshot.
+
+### Verify off-platform backups exist and work
 
 **Monthly verification** (also runs automatically per PRD section 8.3, but verify by hand at least once):
 
 ```bash
+# Locally (Spin stack must be up so Postgres is reachable)
+
 # 1. Download the latest backup from B2
 b2 download-file-by-name jobs-backups daily/$(date +%Y-%m-%d).sql.gz /tmp/restore-test.sql.gz
 
 # 2. Decompress
 gunzip /tmp/restore-test.sql.gz
 
-# 3. List contents (structural check)
-pg_restore --list /tmp/restore-test.sql | head -50
+# 3. Restore to a scratch DB inside the Spin Postgres container
+spin exec -T postgres createdb -U vantagejobs jobs_restore_test
+spin exec -T postgres psql -U vantagejobs jobs_restore_test < /tmp/restore-test.sql
 
-# 4. Restore to a scratch DB
-createdb jobs_restore_test
-psql jobs_restore_test < /tmp/restore-test.sql
+# 4. Sanity check
+spin exec -T postgres psql -U vantagejobs jobs_restore_test -c "SELECT count(*) FROM tenants;"
+spin exec -T postgres psql -U vantagejobs jobs_restore_test -c "SELECT count(*) FROM companies;"
 
-# 5. Sanity check
-psql jobs_restore_test -c "SELECT count(*) FROM companies;"
-
-# 6. Clean up
-dropdb jobs_restore_test
+# 5. Clean up
+spin exec -T postgres dropdb -U vantagejobs jobs_restore_test
 rm /tmp/restore-test.sql
 ```
 
-### Full disaster restore
+### Full disaster restore from B2 (Cloud is gone)
 
-**Scenario:** The VPS is gone. You have a fresh box. You need the data back.
+**Scenario:** Laravel Cloud is unreachable for a sustained period, or the account is compromised. You need the data back somewhere else.
 
 ```bash
-# 1. Provision a new VPS, install Postgres 18, create the DB
-sudo -u postgres createdb jobs
+# 1. Stand up a new Postgres instance (a fresh Cloud Postgres on a different account, a Hetzner VPS, or another managed Postgres provider).
 
-# 2. Download latest backup
+# 2. Download latest backup from B2
 b2 download-file-by-name jobs-backups daily/{date}.sql.gz /tmp/restore.sql.gz
 gunzip /tmp/restore.sql.gz
 
 # 3. Restore
-psql jobs < /tmp/restore.sql
+psql "$RESTORE_DATABASE_URL" < /tmp/restore.sql
 
-# 4. Run pending migrations (in case the backup is older than the code)
-cd /var/www/jobs
-php artisan migrate
+# 4. Point a new Laravel deployment at the restored DB (Cloud env or otherwise). Run pending migrations (in case the backup is older than the code):
+php artisan migrate --force
 
-# 5. Re-seed env-driven settings
+# 5. Re-seed env-driven settings if needed
 php artisan db:seed --class=ConfigSeeder
 
 # 6. Verify
 php artisan tinker
+>>> App\Models\Tenant::count();
 >>> App\Models\Company::count();
 >>> App\Models\Role::where('is_open', true)->count();
 ```
 
 ### Partial restore (single table)
 
-If only one table is corrupt:
+If only one table is corrupt and PITR's granularity doesn't fit, extract from the B2 dump and apply selectively:
 
 ```bash
-# Extract just that table from a SQL dump
 pg_restore --list /tmp/restore.sql | grep "TABLE DATA.*companies"
-pg_restore --data-only --table=companies /tmp/restore.sql | psql jobs
+pg_restore --data-only --table=companies /tmp/restore.sql | psql "$DATABASE_URL"
 ```
 
 ---
@@ -450,7 +473,12 @@ pg_restore --data-only --table=companies /tmp/restore.sql | psql jobs
 **Via tinker (for power moves):**
 
 ```bash
+cloud shell --env=production
 php artisan tinker
+
+# TenantContext must be set first so the BelongsToTenant observer can stamp tenant_id
+>>> $t = App\Tenancy\Tenant::first();
+>>> app(App\Tenancy\TenantContext::class)->setCurrent($t);
 >>> $c = App\Models\Company::create([
 ...     'name' => 'Acme Corp',
 ...     'website' => 'https://acme.com',
@@ -463,55 +491,48 @@ php artisan tinker
 >>> dispatch(new App\Jobs\ScrapeCompany($c));
 ```
 
+If you forget the `setCurrent()` call, the observer throws to prevent orphaned writes. That's the intended tripwire, not a bug.
+
 ---
 
 ## Outage response
 
 ### Site returns 502 / 503 / 504
 
-**Step 1:** Check if FrankenPHP is running.
+**Step 1:** Check Laravel Cloud's status page and the environment's health in the Cloud dashboard. If Cloud is having an incident, there's nothing to do but wait or fall back to the disaster-restore path (see [Full disaster restore from B2](#full-disaster-restore-from-b2-cloud-is-gone)).
+
+**Step 2:** If Cloud is green, tail logs.
 
 ```bash
-systemctl status frankenphp
+cloud logs --env=production --tail
 ```
 
-If dead, start it:
+Look for fatal errors, unhandled exceptions, or boot-time failures from the most recent deploy.
+
+**Step 3:** Verify the last deploy succeeded.
 
 ```bash
-systemctl start frankenphp
+cloud deployments --env=production
 ```
 
-If it won't start, check the logs:
+A failed migration or build error leaves the previous release running but throws errors on push. If the latest entry is `failed`, address that.
+
+**Step 4:** Verify Postgres connectivity from the app.
 
 ```bash
-journalctl -u frankenphp -n 100
+cloud shell --env=production
+php artisan tinker
+>>> DB::connection()->getPdo();
 ```
 
-**Step 2:** Check database connectivity.
-
-```bash
-systemctl status postgresql
-sudo -u postgres psql -c "SELECT 1;"
-```
-
-**Step 3:** Check disk space (full disk = mysterious failures).
-
-```bash
-df -h
-```
-
-**Step 4:** Check Laravel logs for fatal errors.
-
-```bash
-tail -n 200 /var/www/jobs/storage/logs/laravel.log
-```
+**Step 5:** If everything looks green and the site is still broken, roll back to the last known-good release (see [Rollback](#rollback)).
 
 ### Health endpoint stays red
 
-`/up` returns 500 means the platform can't reach the DB or no scraper has run in the last 48h.
+- `/up` is a dumb liveness check (no DB query). If it's red, the PHP runtime itself is broken — see Step 2 above.
+- `/health` (auth required) returns rich JSON: DB connectivity, last successful scrape per source, queue depth. If `/health` is red but `/up` is green, the app is up but a dependency is failing.
 
-- DB unreachable: see Step 2 above.
-- No recent scrape: cron may not be running (see [Cron debugging](#cron-debugging)).
+If no recent scrape: the Cloud scheduler may not be running (see [Scheduler debugging](#scheduler-debugging)).
 
 ---
 
@@ -519,71 +540,84 @@ tail -n 200 /var/www/jobs/storage/logs/laravel.log
 
 ### A bad deploy broke production
 
-**With Forge:**
-- Forge dashboard → Site → Deployments → Click previous successful deployment → "Redeploy"
-
-**Manual (if not using Forge):**
+**Cloud rollback (preferred):**
 
 ```bash
-ssh deploy@your-server
-cd /var/www/jobs
-git log --oneline -10
-# Identify the last known-good commit, e.g. abc1234
-git checkout abc1234
-composer install --no-dev --optimize-autoloader
-php artisan migrate:rollback --step=N  # if migrations changed
-npm ci && npm run build
-systemctl restart frankenphp
+cloud rollback --env=production
 ```
+
+This points production at the previous release. Instant cutover; the database is not rolled back. If the bad deploy ran destructive migrations, see the next subsection.
+
+You can also roll back from the Cloud dashboard: select the environment, pick a prior successful release, click "Promote."
+
+**If `cloud rollback` is not available** (older deploys aged out, edge case):
+
+```bash
+# Revert the offending commit locally
+git revert <bad-sha>
+git push origin main
+```
+
+Cloud builds and deploys the revert as a normal release.
 
 ### A bad migration broke the schema
 
-```bash
-php artisan migrate:rollback --step=1
-```
-
-If the migration was destructive (dropped a column you needed):
+**Step 1:** Roll back the application release first:
 
 ```bash
-# 1. Restore from the most recent backup
-# (See "Backup restore" section)
-# 2. Re-run only the migrations newer than the backup
-php artisan migrate
+cloud rollback --env=production
 ```
+
+The old code is now running against the new schema. If the old code is compatible with the new schema (additive migration), you're done — fix forward.
+
+**Step 2:** If the migration was destructive (dropped a column you needed), restore the affected data from PITR or B2:
+
+1. Use Cloud Postgres PITR to a moment just before the migration ran (see [Primary restore](#primary-restore-laravel-cloud-postgres-pitr)).
+2. Then re-deploy the corrected migrations forward via a normal `git push`.
+
+Never run `migrate:rollback` against production without first taking a fresh PITR checkpoint, in case the down-migration has its own bugs.
 
 ---
 
 ## Secret rotation
+
+All production secrets live in Laravel Cloud's encrypted environment store. Update via `cloud env:set KEY=value --env=production`, which triggers a re-deploy on the next release. For instant effect, use `cloud env:set KEY=value --env=production --restart`.
 
 ### Rotate `APP_KEY`
 
 **Warning:** This invalidates all encrypted data (sessions, encrypted columns). Users will be logged out.
 
 ```bash
-php artisan key:generate --show
-# Copy the new key, update .env
-# Re-encrypt any encrypted DB columns if you have any
-# Restart frankenphp
-systemctl restart frankenphp
+NEW_KEY=$(php -r 'echo "base64:" . base64_encode(random_bytes(32));')
+cloud env:set APP_KEY="$NEW_KEY" --env=production --restart
 ```
+
+If you have encrypted DB columns, re-encrypt them before flipping the key. There are no encrypted columns in v1 (the User TOTP secret is hashed via Fortify's mechanism, not encrypted with `APP_KEY` directly).
 
 ### Rotate DB password
 
-```bash
-sudo -u postgres psql -c "ALTER USER jobs_app WITH PASSWORD 'new_strong_password';"
-# Update DB_PASSWORD in .env
-systemctl restart frankenphp
-```
+Cloud-managed Postgres credentials are managed by Cloud. Use `cloud db:rotate-password --env=production`. Cloud writes the new password into the linked env vars and restarts the app.
 
 ### Rotate Postmark/Resend API key
 
-Generate new key in provider dashboard. Update `.env`. Restart FrankenPHP. Verify with a test email. Revoke old key after 24 hours.
+Generate new key in provider dashboard. Then:
+
+```bash
+cloud env:set POSTMARK_TOKEN=new_token --env=production --restart
+# or
+cloud env:set RESEND_API_KEY=new_key --env=production --restart
+```
+
+Verify with a test email from `cloud shell`. Revoke old key after 24 hours.
 
 ### Rotate Backblaze B2 keys
 
-Generate new application key in B2 dashboard with `writeFiles` + `readFiles` permissions on the `jobs-backups` bucket. Update `.env`. Run a manual backup to verify:
+Generate new application key in B2 dashboard with `writeFiles` + `readFiles` permissions on the `vantagejobs-backups` bucket.
 
 ```bash
+cloud env:set BACKUP_B2_KEY_ID=new_id --env=production
+cloud env:set BACKUP_B2_APPLICATION_KEY=new_key --env=production --restart
+cloud shell --env=production
 php artisan backup:run
 ```
 
@@ -591,9 +625,11 @@ Revoke old key after the first successful backup with the new key.
 
 ### Rotate GitHub personal access token
 
-Generate new fine-grained PAT in GitHub settings, scoped to `public_repo` read. Update `GITHUB_TOKEN` in `.env`. Verify:
+Generate new fine-grained PAT in GitHub settings, scoped to `public_repo` read.
 
 ```bash
+cloud env:set GITHUB_TOKEN=new_token --env=production --restart
+cloud shell --env=production
 php artisan github:test
 ```
 
@@ -602,6 +638,7 @@ php artisan github:test
 If someone has your `.ics` URL and you want to invalidate it:
 
 ```bash
+cloud shell --env=production
 php artisan calendar:rotate-secret
 ```
 
@@ -664,86 +701,112 @@ If companies you've dismissed 3+ times aren't in this list, the auto-dismiss log
 
 ---
 
-## FrankenPHP troubleshooting
+## Cloud runtime troubleshooting
 
-### Won't start
+### Production runtime won't boot
 
 ```bash
-journalctl -u frankenphp -n 100
+cloud logs --env=production --tail
+cloud deployments --env=production
 ```
 
 **Common causes:**
-- Port 80/443 already in use (`lsof -i :80`)
-- Caddyfile syntax error (it's embedded — check FrankenPHP config in your systemd unit)
-- TLS cert renewal failed (check the Caddy logs)
-- PHP fatal error during boot
+- A failed migration in the last build. `cloud deployments` shows `failed`. Fix the migration locally, push.
+- Bad env var (typo in a key Laravel reads at boot). `cloud env --env=production` to inspect, `cloud env:set` to correct.
+- PHP fatal during config caching. Check `cloud logs` for `php artisan config:cache` output during the deploy.
+- TLS issue on the custom domain. Check the domain's DNS, especially CNAME or A record pointing at Cloud's load balancer per `cloud domains`.
 
 ### Worker mode regressions (if you ever switch on)
 
-Per PRD section 9, you're on **classic mode** in v1. If for some reason worker mode got toggled:
+Per PRD section 9, v1 runs FrankenPHP in **classic mode**. If worker mode somehow got enabled in `cloud.yaml` (or whatever Cloud's manifest filename is), revert it: the manifest should not specify Octane/worker mode in v1.
 
-```bash
-grep -r "FRANKENPHP_CONFIG" /etc/systemd/system/frankenphp.service
-```
+### TLS / domain issues
 
-Should NOT contain `worker` directive. If it does, remove it and restart.
+Laravel Cloud manages TLS at the edge. If the custom domain isn't serving HTTPS:
 
-### TLS cert not renewing
-
-FrankenPHP's embedded Caddy auto-renews Let's Encrypt certs. If a cert is about to expire:
-
-```bash
-systemctl restart frankenphp
-```
-
-This triggers a renewal attempt. If it still fails, check the domain's DNS and port 80/443 accessibility from the public internet (Let's Encrypt's ACME challenge requires both).
+1. `cloud domains --env=production` — verify the domain is attached and verified.
+2. Check the registrar's DNS records match what Cloud requires.
+3. If the domain shows `pending verification`, Cloud cannot complete the ACME challenge. Most common cause: wrong DNS record or CAA record blocking Let's Encrypt.
 
 ---
 
-## Cron debugging
+## Scheduler debugging
 
 ### Scheduled tasks not running
 
 **Symptom:** `/admin/runs` shows no recent scrapes. `last_checked_at` on Companies is stale.
 
-**Step 1:** Verify cron is installed for the deploy user.
+**Step 1:** Verify the Cloud scheduled task is configured and enabled.
 
 ```bash
-crontab -u deploy -l
+cloud schedule --env=production
 ```
 
-Should contain something like:
+Should show `php artisan schedule:run` firing every minute. If missing, re-add it via the Cloud dashboard or `cloud schedule:add "* * * * *" "php artisan schedule:run"`.
 
-```
-* * * * * cd /var/www/jobs && php artisan schedule:run >> /dev/null 2>&1
-```
-
-If empty, re-install:
+**Step 2:** Check what Laravel's scheduler thinks it should run.
 
 ```bash
-echo '* * * * * cd /var/www/jobs && php artisan schedule:run >> /var/log/jobs-schedule.log 2>&1' | crontab -u deploy -
-```
-
-**Step 2:** Verify cron daemon is running.
-
-```bash
-systemctl status cron  # Ubuntu
-```
-
-**Step 3:** Check what the schedule thinks it should run.
-
-```bash
-cd /var/www/jobs
+cloud shell --env=production
 php artisan schedule:list
 ```
 
-**Step 4:** Run the schedule manually to see errors.
+**Step 3:** Run the schedule manually to see errors.
 
 ```bash
+cloud shell --env=production
 php artisan schedule:run
 ```
 
 Errors will print immediately.
+
+**Step 4:** If a specific command is registered but never runs, check its `->between()` / `->when()` constraints in `app/Console/Kernel.php` and the production timezone. Cloud runs in UTC by default; Laravel's scheduler honors the app's `app.timezone` config when interpreting `->dailyAt()` / `->cron()` expressions.
+
+---
+
+## Local dev troubleshooting
+
+### `spin up` fails or services don't come up cleanly
+
+```bash
+spin down
+docker system prune --volumes # if you suspect stale state
+spin up --build
+```
+
+If FrankenPHP starts but the app errors on first request, check `.env` against `.env.example` for any new vars the latest commit expects.
+
+### Database state out of sync after a branch switch
+
+```bash
+spin exec -T php php artisan migrate:fresh --seed
+```
+
+This nukes the local Postgres DB and reseeds. Safe locally; never run against Cloud.
+
+### Pint/test commands hang or produce garbled output
+
+You're probably missing the `-T` flag on `spin exec` / `spin run` in a subprocess context (CI, agent, script). Add `-T`:
+
+```bash
+spin exec -T php ./vendor/bin/pint --dirty --format agent
+spin exec -T php php artisan test --compact --parallel --recreate-databases
+```
+
+---
+
+## Tenancy invariants
+
+### Suspect a tenant_id leak (data from the wrong tenant visible somewhere)
+
+In v1 there's only one Tenant, so a leak is invisible by definition. The risk surfaces once a second Tenant exists. Treat these as code-review checklist items, not runtime debugging:
+
+- Every domain table migration includes a `tenant_id` foreign key. Search: `grep -L 'tenant_id' database/migrations/*.php` should return only `tenants` and Laravel framework migrations.
+- Every Eloquent model under `app/Models/` uses the `BelongsToTenant` trait. Search: `grep -L 'BelongsToTenant' app/Models/*.php` should be empty (or only contain models that intentionally span tenants, which currently is `Tenant` itself).
+- Every artisan command that touches tenant data calls `TenantContext::setCurrent()` at the top, or iterates over `Tenant::query()->each(...)` setting context per iteration.
+- The model observer throws `RequiresTenantContextException` if an insert happens without a current tenant. Tests assert this fires for any new domain model.
+
+If a leak is suspected at runtime in v1, it usually means one of these invariants was bypassed (a manual SQL query, a `withoutGlobalScope` call without good reason, or a forgotten `setCurrent()`). Search the codebase for those patterns first.
 
 ---
 
@@ -757,11 +820,14 @@ A growing list of "I forgot this once and lost an hour."
 - **Remotive's first JSON element is metadata.** Skip the legal notice element.
 - **layoffs.fyi's Airtable URL rotates.** Don't hard-code the embed URL; resolve it from the homepage HTML on each run.
 - **GitHub auth token absent → 60/hour limit instead of 5000.** Always check rate-limit headers.
-- **FrankenPHP needs ports 80 AND 443 open** for Let's Encrypt to work, even if you only serve on 443.
-- **`pg_dump` without `--no-owner --no-acl`** makes restores painful across servers. The backup script should always use those flags.
+- **Cloud's edge handles TLS** — don't try to renew certs yourself or override the FrankenPHP TLS block. The platform owns it.
+- **`pg_dump` without `--no-owner --no-acl`** makes restores painful across environments. The backup script should always use those flags.
 - **A `last_checked_at` of NULL means "never checked," not "checked recently."** Watch for `NULL` in sorts and filters.
 - **Inertia shared props are reset on every request.** Don't put long-lived state there.
 - **Tailwind v4 doesn't use a config file the same way as v3.** Customizations live in CSS, not JS config.
+- **Forgetting `TenantContext::setCurrent()` in an artisan command** throws on the first insert (intended). Cron-mode "ran once but did nothing" usually means the schedule called the command outside a tenant context — wrap the command's body in `$tenants->each(fn ($t) => $context->withTenant($t, fn () => ...))` or similar.
+- **`cloud shell` is read-only by default.** To run a write-capable shell, pass `--write` (or whatever Cloud's current flag is). Avoid running migrations from interactive shell; let the build pipeline do it on deploy.
+- **Spin `-T` flag is mandatory in agent/CI contexts.** Without it, Compose can hang waiting on a non-existent TTY. See [Local dev troubleshooting](#local-dev-troubleshooting).
 
 ---
 

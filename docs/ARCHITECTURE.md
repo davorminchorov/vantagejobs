@@ -14,50 +14,52 @@
 ## System overview
 
 ```
-┌────────────────────────────────────────────────────────────┐
-│                         Hetzner VPS                         │
-│                                                             │
-│  ┌──────────────┐    ┌────────────────────────────────┐    │
-│  │  FrankenPHP  │    │         cron (every min)        │    │
-│  │  (classic    │    │  → php artisan schedule:run    │    │
-│  │   mode +     │    └────────────────────────────────┘    │
-│  │   Caddy TLS) │                                          │
-│  │              │             ↓                            │
-│  │  Inertia +   │    ┌────────────────────────────────┐    │
-│  │  React       │    │       Scheduled commands        │    │
-│  │  frontend    │    │  - scrape:all (every 6h)        │    │
-│  │              │    │  - scrape:aggregators (daily)   │    │
-│  └──────┬───────┘    │  - digest:send (daily 7am)      │    │
-│         │            │  - signals:layoffs (weekly)     │    │
-│         │            │  - signals:github (weekly)      │    │
-│         │            │  - signals:blogs (daily)        │    │
-│         │            │  - artifacts:purge (daily)      │    │
-│         │            │  - backup:run (daily 2am)       │    │
-│         │            └────────────────────────────────┘    │
-│         │                          │                       │
-│         └────────────┬─────────────┘                       │
-│                      ↓                                     │
-│             ┌──────────────────┐                           │
-│             │  PostgreSQL 18   │                           │
-│             │  (single instance)│                          │
-│             └──────────────────┘                           │
-│                      │                                     │
-└──────────────────────┼─────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────┐
+│             Laravel Cloud  ·  EU region (Frankfurt)           │
+│                                                               │
+│  ┌──────────────┐     ┌──────────────────────────────────┐    │
+│  │  FrankenPHP  │     │   Cloud scheduled task (every min)│   │
+│  │  (classic    │     │   → php artisan schedule:run     │    │
+│  │   mode,      │     └──────────────────────────────────┘    │
+│  │   Cloud-     │                                             │
+│  │   managed,   │              ↓                              │
+│  │   TLS at     │     ┌──────────────────────────────────┐    │
+│  │   edge)      │     │       Scheduled commands          │   │
+│  │              │     │  - scrape:all (every 6h)          │   │
+│  │  Inertia +   │     │  - scrape:aggregators (daily)     │   │
+│  │  React       │     │  - digest:send (daily 7am)        │   │
+│  │  frontend    │     │  - signals:layoffs (weekly)       │   │
+│  │              │     │  - signals:github (weekly)        │   │
+│  └──────┬───────┘     │  - signals:blogs (daily)          │   │
+│         │             │  - artifacts:purge (daily)        │   │
+│         │             │  - backup:run (daily 2am UTC)     │   │
+│         │             └──────────────────────────────────┘    │
+│         │                          │                          │
+│         └────────────┬─────────────┘                          │
+│                      ↓                                        │
+│           ┌────────────────────────────┐                      │
+│           │  Cloud-managed PostgreSQL 18│                     │
+│           │  (single instance, PITR on) │                     │
+│           └────────────────────────────┘                      │
+│                      │                                        │
+└──────────────────────┼────────────────────────────────────────┘
                        │
                        ↓
-           ┌────────────────────────┐
-           │   Backblaze B2 bucket   │
-           │   (nightly pg_dump)     │
-           └────────────────────────┘
+           ┌────────────────────────────────────┐
+           │   Backblaze B2 bucket               │
+           │   (off-platform nightly pg_dump)    │
+           └────────────────────────────────────┘
 
-           Outbound calls:
-           ─→ Greenhouse / Lever / Ashby APIs
-           ─→ HN Algolia / Remotive / Himalayas / WWR / RemoteOK
-           ─→ layoffs.fyi / TrueUp / GitHub API / blog RSS feeds
-           ─→ Postmark / Resend (outbound mail)
+           Outbound calls (from Cloud compute):
+           → Greenhouse / Lever / Ashby APIs
+           → HN Algolia / Remotive / Himalayas / WWR / RemoteOK
+           → layoffs.fyi / TrueUp / GitHub API / blog RSS feeds
+           → Postmark / Resend (outbound mail)
 ```
 
-Single user, single instance, single language end-to-end via Inertia. No SPA, no microservices, no queue worker farm.
+Single active tenant (just me), single instance, single language end-to-end via Inertia. No SPA, no microservices, no queue worker farm. Multi-tenancy is *schema-level* from day one (every domain row has a `tenant_id`); operationally there is one tenant in v1 and no UI surface to switch.
+
+Local dev mirrors the topology via Spin (Docker Compose) wrapping `serversideup/php` images: a `php` service running FrankenPHP, a `node` service for Vite, and a `postgres` service for the database. Local domain is `vantagejobs.test`. Every `php`, `artisan`, `composer`, `vendor/bin/*`, and `npm` command runs through `spin run php` / `spin run node` (or `spin exec` when the stack is up).
 
 ---
 
@@ -127,11 +129,12 @@ QualityScoreCalculator runs nightly:
 
 The schema is designed around five domain pillars. Detail in `database/migrations/`.
 
-### Identity & Auth
+### Identity, Tenancy & Auth
 
-- **User** — single row. Email, password (bcrypt), TOTP secret, recovery codes.
-- **AuditLog** — append-only record of security-sensitive actions.
-- **Setting** — runtime-tunable key-value config (DND window, polling cadences, etc.).
+- **Tenant** — the data-ownership boundary. Every domain row has `tenant_id` referencing this table. One row in v1 (mine). Has `name`, `slug`, `timezone`, `created_at`. No deletion; deactivation only.
+- **User** — belongs to one Tenant via `tenant_id`. Email, password (bcrypt), TOTP secret, recovery codes, per-user timezone (defaults to the Tenant's). Exactly one user row in v1.
+- **AuditLog** — append-only record of security-sensitive actions. Always carries `tenant_id` (or NULL for unauthenticated events like failed logins where no Tenant is yet resolved).
+- **Setting** — runtime-tunable key-value config (DND window, polling cadences, etc.). Tenant-scoped: every Setting row carries `tenant_id`.
 
 ### Tracked entities
 
@@ -162,6 +165,8 @@ The schema is designed around five domain pillars. Detail in `database/migration
 - **Bookmark** — "watch later" flag on Roles. 30-day auto-expiry.
 - **Template** — message templates for outreach (categorized).
 
+**Tenancy invariant:** every table listed above (except `Tenant` itself) carries a `tenant_id` foreign key. A `BelongsToTenant` trait on every Eloquent model registers a global scope that filters on `TenantContext::current()->id`, and a model observer auto-fills `tenant_id` on insert. Tests that need to bypass scoping use `Model::withoutGlobalScope(BelongsToTenantScope::class)` explicitly and never silently. New migrations and new models MUST include `tenant_id`; it is a code review tripwire.
+
 See `database/migrations/` for the authoritative schema. Migrations are append-only; never edit a shipped migration.
 
 ---
@@ -170,19 +175,28 @@ See `database/migrations/` for the authoritative schema. Migrations are append-o
 
 ```
 Browser request
-  → FrankenPHP / Caddy
+  → Laravel Cloud edge (TLS termination)
+  → FrankenPHP (classic mode, Cloud-managed)
   → Laravel router
   → Auth middleware (Fortify session)
+  → ResolveTenantContext middleware (sets TenantContext from auth()->user()->tenant_id)
   → Controller method
-    └─ Eloquent queries (read)
-    └─ Server actions / Form Requests (write)
+    └─ Eloquent queries (read)   ← BelongsToTenant scope filters tenant_id automatically
+    └─ Server actions / Form Requests (write)   ← model observer auto-fills tenant_id
   → Return Inertia::render('Page/Name', $props)
   → Inertia middleware serializes props to JSON
   → React component receives typed props
   → Render
 ```
 
-No separate API. No tokens. No CORS. Every page is a controller method that returns props. Shared props (auth user, flash messages, env-driven UI flags) live in `app/Http/Middleware/HandleInertiaRequests.php`.
+No separate API. No tokens. No CORS. Every page is a controller method that returns props. Shared props (auth user, current tenant slug/timezone, flash messages, env-driven UI flags) live in `app/Http/Middleware/HandleInertiaRequests.php`.
+
+Artisan commands and scheduled tasks resolve the Tenant explicitly. A command that operates over tenant data must either:
+
+1. Accept a `--tenant=` option and call `app(TenantContext::class)->setCurrent(Tenant::whereSlug(...)->first())` at the top, **or**
+2. Loop over all active tenants and call `setCurrent()` once per iteration.
+
+Forgetting to set tenant context inside a command is the kind of bug that returns zero rows everywhere and silently writes orphaned data. The `BelongsToTenant` observer throws if it tries to insert without a tenant resolved, which is the intended tripwire.
 
 ---
 
@@ -296,77 +310,67 @@ Form pattern: Inertia's `useForm` hook + Laravel Form Request for server-side va
 
 ### Production environment
 
-- **Host:** Hetzner CX22 in Germany region (€5.18/mo).
-- **OS:** Ubuntu 24.04 LTS.
-- **PHP:** 8.5 via deb.sury.org repo.
-- **Postgres:** 18 from PGDG repo, on the same VPS.
-- **FrankenPHP:** Single binary at `/usr/local/bin/frankenphp`. Runs as systemd service.
-- **Domain:** Behind a registrar with DNSSEC enabled. A record points to VPS.
-- **TLS:** Auto-managed by Caddy (embedded in FrankenPHP). Let's Encrypt.
+- **Host:** Laravel Cloud, EU region (Frankfurt or equivalent for GDPR).
+- **Runtime:** FrankenPHP (classic mode) managed by Cloud. PHP 8.5.
+- **Database:** Cloud-managed PostgreSQL 18. Single instance, point-in-time recovery enabled.
+- **Edge:** TLS termination, HTTPS, HSTS, and certificate renewal handled by Cloud's edge. We declare security headers in the Laravel app (`SecurityHeaders` middleware), Cloud passes them through.
+- **Domain:** Custom domain configured via the `cloud` CLI. DNSSEC enabled at the registrar.
+- **Environment:** Single `production` environment in v1. A `staging` environment can be added later if a feature ever needs preview-before-prod.
 
-### Systemd unit
+Cloud configuration lives in the repo at `cloud.yaml` (or whatever the current Cloud manifest filename is). Secrets live in Cloud's encrypted store, not in the repo, managed via `cloud env:set`. Read the [`deploying-laravel-cloud`](https://docs.cloud.laravel.com) docs / skill before touching infra config.
 
-```ini
-# /etc/systemd/system/frankenphp.service
-[Unit]
-Description=FrankenPHP
-After=network.target postgresql.service
+### Local development
 
-[Service]
-ExecStart=/usr/local/bin/frankenphp run --config /etc/frankenphp/Caddyfile
-WorkingDirectory=/var/www/jobs
-User=deploy
-Restart=on-failure
-RestartSec=5
+Spin wraps Docker Compose for local dev:
 
-[Install]
-WantedBy=multi-user.target
+- `spin up` — start the stack (FrankenPHP + Node + Postgres) at `https://vantagejobs.test`.
+- `spin exec -T php php artisan ...` — run artisan in the running stack.
+- `spin run -T php composer ...` — run composer in a one-off container when the stack is down.
+- `spin run -T php ./vendor/bin/pint --dirty --format agent` — format dirty PHP.
+- `spin exec -T php php artisan test --compact --parallel --recreate-databases` — run the test suite.
+
+`docker-compose.dev.yml` is the source of truth for local services. `docker-compose.ci.yml` mirrors it for CI parity. `docker-compose.prod.yml` exists for completeness but is not the production deployment path; Laravel Cloud is.
+
+### Scheduler
+
+Laravel's scheduler runs as a Cloud scheduled task firing every minute, equivalent to:
+
+```
+* * * * * php artisan schedule:run
 ```
 
-### Caddyfile
-
-```caddy
-# /etc/frankenphp/Caddyfile
-jobs.yourdomain.tld {
-    root * /var/www/jobs/public
-    php_server
-    encode zstd gzip
-    
-    header {
-        Strict-Transport-Security "max-age=31536000; includeSubDomains"
-        X-Frame-Options "DENY"
-        Referrer-Policy "strict-origin-when-cross-origin"
-        X-Content-Type-Options "nosniff"
-        -Server
-    }
-}
-```
-
-### Cron
-
-```cron
-# /var/spool/cron/crontabs/deploy
-* * * * * cd /var/www/jobs && php artisan schedule:run >> /var/log/jobs-schedule.log 2>&1
-```
-
-Laravel's scheduler in `app/Console/Kernel.php` then takes care of dispatching the actual artisan commands at their declared cadences. See PRD section 8.7 for the per-task schedule.
+No host cron to manage; Cloud's scheduler invokes the command. The schedule definitions live in `app/Console/Kernel.php` (or `routes/console.php` in Laravel 13's preferred shape), declaring each scrape, signal, digest, and purge job with its cadence. See PRD section 8.7 for the per-task schedule.
 
 ### Deploys
 
-Via Laravel Forge (recommended) or via a tiny Ansible playbook. The deploy script:
+`git push` to `main` triggers Cloud's build pipeline:
 
-1. `git pull` on `main`
-2. `composer install --no-dev --optimize-autoloader`
-3. `npm ci && npm run build`
-4. `php artisan migrate --force`
-5. `php artisan config:cache && php artisan route:cache && php artisan view:cache`
-6. `systemctl reload frankenphp` (graceful reload)
+1. `composer install --no-dev --optimize-autoloader`
+2. `npm ci && npm run build`
+3. `php artisan migrate --force`
+4. `php artisan config:cache && php artisan route:cache && php artisan view:cache`
+5. Cloud cuts over to the new release; old release stays available for instant rollback.
+
+Manual operations use the `cloud` CLI:
+
+```bash
+cloud deploy           # trigger a deploy
+cloud rollback         # roll back to the previous release
+cloud env:set KEY=val  # set a production env var (encrypted)
+cloud logs --tail      # tail production logs
+cloud shell            # open a shell in the production container (read-only by default)
+```
 
 Rollback procedure: see [`RUNBOOK.md#rollback`](RUNBOOK.md#rollback).
 
 ### Backups
 
-Nightly `pg_dump` to Backblaze B2 via `php artisan backup:run`. Retention tiering: 30 days daily / 6 months weekly / monthly indefinite. Monthly restore-to-scratch-DB job verifies backups aren't corrupt.
+Two layers:
+
+1. **Primary:** Laravel Cloud managed Postgres backups. Point-in-time recovery enabled. Nightly snapshots retained per Cloud's plan defaults. Restore is a Cloud-side operation.
+2. **Off-platform redundancy:** A scheduled `php artisan backup:run` exports `pg_dump` nightly to Backblaze B2. Retention tiering: 30 days daily / 6 months weekly / monthly indefinite. Used for disaster scenarios where Cloud itself is the problem.
+
+A monthly restore-to-scratch-DB job verifies that the B2 backups are valid (not just present).
 
 See [`RUNBOOK.md#backup-restore`](RUNBOOK.md#backup-restore) for restore procedures.
 
@@ -396,6 +400,12 @@ See [`RUNBOOK.md#backup-restore`](RUNBOOK.md#backup-restore) for restore procedu
 │   │   ├── Sources/               # One class per source
 │   │   └── ScraperRegistry.php
 │   ├── Services/                  # Domain services (QualityScoreCalculator, etc.)
+│   ├── Tenancy/
+│   │   ├── Tenant.php             # Eloquent model
+│   │   ├── TenantContext.php      # Resolves current tenant per request/command
+│   │   ├── BelongsToTenant.php    # Trait: global scope + observer for auto-fill
+│   │   ├── BelongsToTenantScope.php
+│   │   └── ResolveTenantContext.php # Middleware
 │   └── Support/                   # Helpers, value objects
 ├── bootstrap/
 ├── config/
@@ -448,7 +458,7 @@ Per PRD section 8.8 and 8.9:
 - Full scrape run (~500 companies, 8 sources): under 90 seconds.
 - Dashboard p95 load: under 200ms.
 - Year-1 DB size: ~3-5 GB.
-- Year-2 DB size estimate: 8-12 GB. Still fits on the $5 VPS comfortably.
+- Year-2 DB size estimate: 8-12 GB. Comfortably within Laravel Cloud Postgres's small/medium tiers; revisit tier sizing as growth gets close to the limit.
 
 If growth exceeds expectations, mitigations are in [`RUNBOOK.md#database-growth-tracking`](RUNBOOK.md#database-growth-tracking).
 
@@ -458,13 +468,15 @@ If growth exceeds expectations, mitigations are in [`RUNBOOK.md#database-growth-
 
 A few things that someone evaluating the architecture might expect to see — and don't, on purpose:
 
-- **No Redis.** Single user, no need for a shared cache. Use Laravel's file-driver cache; it's fine.
-- **No Horizon.** No queue workers in v1. Scheduled commands run synchronously and exit. Add Horizon in Phase 6+ only if throughput demands it.
-- **No Docker in production.** FrankenPHP single-binary deployment is simpler than maintaining a container.
-- **No CI/CD pipeline for production deploys** in v1. Forge or a manual deploy script is fine for one-person, low-traffic. Add GitHub Actions for tests on PRs only.
+- **No Redis (yet).** Single tenant, no need for a shared cache. Use Laravel's file/database cache driver locally and Cloud's default cache driver in prod. Horizon is installed in the scaffold and ready to enable if a real queue workload ever appears; for now no queue workers run.
+- **No always-on workers.** Scheduled commands run synchronously inside the Cloud scheduler invocation and exit. Octane is installed but FrankenPHP worker mode is disabled in v1.
+- **No self-managed VPS.** Earlier drafts of the PRD targeted a Hetzner VPS via Forge/Ansible. v3 of the PRD reversed that decision in favor of Laravel Cloud; see PRD section 9 for the rationale.
+- **No production deploy CI workflow we maintain.** Laravel Cloud's built-in pipeline handles build + deploy on `git push`. We do run GitHub Actions for tests and Pint on PRs.
 - **No separate API layer.** Inertia eliminates the need.
 - **No microservices.** One Laravel app, one DB, one process model.
 - **No LLM integration anywhere.** Not in parsing, not in summarization, not in matching. Determinism > convenience. See PRD section 12.
+- **No user-facing multi-tenancy in v1.** The schema is tenant-aware so that future expansion is cheap, but v1 ships one Tenant, one User, and no tenant switcher anywhere in the UI.
+- **No third-party tenancy package.** `stancl/tenancy` and `spatie/laravel-multitenancy` are both fine; for a hand-rolled `tenant_id` + global scope at this scale, neither earns its keep. Revisit if/when v2 wants subdomain routing or per-tenant database isolation.
 
 ---
 

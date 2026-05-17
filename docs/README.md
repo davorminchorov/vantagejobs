@@ -43,16 +43,18 @@ Phase-by-phase build history lives in `docs/PHASE_N_NOTES.md` files. Each is app
 ## Stack
 
 - **Backend:** Laravel 13, PHP 8.5
-- **Web server:** FrankenPHP (classic mode), with embedded Caddy for HTTPS
-- **Database:** PostgreSQL 18
+- **Web server:** FrankenPHP (classic mode), Cloud-managed in prod, Spin-managed locally
+- **Database:** PostgreSQL 18 (Cloud-managed in prod, Spin service locally)
 - **Frontend:** Inertia.js + React 19 + TypeScript
 - **Styling:** Tailwind CSS v4 + shadcn/ui
 - **Auth:** Laravel Fortify (email + password + TOTP 2FA), no public registration
+- **Tenancy:** Hand-rolled row-level multi-tenancy (`tenant_id` on every domain table, `BelongsToTenant` global scope, `TenantContext` service). Single active Tenant in v1, schema-ready for more.
 - **HTTP client:** Guzzle with `Http::pool()` for concurrent fetches
-- **Scheduling:** `php artisan schedule:run` from cron
+- **Scheduling:** `php artisan schedule:run` invoked by a Laravel Cloud scheduled task every minute (no host cron)
 - **Mail:** Postmark or Resend
-- **Backups:** `pg_dump` nightly to Backblaze B2
-- **Hosting:** Single VPS (Hetzner CX22, Germany region)
+- **Backups:** Laravel Cloud managed Postgres PITR + nightly off-platform `pg_dump` to Backblaze B2
+- **Hosting:** Laravel Cloud (EU region)
+- **Local dev:** Spin (Docker Compose) wrapping `serversideup/php` images, served at `https://vantagejobs.test`
 
 Why these choices: see [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) and [`docs/PRD.md`](docs/PRD.md) section 9.
 
@@ -60,103 +62,95 @@ Why these choices: see [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) and [`docs
 
 ## Quick start (local development)
 
+Local development runs entirely through Spin (Docker Compose). You don't install PHP, Composer, Node, or Postgres on the host.
+
 ### Prereqs
 
-- PHP 8.5+
-- Composer 2.7+
-- Node 22+
-- PostgreSQL 18+ (locally or via Docker)
+- Docker Desktop (or compatible Docker engine + Compose v2)
 - Git
+- An entry in `/etc/hosts` pointing `vantagejobs.test` to `127.0.0.1`
 
 ### Setup
 
 ```bash
 # Clone
-git clone git@github.com:you/jobs.git
-cd jobs
-
-# Install dependencies
-composer install
-npm install
+git clone git@github.com:you/vantagejobs.git
+cd vantagejobs
 
 # Configure environment
 cp .env.example .env
-# Edit .env: set DB credentials, APP_URL, mail driver, etc.
+# Edit .env: set INITIAL_TENANT_NAME, INITIAL_USER_EMAIL, INITIAL_USER_PASSWORD, mail driver, etc.
 
-# Generate app key
-php artisan key:generate
+# Start the stack (FrankenPHP + Node + Postgres)
+spin up --build
 
-# Create the database
-createdb jobs
+# In another terminal: install dependencies inside the container
+spin run -T php composer install
+spin run -T node npm install
 
-# Run migrations
-php artisan migrate
-
-# Seed the first user (uses INITIAL_USER_EMAIL and INITIAL_USER_PASSWORD from .env)
-php artisan db:seed --class=CreateAdminUserSeeder
-
-# Seed example companies (for local development)
-php artisan db:seed --class=ExampleCompaniesSeeder
+# Generate app key, migrate, seed
+spin exec -T php php artisan key:generate
+spin exec -T php php artisan migrate
+spin exec -T php php artisan db:seed --class=CreateInitialTenantSeeder
+spin exec -T php php artisan db:seed --class=CreateAdminUserSeeder
+spin exec -T php php artisan db:seed --class=ExampleCompaniesSeeder
 ```
 
-### Run dev servers
-
-```bash
-# Terminal 1 — Laravel
-php artisan serve
-
-# Terminal 2 — Vite (Inertia React build watcher)
-npm run dev
-```
-
-Visit `http://localhost:8000` and log in with your seeded credentials.
+Visit `https://vantagejobs.test` and log in with your seeded credentials.
 
 ### Common commands
 
+All commands run through Spin. Use `spin exec -T php ...` when the stack is up; use `spin run -T php ...` for one-off containers when it's down.
+
 ```bash
-# Run the full scrape (all sources)
-php artisan scrape:all
+# Full scrape (all sources)
+spin exec -T php php artisan scrape:all
 
-# Scrape just one source
-php artisan scrape:source greenhouse
+# Single source
+spin exec -T php php artisan scrape:source greenhouse
 
-# Scrape one company
-php artisan scrape:source greenhouse --company=acme
+# One company
+spin exec -T php php artisan scrape:source greenhouse --company=acme
 
 # Re-parse all aggregator listings (preserves manual corrections)
-php artisan parser:reparse-all
+spin exec -T php php artisan parser:reparse-all
 
 # Run the daily digest manually
-php artisan digest:send
+spin exec -T php php artisan digest:send
 
-# Open the database console
-php artisan db
+# Open a database shell
+spin exec -T postgres psql -U vantagejobs vantagejobs
 
-# Run tests
-php artisan test
+# Run the test suite
+spin exec -T php php artisan test --compact --parallel --recreate-databases
+
+# Format dirty PHP
+spin run -T php ./vendor/bin/pint --dirty --format agent
 
 # Type-check the frontend
-npm run typecheck
+spin exec -T node npm run typecheck
 
 # Lint
-npm run lint
+spin exec -T node npm run lint
 ```
+
+See `docs/ARCHITECTURE.md` for the broader development workflow and the `spin-laravel-development` skill for in-depth Docker/Spin tips.
 
 ---
 
 ## Production deployment
 
-See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for the full deployment story. TL;DR:
+Production runs on Laravel Cloud (EU region). See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for the full picture. TL;DR:
 
-1. Provision a VPS (Hetzner CX22 or equivalent, Germany region recommended for GDPR).
-2. Install PHP 8.5, PostgreSQL 18, FrankenPHP, Node 22.
-3. Clone repo, copy `.env.production`, set secrets.
-4. Run migrations + seeders for the initial user.
-5. Configure FrankenPHP as a systemd service. Caddy will fetch TLS certs automatically.
-6. Install the cron entry for `php artisan schedule:run`.
-7. Configure nightly backup via the included `backup:run` artisan command.
+1. Create a Laravel Cloud project, link this Git repository, choose the EU region.
+2. Create a managed PostgreSQL 18 instance and link it to the project.
+3. Set production secrets via `cloud env:set` (APP_KEY, INITIAL_TENANT_*, INITIAL_USER_*, mail driver keys, B2 keys, GitHub token).
+4. Attach the custom domain via `cloud domains:add` and update DNS at the registrar.
+5. `git push origin main` — Cloud builds (`composer install`, `npm ci && npm run build`, `php artisan migrate --force`, config/route/view caching) and deploys.
+6. Register a Cloud scheduled task that runs `php artisan schedule:run` every minute.
+7. Confirm the `backup:run` schedule pushes nightly `pg_dump` to Backblaze B2 as off-platform redundancy alongside Cloud's managed Postgres PITR.
 
-For step-by-step recovery procedures, see [`docs/RUNBOOK.md`](docs/RUNBOOK.md).
+For step-by-step recovery procedures, see [`docs/RUNBOOK.md`](docs/RUNBOOK.md). For Cloud-specific operations (env vars, deploys, rollbacks, shell access), see the `deploying-laravel-cloud` skill.
 
 ---
 
@@ -164,7 +158,7 @@ For step-by-step recovery procedures, see [`docs/RUNBOOK.md`](docs/RUNBOOK.md).
 
 These are the rules this codebase is built around. They're enforced by code review (with myself) and PRD section 12.
 
-1. **One user. Forever.** No multi-user. No team accounts. No public registration.
+1. **One active tenant in v1.** No public registration, no sharing UI, no team features. The schema is tenant-aware (every domain row has `tenant_id`) so a future second tenant is a seeder change, not a rewrite. Operationally, it's still just me.
 2. **No LLMs. Ever.** Heuristic parsing only. Determinism and testability are the whole point.
 3. **The data is mine.** Full SQL/JSON/CSV export available at any time. No vendor lock-in.
 4. **Boring tech wins.** Stable, well-documented, widely-used. Cutting-edge only when materially better.
