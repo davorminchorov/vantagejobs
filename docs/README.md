@@ -49,7 +49,7 @@ Phase-by-phase build history lives in `docs/PHASE_N_NOTES.md` files. Each is app
 - **Styling:** Tailwind CSS v4 + shadcn/ui
 - **Auth:** Laravel Fortify (email + password + TOTP 2FA), no public registration
 - **Tenancy:** Hand-rolled row-level multi-tenancy (`tenant_id` on every domain table, `BelongsToTenant` global scope, `TenantContext` service). Single active Tenant in v1, schema-ready for more.
-- **HTTP client:** Guzzle with `Http::pool()` for concurrent fetches
+- **HTTP client:** Saloon (`saloonphp/saloon`) wrapping Guzzle, with typed Connectors/Requests per source and Saloon's pool API for concurrency
 - **Scheduling:** `php artisan schedule:run` invoked by a Laravel Cloud scheduled task every minute (no host cron)
 - **Mail:** Postmark or Resend
 - **Backups:** Laravel Cloud managed Postgres PITR + nightly off-platform `pg_dump` to Backblaze B2

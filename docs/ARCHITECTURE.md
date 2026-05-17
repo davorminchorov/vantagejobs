@@ -208,11 +208,13 @@ Per [`SOURCES.md`](SOURCES.md) Appendix A, every scraper implements `ScraperInte
 interface ScraperInterface
 {
     public function name(): string;
-    public function run(mixed $target, Client $http): ScraperRunResult;
+    public function run(mixed $target, Connector $connector): ScraperRunResult;
     public function concurrency(): int;
     public function schedule(): string;
 }
 ```
+
+The `$connector` is a Saloon Connector instance (`saloonphp/saloon`). Each source has its own Connector class under `app/Scrapers/Connectors/` (e.g. `GreenhouseConnector`, `LeverConnector`) and per-endpoint Request classes under `app/Scrapers/Requests/{Source}/`. Concurrency is handled by Saloon's pool API rather than raw Guzzle.
 
 Two specializations:
 
