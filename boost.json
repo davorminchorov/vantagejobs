@@ -1,0 +1,20 @@
+{
+    "agents": [
+        "claude_code"
+    ],
+    "cloud": true,
+    "guidelines": true,
+    "mcp": true,
+    "nightwatch": false,
+    "packages": [
+        "serversideup/spin"
+    ],
+    "sail": false,
+    "skills": [
+        "laravel-best-practices",
+        "configuring-horizon",
+        "tailwindcss-development",
+        "spin-laravel-development",
+        "deploying-laravel-cloud"
+    ]
+}
