@@ -1,0 +1,35 @@
+services:
+  php:
+    build:
+      target: ci
+      dockerfile: Dockerfile.php
+    volumes:
+      - .:/var/www/html/
+    depends_on:
+      - postgres
+  node:
+    build:
+      target: ci
+      dockerfile: Dockerfile.node
+    volumes:
+      - .:/usr/src/app/
+    working_dir: /usr/src/app/
+  mailpit:
+    image: axllent/mailpit
+  schedule:
+    build:
+      target: ci
+      dockerfile: Dockerfile.php
+    volumes:
+      - .:/var/www/html/
+  postgres:
+    environment:
+      POSTGRES_DB: "laravel"
+      POSTGRES_USER: "postgres"
+      POSTGRES_PASSWORD: "postgrespassword"
+  horizon:
+    build:
+      target: ci
+      dockerfile: Dockerfile.php
+    volumes:
+      - .:/var/www/html/
