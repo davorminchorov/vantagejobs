@@ -7,13 +7,17 @@
     "mcp": true,
     "nightwatch": false,
     "packages": [
-        "serversideup/spin"
+        "serversideup/spin",
+        "saloonphp/laravel-plugin"
     ],
     "sail": false,
     "skills": [
+        "fortify-development",
         "laravel-best-practices",
         "configuring-horizon",
+        "inertia-react-development",
         "tailwindcss-development",
+        "saloon-development",
         "spin-laravel-development",
         "deploying-laravel-cloud"
     ]
