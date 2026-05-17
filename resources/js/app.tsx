@@ -7,13 +7,13 @@ const appName = import.meta.env.VITE_APP_NAME ?? 'VantageJobs';
 
 void createInertiaApp({
     title: (title) => (title ? `${title} · ${appName}` : appName),
-    resolve: (name) => {
-        const pages = import.meta.glob<ResolvedComponent>('./Pages/**/*.tsx', { eager: true });
-        const page = pages[`./Pages/${name}.tsx`];
-        if (!page) {
+    resolve: async (name) => {
+        const pages = import.meta.glob<ResolvedComponent>('./Pages/**/*.tsx');
+        const importer = pages[`./Pages/${name}.tsx`];
+        if (!importer) {
             throw new Error(`Inertia page not found: ${name}`);
         }
-        return page;
+        return await importer();
     },
     setup({ el, App, props }) {
         createRoot(el).render(<App {...props} />);
