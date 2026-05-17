@@ -73,7 +73,7 @@ return [
     |
     */
 
-    'home' => '/home',
+    'home' => '/dashboard',
 
     /*
     |--------------------------------------------------------------------------
@@ -118,6 +118,7 @@ return [
         'login' => 'login',
         'two-factor' => 'two-factor',
         'passkeys' => 'passkeys',
+        'password-reset' => 'password-reset',
     ],
 
     /*
@@ -162,7 +163,8 @@ return [
     */
 
     'features' => [
-        Features::registration(),
+        // Public registration is intentionally disabled (PRD §7.6 — single
+        // pre-seeded user). Do not re-enable without revisiting the auth model.
         Features::resetPasswords(),
         // Features::emailVerification(),
         Features::updateProfileInformation(),
