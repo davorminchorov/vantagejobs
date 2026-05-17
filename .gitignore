@@ -7,6 +7,7 @@
 .phpunit.result.cache
 /.codex
 /.cursor/
+/.playwright-mcp/
 /.idea
 /.nova
 /.phpunit.cache

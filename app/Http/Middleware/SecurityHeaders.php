@@ -57,18 +57,32 @@ final class SecurityHeaders
 
     private function csp(string $nonce): string
     {
+        $isLocal = $this->app->environment('local');
+
+        $scriptSrc = "script-src 'self' 'nonce-{$nonce}' 'strict-dynamic'";
+        $styleSrc = "style-src 'self' 'unsafe-inline'";
+        $fontSrc = "font-src 'self' data:";
         $connectSrc = "connect-src 'self'";
 
-        if ($this->app->environment('local')) {
-            $connectSrc .= ' ws://vantagejobs.test:* wss://vantagejobs.test:* http://localhost:* https://localhost:* ws://localhost:* wss://localhost:*';
+        if ($isLocal) {
+            // The Spin Pro template serves the Vite dev server from
+            // https://vite.dev.test and uses WebSockets for HMR. Allow
+            // those origins so HMR works without disabling strict CSP
+            // in dev.
+            $scriptSrc .= ' https://vite.dev.test';
+            $styleSrc .= ' https://vite.dev.test';
+            $fontSrc .= ' https://vite.dev.test';
+            $connectSrc .= ' https://vite.dev.test wss://vite.dev.test'
+                .' ws://vantagejobs.test:* wss://vantagejobs.test:*'
+                .' http://localhost:* https://localhost:* ws://localhost:* wss://localhost:*';
         }
 
         $directives = [
             "default-src 'self'",
-            "script-src 'self' 'nonce-{$nonce}' 'strict-dynamic'",
-            "style-src 'self' 'unsafe-inline'",
+            $scriptSrc,
+            $styleSrc,
             "img-src 'self' data: blob:",
-            "font-src 'self' data:",
+            $fontSrc,
             $connectSrc,
             "frame-ancestors 'none'",
             "base-uri 'self'",
