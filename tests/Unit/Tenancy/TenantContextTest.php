@@ -19,16 +19,16 @@ final class TenantContextTest extends TestCase
     #[Test]
     public function current_returns_null_when_unset(): void
     {
-        $context = new TenantContext();
+        $context = new TenantContext;
 
         $this->assertNull($context->current());
         $this->assertFalse($context->has());
     }
 
     #[Test]
-    public function currentOrFail_throws_when_unset(): void
+    public function current_or_fail_throws_when_unset(): void
     {
-        $context = new TenantContext();
+        $context = new TenantContext;
 
         $this->expectException(RequiresTenantContextException::class);
 
@@ -36,10 +36,10 @@ final class TenantContextTest extends TestCase
     }
 
     #[Test]
-    public function setCurrent_then_current_returns_tenant(): void
+    public function set_current_then_current_returns_tenant(): void
     {
         $tenant = Tenant::factory()->create();
-        $context = new TenantContext();
+        $context = new TenantContext;
 
         $context->setCurrent($tenant);
 
@@ -49,11 +49,11 @@ final class TenantContextTest extends TestCase
     }
 
     #[Test]
-    public function withTenant_runs_callback_inside_context_and_restores_previous(): void
+    public function with_tenant_runs_callback_inside_context_and_restores_previous(): void
     {
         $a = Tenant::factory()->create();
         $b = Tenant::factory()->create();
-        $context = new TenantContext();
+        $context = new TenantContext;
         $context->setCurrent($a);
 
         $inside = null;
@@ -69,11 +69,11 @@ final class TenantContextTest extends TestCase
     }
 
     #[Test]
-    public function withTenant_restores_previous_even_on_exception(): void
+    public function with_tenant_restores_previous_even_on_exception(): void
     {
         $a = Tenant::factory()->create();
         $b = Tenant::factory()->create();
-        $context = new TenantContext();
+        $context = new TenantContext;
         $context->setCurrent($a);
 
         try {

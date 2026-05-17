@@ -98,7 +98,7 @@ final class BelongsToTenantTest extends TestCase
     }
 
     #[Test]
-    public function withoutTenantScope_returns_all_rows(): void
+    public function without_tenant_scope_returns_all_rows(): void
     {
         $a = Tenant::factory()->create();
         $b = Tenant::factory()->create();
