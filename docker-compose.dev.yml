@@ -1,5 +1,15 @@
 services:
   traefik:
+    environment:
+      # OrbStack injects HTTP(S)_PROXY into every container; Traefik (Go) honours
+      # them for outbound calls, which routes backend traffic through OrbStack's
+      # proxy and breaks reverse-proxying to in-network services.
+      HTTP_PROXY: ""
+      HTTPS_PROXY: ""
+      http_proxy: ""
+      https_proxy: ""
+      ALL_PROXY: ""
+      all_proxy: ""
     ports:
       - "80:80"
       - "443:443"
