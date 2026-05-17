@@ -43,7 +43,7 @@ Phase-by-phase build history lives in `docs/PHASE_N_NOTES.md` files. Each is app
 ## Stack
 
 - **Backend:** Laravel 13, PHP 8.5
-- **Web server:** FrankenPHP (classic mode), Cloud-managed in prod, Spin-managed locally
+- **Web server:** FrankenPHP — classic mode in production (Cloud-managed); Octane (worker mode) locally via Spin, as scaffolded by the Spin Pro template
 - **Database:** PostgreSQL 18 (Cloud-managed in prod, Spin service locally)
 - **Frontend:** Inertia.js + React 19 + TypeScript
 - **Styling:** Tailwind CSS v4 + shadcn/ui

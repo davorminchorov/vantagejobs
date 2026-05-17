@@ -59,7 +59,7 @@
 
 Single active tenant (just me), single instance, single language end-to-end via Inertia. No SPA, no microservices, no queue worker farm. Multi-tenancy is *schema-level* from day one (every domain row has a `tenant_id`); operationally there is one tenant in v1 and no UI surface to switch.
 
-Local dev mirrors the topology via Spin (Docker Compose) wrapping `serversideup/php` images: a `php` service running FrankenPHP, a `node` service for Vite, and a `postgres` service for the database. Local domain is `vantagejobs.test`. Every `php`, `artisan`, `composer`, `vendor/bin/*`, and `npm` command runs through `spin run php` / `spin run node` (or `spin exec` when the stack is up).
+Local dev runs a fuller version of the topology via Spin (Docker Compose) wrapping `serversideup/php` images: a `php` service running FrankenPHP under Octane (worker mode), a `node` service for Vite, a `postgres` service, a `redis` service, a `horizon` worker service, a `schedule` service running `artisan schedule:work`, a `mailpit` service, and Traefik as the local edge. Local domain is `vantagejobs.test`. This is the full Spin Pro template scaffold; v1 production deliberately runs less (classic FrankenPHP, no Octane, no Horizon, no Redis), and the gap is accepted in exchange for keeping the scaffolded local stack intact for Phase 6+. Every `php`, `artisan`, `composer`, `vendor/bin/*`, and `npm` command runs through `spin run php` / `spin run node` (or `spin exec` when the stack is up).
 
 ---
 
@@ -468,8 +468,8 @@ If growth exceeds expectations, mitigations are in [`RUNBOOK.md#database-growth-
 
 A few things that someone evaluating the architecture might expect to see — and don't, on purpose:
 
-- **No Redis (yet).** Single tenant, no need for a shared cache. Use Laravel's file/database cache driver locally and Cloud's default cache driver in prod. Horizon is installed in the scaffold and ready to enable if a real queue workload ever appears; for now no queue workers run.
-- **No always-on workers.** Scheduled commands run synchronously inside the Cloud scheduler invocation and exit. Octane is installed but FrankenPHP worker mode is disabled in v1.
+- **No Redis in production (yet).** Single tenant, no need for a shared cache in prod. Production uses Laravel's database cache driver. **Redis does run locally** as part of the Spin Pro scaffold so that Horizon has somewhere to talk to; it sits effectively unused in v1.
+- **No always-on workers in production.** Scheduled commands run synchronously inside the Cloud scheduler invocation and exit. Octane is installed; FrankenPHP **worker mode is disabled in production** in v1. **Local runs Octane** as scaffolded — accepted dev/prod runtime divergence in exchange for keeping the Spin Pro template intact. **Horizon runs locally** as a worker service but has nothing to consume in v1.
 - **No self-managed VPS.** Earlier drafts of the PRD targeted a Hetzner VPS via Forge/Ansible. v3 of the PRD reversed that decision in favor of Laravel Cloud; see PRD section 9 for the rationale.
 - **No production deploy CI workflow we maintain.** Laravel Cloud's built-in pipeline handles build + deploy on `git push`. We do run GitHub Actions for tests and Pint on PRs.
 - **No separate API layer.** Inertia eliminates the need.
