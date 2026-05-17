@@ -470,7 +470,7 @@ If growth exceeds expectations, mitigations are in [`RUNBOOK.md#database-growth-
 
 A few things that someone evaluating the architecture might expect to see — and don't, on purpose:
 
-- **No Redis in production (yet).** Single tenant, no need for a shared cache in prod. Production uses Laravel's database cache driver. **Redis does run locally** as part of the Spin Pro scaffold so that Horizon has somewhere to talk to; it sits effectively unused in v1.
+- **Redis in production for sessions only.** Managed Redis on Laravel Cloud backs the session driver (SESSION_DRIVER=redis). No other Redis usage in v1: cache stays on the database driver, queues are not in use. Redis tier costs ~$5/mo on Cloud; accepted for cleaner dev/prod parity (the local Spin stack already runs Redis). **Listing individual active sessions is deferred to Phase 6+** — Redis SCAN-based enumeration is fragile; v1 only exposes "sign out everywhere" via `Auth::logoutOtherDevices`.
 - **No always-on workers in production.** Scheduled commands run synchronously inside the Cloud scheduler invocation and exit. Octane is installed; FrankenPHP **worker mode is disabled in production** in v1. **Local runs Octane** as scaffolded — accepted dev/prod runtime divergence in exchange for keeping the Spin Pro template intact. **Horizon runs locally** as a worker service but has nothing to consume in v1.
 - **No self-managed VPS.** Earlier drafts of the PRD targeted a Hetzner VPS via Forge/Ansible. v3 of the PRD reversed that decision in favor of Laravel Cloud; see PRD section 9 for the rationale.
 - **No production deploy CI workflow we maintain.** Laravel Cloud's built-in pipeline handles build + deploy on `git push`. We do run GitHub Actions for tests and Pint on PRs.
