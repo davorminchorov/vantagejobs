@@ -387,12 +387,30 @@ function ListingCard({
                     <div className="min-w-0 space-y-1">
                         <div className="flex flex-wrap items-baseline gap-2">
                             <h3 className="text-base font-semibold">
-                                <EditablePill
-                                    listing={listing}
-                                    field="role_title"
-                                    label={listing.parsed_role_title ?? '(role unknown)'}
-                                    onEdit={onEdit}
-                                />
+                                {listing.url ? (
+                                    <a
+                                        href={listing.url}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        onClick={(e) => e.stopPropagation()}
+                                        className="hover:underline"
+                                    >
+                                        {listing.parsed_role_title ?? '(role unknown)'}
+                                    </a>
+                                ) : (
+                                    <span>{listing.parsed_role_title ?? '(role unknown)'}</span>
+                                )}
+                                <button
+                                    type="button"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        onEdit('role_title');
+                                    }}
+                                    className="ml-1 text-xs text-muted-foreground/40 hover:text-foreground"
+                                    title="Edit role title"
+                                >
+                                    ✎
+                                </button>
                             </h3>
                             <EditablePill
                                 listing={listing}
@@ -475,6 +493,22 @@ function ListingCard({
                         )}
                     </div>
                     <div className="flex shrink-0 gap-1">
+                        {listing.url && (
+                            <Button
+                                size="sm"
+                                variant="outline"
+                                asChild
+                            >
+                                <a
+                                    href={listing.url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    onClick={(e) => e.stopPropagation()}
+                                >
+                                    Open ↗
+                                </a>
+                            </Button>
+                        )}
                         <Button
                             size="sm"
                             variant="default"
@@ -525,7 +559,7 @@ function ListingCard({
                         className="text-xs text-muted-foreground hover:text-foreground"
                         onClick={(e) => e.stopPropagation()}
                     >
-                        {listing.url}
+                        {hostnameFromUrl(listing.url)}
                     </a>
                 )}
                 {editingField !== null && (
@@ -763,6 +797,14 @@ function FieldInput({
             onChange={(e) => onChange(e.currentTarget.value)}
         />
     );
+}
+
+function hostnameFromUrl(url: string): string {
+    try {
+        return new URL(url).hostname.replace(/^www\./, '');
+    } catch {
+        return url;
+    }
 }
 
 function currentValueFor(listing: Listing, field: EditableField): unknown {
