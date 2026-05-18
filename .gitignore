@@ -6,6 +6,7 @@
 .phpactor.json
 .phpunit.result.cache
 /.codex
+/.claude/worktrees/
 /.cursor/
 /.playwright-mcp/
 /.idea
