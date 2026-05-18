@@ -65,3 +65,13 @@ Schedule::command('bookmarks:expire')->dailyAt('06:05');
 // purge — they share no rows but it keeps the nightly band readable.
 Schedule::command('parser:rollup-confidence')->dailyAt('02:30');
 Schedule::command('scrape-artifacts:purge')->dailyAt('03:00');
+
+// Snapshot the day's company state at 04:00 UTC. Other signal jobs
+// (github, blog, layoffs, quality) update the same rows in place later.
+Schedule::call(static function () use ($tenantSlug): void {
+    $slug = $tenantSlug();
+    if (! is_string($slug) || $slug === '') {
+        return;
+    }
+    Artisan::call('signals:snapshot:daily', ['--tenant' => $slug]);
+})->name('signals:snapshot:daily')->dailyAt('04:00');
