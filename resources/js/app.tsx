@@ -3,7 +3,11 @@ import '../css/app.css';
 import { createInertiaApp, type ResolvedComponent } from '@inertiajs/react';
 import { createRoot } from 'react-dom/client';
 
+import { initializeTheme } from '@/hooks/use-appearance';
+
 const appName = import.meta.env.VITE_APP_NAME ?? 'VantageJobs';
+
+initializeTheme();
 
 void createInertiaApp({
     title: (title) => (title ? `${title} · ${appName}` : appName),

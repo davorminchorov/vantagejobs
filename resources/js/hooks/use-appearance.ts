@@ -33,6 +33,16 @@ function applyAppearance(appearance: Appearance): void {
     document.documentElement.classList.toggle('dark', shouldBeDark);
 }
 
+/**
+ * Apply the stored (or system-preferred) appearance synchronously before
+ * React mounts so the very first paint already has the right theme class.
+ * Without this, every page boots light then flashes to dark when the hook's
+ * effect runs.
+ */
+export function initializeTheme(): void {
+    applyAppearance(readStoredAppearance());
+}
+
 export function useAppearance(): {
     appearance: Appearance;
     setAppearance: (next: Appearance) => void;
