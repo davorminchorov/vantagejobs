@@ -31,7 +31,7 @@ interface NavItem {
 const NAV_ITEMS: ReadonlyArray<NavItem> = [
     { name: 'Dashboard', href: '/dashboard' },
     { name: 'Companies', href: '/companies' },
-    { name: 'Discover', href: null },
+    { name: 'Discover', href: '/discover' },
     { name: 'Pipeline', href: null },
     { name: 'Settings', href: '/settings/profile' },
 ];

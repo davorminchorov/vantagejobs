@@ -10,6 +10,10 @@ use App\Http\Controllers\Companies\ShowCompanyController;
 use App\Http\Controllers\Companies\StoreCompanyController;
 use App\Http\Controllers\Companies\UpdateCompanyController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\Discover\DismissListingController;
+use App\Http\Controllers\Discover\IndexController as DiscoverIndexController;
+use App\Http\Controllers\Discover\KeepListingController;
+use App\Http\Controllers\Discover\SnoozeListingController;
 use App\Http\Controllers\Import\CancelImportController;
 use App\Http\Controllers\Import\MapFormController;
 use App\Http\Controllers\Import\RunImportController;
@@ -45,6 +49,11 @@ Route::middleware(['auth'])->group(function (): void {
     Route::get('/import/map', MapFormController::class)->name('import.map');
     Route::post('/import/run', RunImportController::class)->name('import.run');
     Route::post('/import/cancel', CancelImportController::class)->name('import.cancel');
+
+    Route::get('/discover', DiscoverIndexController::class)->name('discover.index');
+    Route::post('/discover/{listing}/keep', KeepListingController::class)->name('discover.listings.keep');
+    Route::post('/discover/{listing}/dismiss', DismissListingController::class)->name('discover.listings.dismiss');
+    Route::post('/discover/{listing}/snooze', SnoozeListingController::class)->name('discover.listings.snooze');
 
     Route::get('/search', GlobalSearchController::class)->name('search');
 
