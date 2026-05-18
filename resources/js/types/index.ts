@@ -25,9 +25,19 @@ export interface SharedTenant {
     timezone: string;
 }
 
+export interface SharedSavedView {
+    id: number;
+    name: string;
+    entity: 'companies' | 'roles' | 'discover';
+    filters: Record<string, unknown>;
+    sort_order: number;
+    is_default: boolean;
+}
+
 export type PageProps<T extends Record<string, unknown> = Record<string, unknown>> = InertiaPageProps &
     T & {
         auth: SharedAuth;
         tenant: SharedTenant | null;
         flash: SharedFlash;
+        savedViews: SharedSavedView[];
     };

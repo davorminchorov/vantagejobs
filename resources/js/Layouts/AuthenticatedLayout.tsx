@@ -3,6 +3,7 @@ import { Menu } from 'lucide-react';
 import { useState, type ReactNode } from 'react';
 
 import GlobalCommandPalette from '@/components/search/GlobalCommandPalette';
+import SavedViewsNav from '@/components/saved-views/SavedViewsNav';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import {
@@ -13,6 +14,7 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { Separator } from '@/components/ui/separator';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { cn } from '@/lib/utils';
 import type { PageProps, User } from '@/types';
@@ -92,7 +94,7 @@ export default function AuthenticatedLayout({ children, header }: AuthenticatedL
                                 <SheetHeader>
                                     <SheetTitle>VantageJobs</SheetTitle>
                                 </SheetHeader>
-                                <nav className="mt-6 flex flex-col gap-1">
+                                <nav className="mt-6 flex flex-col gap-1" aria-label="Mobile primary">
                                     {NAV_ITEMS.map((item) => {
                                         const active = isActive(currentUrl, item);
                                         const baseClasses =
@@ -128,6 +130,11 @@ export default function AuthenticatedLayout({ children, header }: AuthenticatedL
                                         );
                                     })}
                                 </nav>
+                                <Separator className="my-4" />
+                                <div className="px-2 pb-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                                    Views
+                                </div>
+                                <SavedViewsNav variant="compact" onNavigate={() => setMobileOpen(false)} />
                             </SheetContent>
                         </Sheet>
 
@@ -172,6 +179,19 @@ export default function AuthenticatedLayout({ children, header }: AuthenticatedL
                                     </Link>
                                 );
                             })}
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button
+                                        variant="ghost"
+                                        className="h-9 px-3 text-sm font-medium text-muted-foreground hover:text-foreground"
+                                    >
+                                        Views
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="start" className="w-72 p-2">
+                                    <SavedViewsNav variant="compact" />
+                                </DropdownMenuContent>
+                            </DropdownMenu>
                         </nav>
                     </div>
 

@@ -2,6 +2,7 @@ import { Head, Link, router } from '@inertiajs/react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import SaveViewButton from '@/components/saved-views/SaveViewButton';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -218,6 +219,11 @@ export default function CompaniesIndexPage({ companies, filters, options }: Prop
                         </p>
                     </div>
                     <div className="flex items-center gap-2">
+                        <SaveViewButton
+                            entity="companies"
+                            filters={local as unknown as Record<string, unknown>}
+                            disabled={!hasAnyFilter}
+                        />
                         <Button asChild variant="outline">
                             <Link href="/import">Bulk import</Link>
                         </Button>
