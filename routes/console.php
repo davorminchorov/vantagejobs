@@ -60,4 +60,8 @@ foreach (['remotive', 'himalayas', 'weworkremotely', 'remoteok'] as $type) {
 
 Schedule::command('bookmarks:warn-expiring')->dailyAt('06:00');
 Schedule::command('bookmarks:expire')->dailyAt('06:05');
+
+// Roll the parser confidence stats forward 30 minutes before the artifact
+// purge — they share no rows but it keeps the nightly band readable.
+Schedule::command('parser:rollup-confidence')->dailyAt('02:30');
 Schedule::command('scrape-artifacts:purge')->dailyAt('03:00');

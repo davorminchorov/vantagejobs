@@ -2,6 +2,9 @@
 
 declare(strict_types=1);
 
+use App\Http\Controllers\Admin\Parser\IndexController as AdminParserIndexController;
+use App\Http\Controllers\Admin\Parser\ReparseAllController as AdminParserReparseAllController;
+use App\Http\Controllers\Admin\Parser\RunRollupController as AdminParserRunRollupController;
 use App\Http\Controllers\Companies\CreateCompanyController;
 use App\Http\Controllers\Companies\DetectAtsController;
 use App\Http\Controllers\Companies\EditCompanyController;
@@ -83,6 +86,12 @@ Route::middleware(['auth'])->group(function (): void {
     Route::delete('/bookmarks/{bookmark}', DeleteBookmarkController::class)->name('bookmarks.destroy');
 
     Route::get('/search', GlobalSearchController::class)->name('search');
+
+    Route::prefix('admin/parser')->name('admin.parser.')->group(function (): void {
+        Route::get('/', AdminParserIndexController::class)->name('index');
+        Route::post('/rollup', AdminParserRunRollupController::class)->name('rollup');
+        Route::post('/reparse-all', AdminParserReparseAllController::class)->name('reparse-all');
+    });
 
     Route::post('/saved-views', StoreSavedViewController::class)->name('saved-views.store');
     Route::patch('/saved-views/{view}', UpdateSavedViewController::class)
