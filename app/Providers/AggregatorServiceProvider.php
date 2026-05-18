@@ -6,6 +6,7 @@ namespace App\Providers;
 
 use App\Scrapers\Aggregator\AggregatorRegistry;
 use App\Scrapers\Aggregator\HackerNews\HackerNewsScraper;
+use App\Scrapers\Aggregator\SaveFixtureAction;
 use App\Scrapers\Aggregator\Himalayas\HimalayasScraper;
 use App\Scrapers\Aggregator\Parser\Extractors\ApplyMethodExtractor;
 use App\Scrapers\Aggregator\Parser\Extractors\CompanyNameExtractor;
@@ -38,6 +39,11 @@ final class AggregatorServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->scoped(AggregatorRegistry::class, fn (): AggregatorRegistry => new AggregatorRegistry());
+
+        $this->app->scoped(SaveFixtureAction::class, fn ($app): SaveFixtureAction => new SaveFixtureAction(
+            $app->make(\App\Scrapers\Aggregator\SourceContextFactory::class),
+            base_path('tests/Fixtures/parsers'),
+        ));
 
         $this->app->scoped(ParserPipeline::class, fn (): ParserPipeline => new ParserPipeline([
             new CompanyNameExtractor(),
