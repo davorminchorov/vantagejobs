@@ -132,9 +132,14 @@ export default function CompaniesIndexPage({ companies, filters, options }: Prop
                                 : `${companies.total} ${companies.total === 1 ? 'company' : 'companies'} on the watch list.`}
                         </p>
                     </div>
-                    <Button asChild>
-                        <Link href="/companies/create">Add company</Link>
-                    </Button>
+                    <div className="flex items-center gap-2">
+                        <Button asChild variant="outline">
+                            <Link href="/import">Bulk import</Link>
+                        </Button>
+                        <Button asChild>
+                            <Link href="/companies/create">Add company</Link>
+                        </Button>
+                    </div>
                 </header>
 
                 <Card>

@@ -10,6 +10,11 @@ use App\Http\Controllers\Companies\ShowCompanyController;
 use App\Http\Controllers\Companies\StoreCompanyController;
 use App\Http\Controllers\Companies\UpdateCompanyController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\Import\CancelImportController;
+use App\Http\Controllers\Import\MapFormController;
+use App\Http\Controllers\Import\RunImportController;
+use App\Http\Controllers\Import\UploadCsvController;
+use App\Http\Controllers\Import\UploadFormController;
 use App\Http\Controllers\Tags\AttachTagController;
 use App\Http\Controllers\Tags\AutocompleteTagsController;
 use App\Http\Controllers\Tags\DetachTagController;
@@ -33,6 +38,12 @@ Route::middleware(['auth'])->group(function (): void {
     Route::get('/companies/{company}', ShowCompanyController::class)->name('companies.show');
     Route::get('/companies/{company}/edit', EditCompanyController::class)->name('companies.edit');
     Route::put('/companies/{company}', UpdateCompanyController::class)->name('companies.update');
+
+    Route::get('/import', UploadFormController::class)->name('import.upload');
+    Route::post('/import', UploadCsvController::class)->name('import.upload.store');
+    Route::get('/import/map', MapFormController::class)->name('import.map');
+    Route::post('/import/run', RunImportController::class)->name('import.run');
+    Route::post('/import/cancel', CancelImportController::class)->name('import.cancel');
 
     Route::get('/tags', AutocompleteTagsController::class)->name('tags.autocomplete');
     Route::post('/companies/{company}/tags', AttachTagController::class)->name('companies.tags.attach');
