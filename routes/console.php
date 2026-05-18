@@ -48,19 +48,41 @@ Schedule::call(static function () use ($tenantSlug): void {
     Artisan::call('aggregator:run', ['source' => 'hackernews', '--tenant' => $slug]);
 })->name('aggregator:hackernews:5th')->monthlyOn(5, '07:00');
 
-// Phase 2 + deferred-optional aggregators (SOURCES.md §2, §3). All poll
-// once daily; per-source ToS / rate-limit caps live in
-// config/scrapers.php → 'aggregators'. New entries here MUST also have a
-// matching AggregatorSource row (AggregatorSourcesSeeder), otherwise
-// aggregator:run is a no-op for that type.
-foreach (['remotive', 'himalayas', 'weworkremotely', 'remoteok', 'fourdayweek', 'workingnomads', 'adzuna'] as $type) {
-    Schedule::call(static function () use ($tenantSlug, $type): void {
-        $slug = $tenantSlug();
-        if (! is_string($slug) || $slug === '') {
-            return;
+// Phase 2 + deferred-optional aggregators (SOURCES.md §2, §3) and the
+// later tier 1 (Jobicy / Arbeitnow) + tier 2 (Python.org / Django /
+// Elixir Jobs / HexHire) additions. All poll once daily; per-source ToS
+// / rate-limit caps live in config/scrapers.php → 'aggregators'. Each
+// entry must also have an enabled AggregatorSource row for the target
+// tenant — without it aggregator:run is a no-op for that type.
+//
+// Tenants are resolved per-run: every tenant that has at least one
+// enabled aggregator source gets a run. That way the schedule keeps
+// working as new tenants spin up without code changes (and doesn't
+// silently target the wrong tenant when tenant_id ordering shifts).
+$aggregatorTenantSlugs = static function (): array {
+    return Tenant::query()
+        ->whereExists(static function ($q): void {
+            $q->select('id')
+                ->from('aggregator_sources')
+                ->whereColumn('aggregator_sources.tenant_id', 'tenants.id')
+                ->where('aggregator_sources.enabled', true);
+        })
+        ->orderBy('id')
+        ->pluck('slug')
+        ->all();
+};
+
+foreach ([
+    'remotive', 'himalayas', 'weworkremotely', 'remoteok',
+    'fourdayweek', 'workingnomads', 'adzuna', 'larajobs',
+    'jobicy', 'arbeitnow',
+    'python_org', 'django_news', 'elixir_jobs', 'hexhire',
+] as $type) {
+    Schedule::call(static function () use ($aggregatorTenantSlugs, $type): void {
+        foreach ($aggregatorTenantSlugs() as $slug) {
+            Artisan::call('aggregator:run', ['source' => $type, '--tenant' => $slug]);
         }
-        Artisan::call('aggregator:run', ['source' => $type, '--tenant' => $slug]);
-    })->name("aggregator:{$type}:daily")->dailyAt('06:30');
+    })->name("aggregator:{$type}:daily")->dailyAt('06:30')->withoutOverlapping();
 }
 
 Schedule::command('bookmarks:warn-expiring')->dailyAt('06:00');
