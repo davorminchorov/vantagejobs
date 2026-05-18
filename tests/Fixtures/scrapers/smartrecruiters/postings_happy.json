@@ -1,0 +1,40 @@
+{
+  "totalFound": 3,
+  "content": [
+    {
+      "id": "sr-9001",
+      "name": "Senior Platform Engineer",
+      "uuid": "uuid-9001",
+      "refNumber": "REQ-9001",
+      "jobAd": { "sections": { "jobDescription": { "text": "Build platform tooling." } } },
+      "location": { "city": "Berlin", "region": "Berlin", "country": "de", "remote": false },
+      "department": { "label": "Engineering" },
+      "function": { "label": "Software Engineering" },
+      "industry": { "label": "Internet" },
+      "releasedDate": "2026-05-10T14:32:00Z"
+    },
+    {
+      "id": "sr-9002",
+      "name": "Product Designer",
+      "uuid": "uuid-9002",
+      "refNumber": "REQ-9002",
+      "jobAd": { "sections": { "jobDescription": { "text": "Design beautiful things." } } },
+      "location": { "city": "New York", "region": "NY", "country": "us", "remote": false },
+      "function": { "label": "Design" },
+      "industry": { "label": "Internet" },
+      "releasedDate": "2026-05-09T09:15:00Z"
+    },
+    {
+      "id": "sr-9003",
+      "name": "Engineering Manager, Remote",
+      "uuid": "uuid-9003",
+      "refNumber": "REQ-9003",
+      "jobAd": { "sections": { "jobDescription": { "text": "Lead a remote team." } } },
+      "location": { "city": "", "region": "", "country": "us", "remote": true },
+      "department": { "label": "Engineering" },
+      "function": { "label": "Software Engineering" },
+      "industry": { "label": "Internet" },
+      "releasedDate": "2026-05-11T18:00:00Z"
+    }
+  ]
+}
