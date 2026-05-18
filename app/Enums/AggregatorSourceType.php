@@ -5,11 +5,10 @@ declare(strict_types=1);
 namespace App\Enums;
 
 /**
- * The five Phase 2 aggregator sources per SOURCES.md §2.1–2.5.
- *
- * Backing values are stable identifiers used as the `type` column on
- * aggregator_sources and as the `source` column on scrape_runs when
- * source_kind = 'aggregator'.
+ * Aggregator sources per SOURCES.md §2 (Phase 2) and §3 (deferred /
+ * optional). Backing values are stable identifiers used as the `type`
+ * column on aggregator_sources and as the `source` column on scrape_runs
+ * when source_kind = 'aggregator'.
  */
 enum AggregatorSourceType: string
 {
@@ -18,6 +17,9 @@ enum AggregatorSourceType: string
     case HIMALAYAS = 'himalayas';
     case WEWORKREMOTELY = 'weworkremotely';
     case REMOTEOK = 'remoteok';
+    case FOURDAYWEEK = 'fourdayweek';
+    case WORKINGNOMADS = 'workingnomads';
+    case ADZUNA = 'adzuna';
 
     public function displayName(): string
     {
@@ -27,6 +29,9 @@ enum AggregatorSourceType: string
             self::HIMALAYAS => 'Himalayas',
             self::WEWORKREMOTELY => 'We Work Remotely',
             self::REMOTEOK => 'RemoteOK',
+            self::FOURDAYWEEK => '4dayweek.io',
+            self::WORKINGNOMADS => 'Working Nomads',
+            self::ADZUNA => 'Adzuna',
         };
     }
 
@@ -39,10 +44,13 @@ enum AggregatorSourceType: string
     {
         return match ($this) {
             self::HACKERNEWS => 60 * 24 * 30,
-            self::REMOTIVE => 60 * 24,
-            self::HIMALAYAS => 60 * 24,
-            self::WEWORKREMOTELY => 60 * 24,
-            self::REMOTEOK => 60 * 24,
+            self::REMOTIVE,
+            self::HIMALAYAS,
+            self::WEWORKREMOTELY,
+            self::REMOTEOK,
+            self::FOURDAYWEEK,
+            self::WORKINGNOMADS,
+            self::ADZUNA => 60 * 24,
         };
     }
 }

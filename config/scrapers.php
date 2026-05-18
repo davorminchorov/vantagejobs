@@ -74,17 +74,54 @@ return [
             'retry_times' => 4,
             'retry_sleep_ms' => 1000,
         ],
+        'workable' => [
+            'concurrency' => 5,
+            'timeout' => 15,
+            'connect_timeout' => 5,
+            'retry_times' => 3,
+            'retry_sleep_ms' => 1000,
+        ],
+        'smartrecruiters' => [
+            'concurrency' => 5,
+            'timeout' => 15,
+            'connect_timeout' => 5,
+            'retry_times' => 3,
+            'retry_sleep_ms' => 1000,
+        ],
+        'personio' => [
+            'concurrency' => 5,
+            'timeout' => 15,
+            'connect_timeout' => 5,
+            'retry_times' => 3,
+            'retry_sleep_ms' => 1000,
+        ],
+        'recruitee' => [
+            'concurrency' => 5,
+            'timeout' => 15,
+            'connect_timeout' => 5,
+            'retry_times' => 3,
+            'retry_sleep_ms' => 1000,
+        ],
+        'teamtailor' => [
+            'concurrency' => 5,
+            'timeout' => 15,
+            'connect_timeout' => 5,
+            'retry_times' => 3,
+            'retry_sleep_ms' => 1000,
+        ],
     ],
 
     /*
     |--------------------------------------------------------------------------
-    | Aggregator sources (Phase 2)
+    | Aggregator sources (Phase 2 + optional Phase 3)
     |--------------------------------------------------------------------------
     |
     | Per-source caps for the discovery-layer scrapers. Concurrency 1 across
     | the board: SOURCES.md §2.2 (Remotive ≤ 2 req/min), §2.3 (Himalayas
     | 429 on abuse), §2.4 (We Work Remotely RSS), §2.5 (RemoteOK polite-poll).
-    | HackerNews is serial-monthly per §2.1.
+    | HackerNews is serial-monthly per §2.1. 4dayweek, Working Nomads, and
+    | Adzuna (deferred / optional, SOURCES.md §3.6-3.8) follow the same
+    | polite-poll pattern.
     |
     */
     'aggregators' => [
@@ -123,6 +160,47 @@ return [
             'retry_times' => 3,
             'retry_sleep_ms' => 2000,
         ],
+        'fourdayweek' => [
+            'concurrency' => 1,
+            'timeout' => 15,
+            'connect_timeout' => 5,
+            'retry_times' => 3,
+            'retry_sleep_ms' => 2000,
+        ],
+        'workingnomads' => [
+            'concurrency' => 1,
+            'timeout' => 15,
+            'connect_timeout' => 5,
+            'retry_times' => 3,
+            'retry_sleep_ms' => 2000,
+        ],
+        'adzuna' => [
+            'concurrency' => 1,
+            'timeout' => 15,
+            'connect_timeout' => 5,
+            'retry_times' => 3,
+            'retry_sleep_ms' => 2000,
+            // Credentials register at https://developer.adzuna.com/
+            'app_id' => env('ADZUNA_APP_ID'),
+            'app_key' => env('ADZUNA_APP_KEY'),
+            'countries' => env('ADZUNA_COUNTRIES', 'gb,de,nl,fr,at,ch,pl'),
+            'pages_per_country' => env('ADZUNA_PAGES_PER_COUNTRY', 3),
+        ],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | TrueUp layoffs scrape (Phase 4 fallback)
+    |--------------------------------------------------------------------------
+    |
+    | TrueUp is the secondary signal source for layoffs when layoffs.fyi is
+    | unavailable (SOURCES.md §4.2). HTML scrape, no API.
+    |
+    */
+    'trueup' => [
+        'url' => env('TRUEUP_LAYOFFS_URL', 'https://www.trueup.io/layoffs'),
+        'timeout' => 30,
+        'connect_timeout' => 5,
     ],
 
 ];
