@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -11,6 +12,13 @@ interface SourceRef {
     id: number;
     type: string;
     name: string;
+}
+
+interface ParsedSlot {
+    value: unknown;
+    confidence: number;
+    source: string;
+    evidence: string | null;
 }
 
 interface Listing {
@@ -29,6 +37,9 @@ interface Listing {
     status: string;
     posted_at: string | null;
     source: SourceRef | null;
+    parsed: Record<string, ParsedSlot> | null;
+    parser_version: number | null;
+    raw: Record<string, unknown> | null;
 }
 
 interface Paginator<T> {
@@ -57,15 +68,38 @@ interface Props {
     };
 }
 
+type EditableField =
+    | 'company_name'
+    | 'role_title'
+    | 'seniority'
+    | 'remote_type'
+    | 'region'
+    | 'comp_min_usd'
+    | 'comp_max_usd'
+    | 'stack_tags';
+
 const STATUS_TABS = ['new', 'kept', 'dismissed', 'snoozed', 'linked', 'auto_dismissed', 'overflow', 'duplicate'] as const;
+
+const PARSED_SLOT_FOR_FIELD: Record<EditableField, string> = {
+    company_name: 'company_name',
+    role_title: 'role_title',
+    seniority: 'seniority',
+    remote_type: 'remote',
+    region: 'region',
+    comp_min_usd: 'compensation',
+    comp_max_usd: 'compensation',
+    stack_tags: 'stack_tags',
+};
 
 export default function DiscoverIndex({ listings, filters, options }: Props) {
     const [focusIndex, setFocusIndex] = useState<number>(-1);
+    const [editing, setEditing] = useState<{ listingId: number; field: EditableField } | null>(null);
     const cardRefs = useRef<Array<HTMLDivElement | null>>([]);
 
     useEffect(() => {
         function onKey(e: KeyboardEvent) {
-            // Ignore when typing in the search input.
+            // Suppress global handler when typing in an input / textarea /
+            // contenteditable — the correction editor lives inside cards.
             const target = e.target as HTMLElement | null;
             if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) {
                 return;
@@ -102,13 +136,17 @@ export default function DiscoverIndex({ listings, filters, options }: Props) {
                 e.preventDefault();
                 actOn(listing, 'bookmark');
             } else if (e.key === 'Escape') {
-                setFocusIndex(-1);
+                if (editing) {
+                    setEditing(null);
+                } else {
+                    setFocusIndex(-1);
+                }
             }
         }
 
         window.addEventListener('keydown', onKey);
         return () => window.removeEventListener('keydown', onKey);
-    }, [focusIndex, listings.data]);
+    }, [focusIndex, listings.data, editing]);
 
     useEffect(() => {
         if (focusIndex >= 0) {
@@ -124,6 +162,19 @@ export default function DiscoverIndex({ listings, filters, options }: Props) {
                 preserveScroll: true,
                 preserveState: true,
                 only: ['listings'],
+            },
+        );
+    }
+
+    function saveCorrection(listing: Listing, field: EditableField, newValue: unknown) {
+        router.post(
+            `/discover/${listing.id}/corrections`,
+            { field, new_value: newValue },
+            {
+                preserveScroll: true,
+                preserveState: true,
+                only: ['listings'],
+                onSuccess: () => setEditing(null),
             },
         );
     }
@@ -181,8 +232,12 @@ export default function DiscoverIndex({ listings, filters, options }: Props) {
                                     }}
                                     listing={listing}
                                     isFocused={idx === focusIndex}
+                                    editingField={editing?.listingId === listing.id ? editing.field : null}
                                     onFocus={() => setFocusIndex(idx)}
                                     onAction={(verb) => actOn(listing, verb)}
+                                    onEdit={(field) => setEditing({ listingId: listing.id, field })}
+                                    onCancelEdit={() => setEditing(null)}
+                                    onSave={(field, value) => saveCorrection(listing, field, value)}
                                 />
                             </li>
                         ))}
@@ -269,12 +324,26 @@ function FilterBar({
 interface ListingCardProps {
     listing: Listing;
     isFocused: boolean;
+    editingField: EditableField | null;
     onFocus: () => void;
     onAction: (verb: 'keep' | 'dismiss' | 'snooze' | 'bookmark') => void;
+    onEdit: (field: EditableField) => void;
+    onCancelEdit: () => void;
+    onSave: (field: EditableField, value: unknown) => void;
     ref?: React.Ref<HTMLDivElement>;
 }
 
-function ListingCard({ listing, isFocused, onFocus, onAction, ref }: ListingCardProps) {
+function ListingCard({
+    listing,
+    isFocused,
+    editingField,
+    onFocus,
+    onAction,
+    onEdit,
+    onCancelEdit,
+    onSave,
+    ref,
+}: ListingCardProps) {
     return (
         <Card
             ref={ref}
@@ -284,41 +353,79 @@ function ListingCard({ listing, isFocused, onFocus, onAction, ref }: ListingCard
         >
             <CardContent className="space-y-2 p-4">
                 <div className="flex items-baseline justify-between gap-4">
-                    <div className="space-y-1">
-                        <div className="flex items-baseline gap-2">
+                    <div className="min-w-0 space-y-1">
+                        <div className="flex flex-wrap items-baseline gap-2">
                             <h3 className="text-base font-semibold">
-                                {listing.parsed_role_title ?? '(role unknown)'}
+                                <EditablePill
+                                    listing={listing}
+                                    field="role_title"
+                                    label={listing.parsed_role_title ?? '(role unknown)'}
+                                    onEdit={onEdit}
+                                />
                             </h3>
-                            {listing.parsed_seniority && (
-                                <span className="text-xs uppercase tracking-wide text-muted-foreground">
-                                    {listing.parsed_seniority}
-                                </span>
-                            )}
+                            <EditablePill
+                                listing={listing}
+                                field="seniority"
+                                label={listing.parsed_seniority ?? 'seniority?'}
+                                emphasis="muted"
+                                onEdit={onEdit}
+                            />
                         </div>
                         <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
                             <span className="font-medium text-foreground">
-                                {listing.parsed_company_name ?? '(company unknown)'}
+                                <EditablePill
+                                    listing={listing}
+                                    field="company_name"
+                                    label={listing.parsed_company_name ?? '(company unknown)'}
+                                    onEdit={onEdit}
+                                />
                             </span>
                             {listing.source && (
                                 <span className="rounded bg-secondary px-2 py-0.5 text-xs uppercase">
                                     {listing.source.type}
                                 </span>
                             )}
-                            {listing.parsed_remote_type && (
-                                <span>· {listing.parsed_remote_type.replace('_', ' ')}</span>
-                            )}
-                            {listing.location_bucket && (
-                                <span>· {listing.location_bucket}</span>
-                            )}
-                            {listing.has_comp && listing.parsed_comp_min_usd != null && (
-                                <span>
-                                    · ${(listing.parsed_comp_min_usd / 1000).toFixed(0)}k
-                                    {listing.parsed_comp_max_usd != null && `-$${(listing.parsed_comp_max_usd / 1000).toFixed(0)}k`}
-                                </span>
-                            )}
+                            <EditablePill
+                                listing={listing}
+                                field="remote_type"
+                                label={listing.parsed_remote_type?.replace('_', ' ') ?? 'remote?'}
+                                emphasis="muted"
+                                onEdit={onEdit}
+                            />
+                            <EditablePill
+                                listing={listing}
+                                field="region"
+                                label={listing.location_bucket ?? 'region?'}
+                                emphasis="muted"
+                                onEdit={onEdit}
+                            />
+                            <EditablePill
+                                listing={listing}
+                                field="comp_min_usd"
+                                label={
+                                    listing.has_comp && listing.parsed_comp_min_usd != null
+                                        ? `$${(listing.parsed_comp_min_usd / 1000).toFixed(0)}k${
+                                              listing.parsed_comp_max_usd != null
+                                                  ? `-$${(listing.parsed_comp_max_usd / 1000).toFixed(0)}k`
+                                                  : ''
+                                          }`
+                                        : 'comp?'
+                                }
+                                emphasis="muted"
+                                onEdit={onEdit}
+                            />
                         </div>
                         {listing.stack_tags && listing.stack_tags.length > 0 && (
-                            <div className="flex flex-wrap gap-1 pt-1">
+                            <div
+                                className="flex flex-wrap gap-1 pt-1"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    onEdit('stack_tags');
+                                }}
+                                role="button"
+                                tabIndex={0}
+                                title="Click to edit stack tags"
+                            >
                                 {listing.stack_tags.slice(0, 8).map((tag) => (
                                     <span
                                         key={tag}
@@ -327,7 +434,13 @@ function ListingCard({ listing, isFocused, onFocus, onAction, ref }: ListingCard
                                         {tag}
                                     </span>
                                 ))}
+                                <span className="text-xs text-muted-foreground/60 hover:text-foreground">edit</span>
                             </div>
+                        )}
+                        {listing.parser_version != null && (
+                            <p className="pt-1 text-[10px] uppercase tracking-wide text-muted-foreground/60">
+                                parsed by v{listing.parser_version}
+                            </p>
                         )}
                     </div>
                     <div className="flex shrink-0 gap-1">
@@ -384,9 +497,205 @@ function ListingCard({ listing, isFocused, onFocus, onAction, ref }: ListingCard
                         {listing.url}
                     </a>
                 )}
+                {editingField !== null && (
+                    <CorrectionEditor
+                        listing={listing}
+                        field={editingField}
+                        onSave={(value) => onSave(editingField, value)}
+                        onCancel={onCancelEdit}
+                    />
+                )}
             </CardContent>
         </Card>
     );
+}
+
+interface EditablePillProps {
+    listing: Listing;
+    field: EditableField;
+    label: string;
+    emphasis?: 'default' | 'muted';
+    onEdit: (field: EditableField) => void;
+}
+
+function EditablePill({ listing, field, label, emphasis = 'default', onEdit }: EditablePillProps) {
+    const slot = listing.parsed?.[PARSED_SLOT_FOR_FIELD[field]] ?? null;
+    const confidence = slot?.confidence;
+    const muted = emphasis === 'muted';
+
+    return (
+        <button
+            type="button"
+            onClick={(e) => {
+                e.stopPropagation();
+                onEdit(field);
+            }}
+            className={
+                'group inline-flex items-center gap-1 rounded px-1 hover:bg-muted/60 ' +
+                (muted ? 'text-xs uppercase tracking-wide text-muted-foreground' : '')
+            }
+            title={`Edit ${field.replace('_', ' ')}`}
+        >
+            <span>{label}</span>
+            {confidence != null && confidence < 0.7 && (
+                <Badge variant="warning" className="hidden px-1 py-0 text-[10px] group-hover:inline-flex">
+                    {Math.round(confidence * 100)}%
+                </Badge>
+            )}
+            <span className="hidden text-[10px] text-muted-foreground/60 group-hover:inline">✎</span>
+        </button>
+    );
+}
+
+interface CorrectionEditorProps {
+    listing: Listing;
+    field: EditableField;
+    onSave: (value: unknown) => void;
+    onCancel: () => void;
+}
+
+function CorrectionEditor({ listing, field, onSave, onCancel }: CorrectionEditorProps) {
+    const slot = listing.parsed?.[PARSED_SLOT_FOR_FIELD[field]] ?? null;
+    const currentValue = currentValueFor(listing, field);
+    const [value, setValue] = useState<unknown>(currentValue);
+    const [showRaw, setShowRaw] = useState(false);
+
+    function submit(e: FormEvent<HTMLFormElement>) {
+        e.preventDefault();
+        onSave(value);
+    }
+
+    return (
+        <form
+            onSubmit={submit}
+            onClick={(e) => e.stopPropagation()}
+            className="mt-2 space-y-2 rounded border bg-muted/30 p-3 text-sm"
+        >
+            <div className="flex flex-wrap items-center gap-2">
+                <span className="font-medium">Edit {field.replace('_', ' ')}</span>
+                {slot && (
+                    <>
+                        <Badge variant={slot.confidence >= 0.7 ? 'success' : 'warning'}>
+                            confidence {(slot.confidence * 100).toFixed(0)}%
+                        </Badge>
+                        <Badge variant="outline">source: {slot.source}</Badge>
+                    </>
+                )}
+            </div>
+
+            {slot?.evidence && (
+                <p className="rounded bg-background px-2 py-1 text-xs text-muted-foreground">
+                    <span className="font-medium text-foreground">evidence:</span> {slot.evidence}
+                </p>
+            )}
+
+            <FieldInput field={field} value={value} onChange={setValue} />
+
+            <div className="flex items-center gap-2 pt-1">
+                <Button type="submit" size="sm">
+                    Save
+                </Button>
+                <Button type="button" size="sm" variant="ghost" onClick={onCancel}>
+                    Cancel
+                </Button>
+                <button
+                    type="button"
+                    onClick={() => setShowRaw((v) => !v)}
+                    className="ml-auto text-xs text-muted-foreground hover:text-foreground"
+                >
+                    {showRaw ? 'Hide raw' : 'View raw'}
+                </button>
+            </div>
+
+            {showRaw && (
+                <pre className="max-h-64 overflow-auto rounded border bg-background p-2 text-[11px] leading-tight">
+                    {JSON.stringify(listing.raw, null, 2)}
+                </pre>
+            )}
+        </form>
+    );
+}
+
+function FieldInput({
+    field,
+    value,
+    onChange,
+}: {
+    field: EditableField;
+    value: unknown;
+    onChange: (v: unknown) => void;
+}) {
+    if (field === 'remote_type') {
+        return (
+            <select
+                value={typeof value === 'string' ? value : 'unknown'}
+                onChange={(e) => onChange(e.currentTarget.value)}
+                className="w-full rounded border bg-background px-2 py-1"
+            >
+                <option value="remote">remote</option>
+                <option value="hybrid">hybrid</option>
+                <option value="on_site">on_site</option>
+                <option value="unknown">unknown</option>
+            </select>
+        );
+    }
+    if (field === 'comp_min_usd' || field === 'comp_max_usd') {
+        return (
+            <Input
+                type="number"
+                min={0}
+                value={typeof value === 'number' ? value : ''}
+                onChange={(e) => onChange(e.currentTarget.value === '' ? null : Number(e.currentTarget.value))}
+                placeholder="USD per year"
+            />
+        );
+    }
+    if (field === 'stack_tags') {
+        const text = Array.isArray(value) ? value.join(', ') : '';
+        return (
+            <Input
+                type="text"
+                value={text}
+                onChange={(e) =>
+                    onChange(
+                        e.currentTarget.value
+                            .split(',')
+                            .map((s) => s.trim())
+                            .filter((s) => s !== ''),
+                    )
+                }
+                placeholder="typescript, react, postgres"
+            />
+        );
+    }
+    return (
+        <Input
+            type="text"
+            value={typeof value === 'string' ? value : ''}
+            onChange={(e) => onChange(e.currentTarget.value)}
+        />
+    );
+}
+
+function currentValueFor(listing: Listing, field: EditableField): unknown {
+    switch (field) {
+        case 'company_name':
+            return listing.parsed_company_name ?? '';
+        case 'role_title':
+            return listing.parsed_role_title ?? '';
+        case 'seniority':
+            return listing.parsed_seniority ?? '';
+        case 'remote_type':
+            return listing.parsed_remote_type ?? 'unknown';
+        case 'region':
+            return listing.location_bucket ?? '';
+        case 'comp_min_usd':
+            return listing.parsed_comp_min_usd;
+        case 'comp_max_usd':
+            return listing.parsed_comp_max_usd;
+        case 'stack_tags':
+            return listing.stack_tags ?? [];
+    }
 }
 
 function EmptyState() {
