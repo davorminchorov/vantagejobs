@@ -29,3 +29,5 @@ Homestead.yaml
 Thumbs.db
 .vault-password
 .spin.yml
+package-lock.json
+/.pnpm-store

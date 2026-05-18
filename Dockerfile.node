@@ -33,6 +33,15 @@ RUN if getent passwd "$USER_ID" > /dev/null; then \
 # Set the user ID and group ID for the node user
 RUN groupmod -g $GROUP_ID node && usermod -u $USER_ID -g $GROUP_ID node
 
+# Install pnpm 11 globally via corepack while still root.
+RUN corepack enable && corepack prepare pnpm@11.1.3 --activate
+
+# Mirror .npmrc minimum-release-age=7d via env var. The implicit dep-status
+# check that fires before "pnpm run *" reads its config from process env,
+# not the .npmrc that the explicit "pnpm install" sees, so the policy must
+# be set in both places. See .npmrc note.
+ENV PNPM_CONFIG_MINIMUM_RELEASE_AGE=7d
+
 # Drop privileges back to node user
 USER node
 
