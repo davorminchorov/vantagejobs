@@ -123,7 +123,7 @@ export default function CompaniesIndexPage({ companies, filters, options }: Prop
         <AuthenticatedLayout>
             <Head title="Companies" />
             <div className="space-y-6">
-                <header className="flex items-end justify-between">
+                <header className="flex items-end justify-between gap-4">
                     <div>
                         <h1 className="text-2xl font-semibold tracking-tight">Companies</h1>
                         <p className="text-sm text-muted-foreground">
@@ -132,6 +132,9 @@ export default function CompaniesIndexPage({ companies, filters, options }: Prop
                                 : `${companies.total} ${companies.total === 1 ? 'company' : 'companies'} on the watch list.`}
                         </p>
                     </div>
+                    <Button asChild>
+                        <Link href="/companies/create">Add company</Link>
+                    </Button>
                 </header>
 
                 <Card>
@@ -206,6 +209,7 @@ export default function CompaniesIndexPage({ companies, filters, options }: Prop
                                         <TableHead>ATS</TableHead>
                                         <TableHead>Open roles</TableHead>
                                         <TableHead>Last checked</TableHead>
+                                        <TableHead className="text-right">Actions</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
@@ -256,6 +260,14 @@ export default function CompaniesIndexPage({ companies, filters, options }: Prop
                                                         ? new Date(company.last_checked_at).toLocaleString()
                                                         : 'Never'}
                                                 </span>
+                                            </TableCell>
+                                            <TableCell className="text-right">
+                                                <Link
+                                                    href={`/companies/${company.id}/edit`}
+                                                    className="text-xs font-medium text-muted-foreground hover:text-foreground"
+                                                >
+                                                    Edit
+                                                </Link>
                                             </TableCell>
                                         </TableRow>
                                     ))}
