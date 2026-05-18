@@ -10,6 +10,9 @@ use App\Http\Controllers\Companies\ShowCompanyController;
 use App\Http\Controllers\Companies\StoreCompanyController;
 use App\Http\Controllers\Companies\UpdateCompanyController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\Tags\AttachTagController;
+use App\Http\Controllers\Tags\AutocompleteTagsController;
+use App\Http\Controllers\Tags\DetachTagController;
 use App\Http\Controllers\HealthController;
 use App\Http\Controllers\Settings\PasswordController;
 use App\Http\Controllers\Settings\ProfileController;
@@ -30,6 +33,10 @@ Route::middleware(['auth'])->group(function (): void {
     Route::get('/companies/{company}', ShowCompanyController::class)->name('companies.show');
     Route::get('/companies/{company}/edit', EditCompanyController::class)->name('companies.edit');
     Route::put('/companies/{company}', UpdateCompanyController::class)->name('companies.update');
+
+    Route::get('/tags', AutocompleteTagsController::class)->name('tags.autocomplete');
+    Route::post('/companies/{company}/tags', AttachTagController::class)->name('companies.tags.attach');
+    Route::delete('/companies/{company}/tags/{tag}', DetachTagController::class)->name('companies.tags.detach');
 
     Route::get('/health', HealthController::class)->name('health');
 

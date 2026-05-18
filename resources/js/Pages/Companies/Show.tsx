@@ -2,6 +2,7 @@ import { Head, Link } from '@inertiajs/react';
 import { useState } from 'react';
 
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import TagInput, { type TagSummary } from '@/components/companies/TagInput';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -70,6 +71,7 @@ interface Props {
     company: CompanyDetail;
     roles: PaginatedRoles;
     timeline: TimelineItem[];
+    tags: TagSummary[];
     counts: Counts;
 }
 
@@ -103,7 +105,7 @@ function formatComp(role: RoleRow): string | null {
     return `${currency} ${min}-${max}${interval}`.trim();
 }
 
-export default function ShowCompanyPage({ company, roles, timeline, counts }: Props) {
+export default function ShowCompanyPage({ company, roles, timeline, tags, counts }: Props) {
     const [tab, setTab] = useState<'overview' | 'roles' | 'timeline'>('overview');
 
     return (
@@ -146,7 +148,7 @@ export default function ShowCompanyPage({ company, roles, timeline, counts }: Pr
                     </TabsList>
 
                     <TabsContent value="overview">
-                        <Overview company={company} counts={counts} />
+                        <Overview company={company} counts={counts} tags={tags} />
                     </TabsContent>
 
                     <TabsContent value="roles">
@@ -162,9 +164,20 @@ export default function ShowCompanyPage({ company, roles, timeline, counts }: Pr
     );
 }
 
-function Overview({ company, counts }: { company: CompanyDetail; counts: Counts }) {
+function Overview({ company, counts, tags }: { company: CompanyDetail; counts: Counts; tags: TagSummary[] }) {
     return (
         <div className="grid gap-4 lg:grid-cols-2">
+            <Card className="lg:col-span-2">
+                <CardHeader>
+                    <CardTitle className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+                        Tags
+                    </CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <TagInput companyId={company.id} tags={tags} />
+                </CardContent>
+            </Card>
+
             <Card>
                 <CardHeader>
                     <CardTitle className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">

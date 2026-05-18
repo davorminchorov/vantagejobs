@@ -60,6 +60,12 @@ final readonly class ShowCompanyController
         $openCount = $company->roles()->where('is_open', true)->count();
         $totalCount = $company->roles()->count();
 
+        $tags = $company->tags()
+            ->orderBy('name')
+            ->get(['tags.id', 'tags.slug', 'tags.name'])
+            ->map(fn ($tag) => ['id' => $tag->id, 'slug' => $tag->slug, 'name' => $tag->name])
+            ->values();
+
         return Inertia::render('Companies/Show', [
             'company' => [
                 'id' => $company->id,
@@ -78,6 +84,7 @@ final readonly class ShowCompanyController
             ],
             'roles' => $roles,
             'timeline' => $timeline,
+            'tags' => $tags,
             'counts' => [
                 'open_roles' => $openCount,
                 'total_roles' => $totalCount,
