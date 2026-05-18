@@ -162,7 +162,7 @@ final class HimalayasScraperTest extends TestCase
     public function empty_jobs_array_is_a_clean_no_op(): void
     {
         Saloon::fake([
-            JobsSearchRequest::class => MockResponse::make(['jobs' => [], 'total' => 0], 200),
+            JobsSearchRequest::class => MockResponse::make(['jobs' => [], 'totalCount' => 0, 'offset' => 0, 'limit' => 20], 200),
         ]);
 
         $result = $this->scraper->run($this->source);
