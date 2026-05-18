@@ -11,6 +11,7 @@ use App\Scrapers\Aggregator\FourDayWeek\FourDayWeekScraper;
 use App\Scrapers\Aggregator\HackerNews\HackerNewsScraper;
 use App\Scrapers\Aggregator\SaveFixtureAction;
 use App\Scrapers\Aggregator\Himalayas\HimalayasScraper;
+use App\Scrapers\Aggregator\Larajobs\LarajobsScraper;
 use App\Scrapers\Aggregator\Parser\Extractors\ApplyMethodExtractor;
 use App\Scrapers\Aggregator\Parser\Extractors\CompanyNameExtractor;
 use App\Scrapers\Aggregator\Parser\Extractors\CompensationExtractor;
@@ -81,5 +82,6 @@ final class AggregatorServiceProvider extends ServiceProvider
         $registry->register($this->app->make(FourDayWeekScraper::class));
         $registry->register($this->app->make(WorkingNomadsScraper::class));
         $registry->register($this->app->make(AdzunaScraper::class));
+        $registry->register($this->app->make(LarajobsScraper::class));
     }
 }

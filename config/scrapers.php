@@ -174,6 +174,13 @@ return [
             'retry_times' => 3,
             'retry_sleep_ms' => 2000,
         ],
+        'larajobs' => [
+            'concurrency' => 1,
+            'timeout' => 15,
+            'connect_timeout' => 5,
+            'retry_times' => 3,
+            'retry_sleep_ms' => 2000,
+        ],
         'adzuna' => [
             'concurrency' => 1,
             'timeout' => 15,
