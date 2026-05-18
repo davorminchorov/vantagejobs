@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
+use App\Scrapers\Ashby\AshbyScraper;
+use App\Scrapers\Greenhouse\GreenhouseScraper;
+use App\Scrapers\Lever\LeverScraper;
 use App\Scrapers\ScraperRegistry;
 use Illuminate\Support\ServiceProvider;
 
@@ -26,10 +29,9 @@ final class ScraperServiceProvider extends ServiceProvider
     {
         $this->mergeConfigFrom(__DIR__.'/../../config/scrapers.php', 'scrapers');
 
-        // Concrete scrapers register themselves here once they exist:
-        //
-        //   $registry = $this->app->make(ScraperRegistry::class);
-        //   $registry->register($this->app->make(GreenhouseScraper::class));
-        //   ...
+        $registry = $this->app->make(ScraperRegistry::class);
+        $registry->register($this->app->make(GreenhouseScraper::class));
+        $registry->register($this->app->make(LeverScraper::class));
+        $registry->register($this->app->make(AshbyScraper::class));
     }
 }
