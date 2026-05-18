@@ -26,7 +26,11 @@ interface Props {
     active_auto_dismiss_rules: AutoDismissRule[];
 }
 
-export default function DashboardPage({ companies, companies_count, active_auto_dismiss_rules }: Props) {
+export default function DashboardPage({
+    companies = [],
+    companies_count = 0,
+    active_auto_dismiss_rules = [],
+}: Props) {
     return (
         <AuthenticatedLayout>
             <Head title="Dashboard" />
