@@ -1,0 +1,106 @@
+{
+  "jobs": [
+    {
+      "id": "ashby-uuid-remote",
+      "title": "Senior Platform Engineer",
+      "departmentName": "Engineering",
+      "teamName": "Platform",
+      "employmentType": "FullTime",
+      "locationName": "Remote - US",
+      "isRemote": true,
+      "workplaceType": "Remote",
+      "secondaryLocations": [{"locationName": "EMEA"}],
+      "publishedAt": "2026-05-10T14:00:00.000Z",
+      "jobUrl": "https://jobs.ashbyhq.com/acme/ashby-uuid-remote",
+      "descriptionPlain": "Plain text body",
+      "descriptionHtml": "<p>HTML body</p>",
+      "compensation": {
+        "compensationTierSummary": "$200k-$260k + equity",
+        "tiers": [
+          {
+            "id": "tier1",
+            "tierSummary": "$200k-$260k",
+            "components": [
+              {"compensationType": "Salary", "interval": "1 YEAR", "currencyCode": "USD", "minValue": 200000, "maxValue": 260000},
+              {"compensationType": "EquityPercentage", "minValue": 0.05, "maxValue": 0.15}
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "ashby-uuid-onsite",
+      "title": "Office Manager",
+      "departmentName": "Operations",
+      "teamName": null,
+      "employmentType": "FullTime",
+      "locationName": "San Francisco, CA",
+      "isRemote": false,
+      "workplaceType": "OnSite",
+      "publishedAt": "2026-05-12T09:00:00.000Z",
+      "jobUrl": "https://jobs.ashbyhq.com/acme/ashby-uuid-onsite",
+      "compensation": {
+        "tiers": []
+      }
+    },
+    {
+      "id": "ashby-uuid-hybrid",
+      "title": "Product Designer",
+      "departmentName": "Design",
+      "teamName": "Core",
+      "employmentType": "FullTime",
+      "locationName": "New York, NY",
+      "isRemote": false,
+      "workplaceType": "Hybrid",
+      "publishedAt": "2026-05-13T10:00:00.000Z",
+      "jobUrl": "https://jobs.ashbyhq.com/acme/ashby-uuid-hybrid",
+      "compensation": {
+        "tiers": [
+          {
+            "id": "us-tier",
+            "tierSummary": "$180k-$220k",
+            "components": [
+              {"compensationType": "Salary", "interval": "1 YEAR", "currencyCode": "USD", "minValue": 180000, "maxValue": 220000}
+            ]
+          },
+          {
+            "id": "eu-tier",
+            "tierSummary": "€140k-€180k",
+            "components": [
+              {"compensationType": "Salary", "interval": "1 YEAR", "currencyCode": "EUR", "minValue": 140000, "maxValue": 180000}
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "ashby-uuid-unspecified",
+      "title": "Recruiter",
+      "departmentName": "People",
+      "locationName": "Anywhere",
+      "isRemote": true,
+      "workplaceType": "Unspecified",
+      "publishedAt": "2026-05-14T11:00:00.000Z",
+      "jobUrl": "https://jobs.ashbyhq.com/acme/ashby-uuid-unspecified"
+    },
+    {
+      "id": "ashby-uuid-missing-workplace",
+      "title": "Sales Lead",
+      "departmentName": "Sales",
+      "locationName": "Remote - EU",
+      "isRemote": true,
+      "publishedAt": "2026-05-15T12:00:00.000Z",
+      "jobUrl": "https://jobs.ashbyhq.com/acme/ashby-uuid-missing-workplace",
+      "compensation": {
+        "tiers": [
+          {
+            "id": "bonus-only",
+            "components": [
+              {"compensationType": "Commission", "minValue": 10000, "maxValue": 40000, "currencyCode": "USD"}
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}
