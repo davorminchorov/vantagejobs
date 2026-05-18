@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\MorphToMany;
 
 #[Fillable([
     'name',
@@ -21,6 +22,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'tier',
     'status',
     'last_checked_at',
+    'etag',
+    'last_modified',
 ])]
 final class Company extends Model
 {
@@ -58,5 +61,13 @@ final class Company extends Model
     public function notes(): HasMany
     {
         return $this->hasMany(Note::class);
+    }
+
+    /**
+     * @return MorphToMany<Tag, $this>
+     */
+    public function tags(): MorphToMany
+    {
+        return $this->morphToMany(Tag::class, 'taggable');
     }
 }
