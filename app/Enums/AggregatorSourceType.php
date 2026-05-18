@@ -21,6 +21,8 @@ enum AggregatorSourceType: string
     case WORKINGNOMADS = 'workingnomads';
     case ADZUNA = 'adzuna';
     case LARAJOBS = 'larajobs';
+    case JOBICY = 'jobicy';
+    case ARBEITNOW = 'arbeitnow';
 
     public function displayName(): string
     {
@@ -34,6 +36,8 @@ enum AggregatorSourceType: string
             self::WORKINGNOMADS => 'Working Nomads',
             self::ADZUNA => 'Adzuna',
             self::LARAJOBS => 'LaraJobs',
+            self::JOBICY => 'Jobicy',
+            self::ARBEITNOW => 'Arbeitnow',
         };
     }
 
@@ -53,7 +57,9 @@ enum AggregatorSourceType: string
             self::FOURDAYWEEK,
             self::WORKINGNOMADS,
             self::ADZUNA,
-            self::LARAJOBS => 60 * 24,
+            self::LARAJOBS,
+            self::JOBICY,
+            self::ARBEITNOW => 60 * 24,
         };
     }
 }
