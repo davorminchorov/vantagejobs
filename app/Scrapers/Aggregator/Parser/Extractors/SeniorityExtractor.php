@@ -64,6 +64,34 @@ final class SeniorityExtractor implements Extractor
             );
         }
 
+        // Jobicy ships a free-form `jobLevel` (Senior / Mid / Junior /
+        // Lead / Manager / Internship / etc.). Run it through the same
+        // rule patterns we use against titles so we land on a canonical
+        // value rather than a raw upstream string.
+        $jobLevel = $ctx->structured['jobLevel'] ?? null;
+        if (is_string($jobLevel) && trim($jobLevel) !== '') {
+            foreach (self::RULES as $rule) {
+                if (preg_match($rule['pattern'], $jobLevel, $m) === 1) {
+                    return new ExtractedField(
+                        field: self::FIELD,
+                        value: $rule['value'],
+                        confidence: 0.85,
+                        source: ExtractionSource::EXPLICIT,
+                        evidence: 'jobLevel: '.$m[0],
+                    );
+                }
+            }
+            // Fall back to the raw normalized value (e.g. "manager") even
+            // if it doesn't match a rule — better than dropping the signal.
+            return new ExtractedField(
+                field: self::FIELD,
+                value: $this->normalize($jobLevel),
+                confidence: 0.8,
+                source: ExtractionSource::EXPLICIT,
+                evidence: 'structured.jobLevel',
+            );
+        }
+
         $title = (string) ($ctx->structured['title'] ?? $ctx->structured['position'] ?? '');
         if ($title === '') {
             return ExtractedField::missing(self::FIELD);
