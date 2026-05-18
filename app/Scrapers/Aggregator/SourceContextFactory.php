@@ -6,6 +6,7 @@ namespace App\Scrapers\Aggregator;
 
 use App\Enums\AggregatorSourceType;
 use App\Models\AggregatorListing;
+use App\Scrapers\Aggregator\Arbeitnow\ArbeitnowContextBuilder;
 use App\Scrapers\Aggregator\HackerNews\HackerNewsContextBuilder;
 use App\Scrapers\Aggregator\Himalayas\HimalayasContextBuilder;
 use App\Scrapers\Aggregator\Jobicy\JobicyContextBuilder;
@@ -33,6 +34,7 @@ final readonly class SourceContextFactory
         private WeWorkRemotelyContextBuilder $weWorkRemotely,
         private RemoteOkContextBuilder $remoteOk,
         private JobicyContextBuilder $jobicy,
+        private ArbeitnowContextBuilder $arbeitnow,
     ) {}
 
     public function buildFor(AggregatorListing $listing): SourceContext
@@ -53,6 +55,7 @@ final readonly class SourceContextFactory
             AggregatorSourceType::WEWORKREMOTELY => $this->weWorkRemotely->build($raw),
             AggregatorSourceType::REMOTEOK => $this->remoteOk->build($raw),
             AggregatorSourceType::JOBICY => $this->jobicy->build($raw),
+            AggregatorSourceType::ARBEITNOW => $this->arbeitnow->build($raw),
         };
     }
 

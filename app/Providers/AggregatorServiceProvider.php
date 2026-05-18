@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
+use App\Scrapers\Aggregator\Arbeitnow\ArbeitnowScraper;
 use App\Scrapers\Aggregator\Adzuna\AdzunaScraper;
 use App\Scrapers\Aggregator\AggregatorRegistry;
 use App\Scrapers\Aggregator\Artifacts\ScrapeArtifactContext;
@@ -85,5 +86,6 @@ final class AggregatorServiceProvider extends ServiceProvider
         $registry->register($this->app->make(AdzunaScraper::class));
         $registry->register($this->app->make(LarajobsScraper::class));
         $registry->register($this->app->make(JobicyScraper::class));
+        $registry->register($this->app->make(ArbeitnowScraper::class));
     }
 }
