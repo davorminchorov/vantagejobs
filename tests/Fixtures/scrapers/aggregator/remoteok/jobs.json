@@ -1,0 +1,54 @@
+[
+    {
+        "legal": "RemoteOK API — All data is provided as-is. See https://remoteok.com/legal for terms.",
+        "warning": "Sponsored / paid postings may appear before organic listings."
+    },
+    {
+        "id": "rok-90001",
+        "slug": "rok-90001-acme-senior-backend",
+        "company": "Acme Corp",
+        "company_logo": "https://remoteok.com/logos/acme.png",
+        "position": "Senior Backend Engineer",
+        "tags": ["python", "django", "postgres", "remote"],
+        "logo": "https://remoteok.com/logos/acme.png",
+        "description": "<p>We are looking for a Senior Backend Engineer to join Acme's payments team. You will own services that move millions of dollars a day.</p><p>Strong Python and Django experience required. We can sponsor visas for the right candidate.</p>",
+        "location": "Worldwide",
+        "salary_min": 150000,
+        "salary_max": 200000,
+        "apply_url": "https://remoteok.com/remote-jobs/rok-90001/apply",
+        "url": "https://remoteok.com/remote-jobs/rok-90001",
+        "date": "2026-05-12T10:00:00+00:00"
+    },
+    {
+        "id": "rok-90002",
+        "slug": "rok-90002-blockchainery-solidity-engineer",
+        "company": "Blockchainery",
+        "company_logo": "https://remoteok.com/logos/blockchainery.png",
+        "position": "Senior Solidity Engineer",
+        "tags": ["solidity", "ethereum", "web3", "crypto"],
+        "logo": "https://remoteok.com/logos/blockchainery.png",
+        "description": "<p>Help us build the next generation of DeFi protocols. Deep Solidity and EVM tooling experience required. We're a fully remote DAO with contributors in every timezone.</p>",
+        "location": "Worldwide",
+        "salary_min": 180000,
+        "salary_max": 260000,
+        "apply_url": "https://remoteok.com/remote-jobs/rok-90002/apply",
+        "url": "https://remoteok.com/remote-jobs/rok-90002",
+        "date": "2026-05-11T16:00:00+00:00"
+    },
+    {
+        "id": "rok-90003",
+        "slug": "rok-90003-fluxhq-staff-platform",
+        "company": "FluxHQ",
+        "company_logo": "https://remoteok.com/logos/fluxhq.png",
+        "position": "Staff Platform Engineer",
+        "tags": ["go", "kubernetes", "terraform", "aws"],
+        "logo": "https://remoteok.com/logos/fluxhq.png",
+        "description": "<p>Lead our platform team. Deep Kubernetes and Terraform experience required. EU-based, CET working hours preferred.</p>",
+        "location": "EMEA",
+        "salary_min": 140000,
+        "salary_max": 190000,
+        "apply_url": "https://remoteok.com/remote-jobs/rok-90003/apply",
+        "url": "https://remoteok.com/remote-jobs/rok-90003",
+        "date": "2026-05-10T09:30:00+00:00"
+    }
+]

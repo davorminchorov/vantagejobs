@@ -1,0 +1,59 @@
+{
+    "jobs": [
+        {
+            "guid": "acme-staff-fullstack-engineer",
+            "title": "Staff Fullstack Engineer",
+            "companyName": "Acme",
+            "companySlug": "acme",
+            "applicationLink": "https://acme.com/jobs/staff-fs",
+            "locationRestrictions": ["Worldwide"],
+            "timezoneRestrictions": [],
+            "categories": ["Software Engineering"],
+            "seniority": ["Staff"],
+            "employmentType": ["Full-Time"],
+            "salaryMin": 180000,
+            "salaryMedian": 220000,
+            "salaryMax": 260000,
+            "salaryCurrency": "USD",
+            "description": "<p>Acme is hiring a Staff Fullstack Engineer to own our checkout pipeline. Strong TypeScript and Postgres background expected. Equity and visa sponsorship available.</p><p>You will work with React, Node.js and AWS.</p>",
+            "publishedDate": "2026-05-12T00:00:00Z"
+        },
+        {
+            "guid": "northwind-senior-platform-engineer",
+            "title": "Senior Platform Engineer",
+            "companyName": "Northwind",
+            "companySlug": "northwind",
+            "applicationLink": "https://northwind.eu/careers/senior-platform",
+            "locationRestrictions": ["Europe"],
+            "timezoneRestrictions": [],
+            "categories": ["Software Engineering"],
+            "seniority": ["Senior"],
+            "employmentType": ["Full-Time"],
+            "salaryMin": 80000,
+            "salaryMedian": 95000,
+            "salaryMax": 110000,
+            "salaryCurrency": "EUR",
+            "description": "<p>Northwind is hiring a Senior Platform Engineer. Kubernetes, Terraform, Go required. EU-based candidates only — we cannot sponsor visas.</p>",
+            "publishedDate": "2026-05-11T08:00:00Z"
+        },
+        {
+            "guid": "cetcorp-senior-backend-engineer",
+            "title": "Senior Backend Engineer",
+            "companyName": "CET Corp",
+            "companySlug": "cetcorp",
+            "applicationLink": "https://cetcorp.io/jobs/senior-backend",
+            "locationRestrictions": ["EMEA"],
+            "timezoneRestrictions": ["UTC+01:00", "UTC+02:00"],
+            "categories": ["Software Engineering"],
+            "seniority": ["Senior"],
+            "employmentType": ["Full-Time"],
+            "salaryMin": 120000,
+            "salaryMedian": 135000,
+            "salaryMax": 150000,
+            "salaryCurrency": "USD",
+            "description": "<p>CET Corp is looking for a Senior Backend Engineer based in or near the CET timezone. We work core hours 10:00-16:00 CET. Python, Django, Postgres. No visa sponsorship.</p>",
+            "publishedDate": "2026-05-10T12:00:00Z"
+        }
+    ],
+    "total": 3
+}

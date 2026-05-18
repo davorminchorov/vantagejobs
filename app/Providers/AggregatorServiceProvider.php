@@ -6,8 +6,8 @@ namespace App\Providers;
 
 use App\Scrapers\Aggregator\AggregatorRegistry;
 use App\Scrapers\Aggregator\HackerNews\HackerNewsScraper;
+use App\Scrapers\Aggregator\Himalayas\HimalayasScraper;
 use App\Scrapers\Aggregator\Parser\Extractors\ApplyMethodExtractor;
-use App\Scrapers\Aggregator\Remotive\RemotiveScraper;
 use App\Scrapers\Aggregator\Parser\Extractors\CompanyNameExtractor;
 use App\Scrapers\Aggregator\Parser\Extractors\CompensationExtractor;
 use App\Scrapers\Aggregator\Parser\Extractors\DisciplineExtractor;
@@ -20,6 +20,9 @@ use App\Scrapers\Aggregator\Parser\Extractors\SeniorityExtractor;
 use App\Scrapers\Aggregator\Parser\Extractors\StackTagsExtractor;
 use App\Scrapers\Aggregator\Parser\Extractors\VisaSponsorshipExtractor;
 use App\Scrapers\Aggregator\Parser\ParserPipeline;
+use App\Scrapers\Aggregator\RemoteOk\RemoteOkScraper;
+use App\Scrapers\Aggregator\Remotive\RemotiveScraper;
+use App\Scrapers\Aggregator\WeWorkRemotely\WeWorkRemotelyScraper;
 use Illuminate\Support\ServiceProvider;
 
 /**
@@ -57,5 +60,8 @@ final class AggregatorServiceProvider extends ServiceProvider
         $registry = $this->app->make(AggregatorRegistry::class);
         $registry->register($this->app->make(HackerNewsScraper::class));
         $registry->register($this->app->make(RemotiveScraper::class));
+        $registry->register($this->app->make(HimalayasScraper::class));
+        $registry->register($this->app->make(WeWorkRemotelyScraper::class));
+        $registry->register($this->app->make(RemoteOkScraper::class));
     }
 }
