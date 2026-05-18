@@ -5,8 +5,11 @@ declare(strict_types=1);
 namespace App\Scrapers\Aggregator;
 
 use App\Enums\AggregatorListingStatus;
+use App\Enums\EventType;
 use App\Models\AggregatorListing;
 use App\Models\AggregatorSource;
+use App\Models\Company;
+use App\Models\Event;
 use App\Scrapers\Aggregator\Parser\ParsedListing;
 use App\Scrapers\Aggregator\Parser\ParserPipeline;
 use App\Scrapers\Aggregator\Parser\SourceContext;
@@ -26,6 +29,7 @@ final readonly class AggregatorListingPersister
     public function __construct(
         private ParserPipeline $pipeline,
         private CompanyKeyNormalizer $normalizer,
+        private MatchCompanyAction $matcher,
     ) {}
 
     /**
@@ -52,7 +56,9 @@ final readonly class AggregatorListingPersister
         $attrs = $this->buildAttributes($source, $context, $parsed, $rawRecord, $externalId);
 
         if ($existing === null) {
-            AggregatorListing::query()->create($attrs);
+            /** @var AggregatorListing $listing */
+            $listing = AggregatorListing::query()->create($attrs);
+            $this->attemptAutoLink($listing, $parsed);
 
             return true;
         }
@@ -62,6 +68,45 @@ final readonly class AggregatorListingPersister
         $existing->fill($attrs)->save();
 
         return false;
+    }
+
+    /**
+     * Per PRD §6.4.6: when a listing's parsed company name matches an
+     * existing tracked Company (Jaro-Winkler ≥ 0.85), link the listing and
+     * emit a NEW_ROLE event on the matched Company so the dashboard surfaces
+     * it without the user having to triage. role_id is null — there's no
+     * Role yet; the listing carries the structured detail.
+     */
+    private function attemptAutoLink(AggregatorListing $listing, ParsedListing $parsed): void
+    {
+        $companyName = $this->asString($parsed->value('company_name'));
+        if ($companyName === null) {
+            return;
+        }
+
+        $match = $this->matcher->match($companyName);
+        if (! $match instanceof Company) {
+            return;
+        }
+
+        $listing->matched_company_id = $match->id;
+        $listing->status = AggregatorListingStatus::LINKED;
+        $listing->save();
+
+        $title = $this->asString($parsed->value('role_title')) ?? '(unknown role)';
+        $body = (string) json_encode([
+            'aggregator_listing_id' => $listing->id,
+            'source' => $listing->source_id,
+        ]);
+
+        Event::query()->create([
+            'company_id' => $match->id,
+            'role_id' => null,
+            'type' => EventType::NEW_ROLE->value,
+            'title' => $title,
+            'body' => $body,
+            'occurred_at' => $listing->posted_at ?? CarbonImmutable::now(),
+        ]);
     }
 
     /**
