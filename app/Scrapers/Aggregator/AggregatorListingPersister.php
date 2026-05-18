@@ -9,6 +9,7 @@ use App\Enums\EventType;
 use App\Models\AggregatorListing;
 use App\Models\AggregatorSource;
 use App\Models\Company;
+use App\Models\DismissedCompany;
 use App\Models\Event;
 use App\Scrapers\Aggregator\Parser\ParsedListing;
 use App\Scrapers\Aggregator\Parser\ParserPipeline;
@@ -56,9 +57,14 @@ final readonly class AggregatorListingPersister
         $attrs = $this->buildAttributes($source, $context, $parsed, $rawRecord, $externalId);
 
         if ($existing === null) {
+            $attrs = $this->applyAutoDismissGate($attrs);
+
             /** @var AggregatorListing $listing */
             $listing = AggregatorListing::query()->create($attrs);
-            $this->attemptAutoLink($listing, $parsed);
+
+            if ($listing->status !== AggregatorListingStatus::AUTO_DISMISSED) {
+                $this->attemptAutoLink($listing, $parsed);
+            }
 
             return true;
         }
@@ -107,6 +113,34 @@ final readonly class AggregatorListingPersister
             'body' => $body,
             'occurred_at' => $listing->posted_at ?? CarbonImmutable::now(),
         ]);
+    }
+
+    /**
+     * Per PRD §6.4.4: if the normalized company name has an active
+     * auto-dismiss rule, the listing is created with status AUTO_DISMISSED
+     * instead of NEW so it bypasses the triage queue. Visible under the
+     * "auto-dismissed" filter so the user can audit / revoke.
+     *
+     * @param  array<string, mixed>  $attrs
+     * @return array<string, mixed>
+     */
+    private function applyAutoDismissGate(array $attrs): array
+    {
+        $key = $attrs['normalized_company_key'] ?? null;
+        if (! is_string($key) || $key === '') {
+            return $attrs;
+        }
+
+        $rule = DismissedCompany::query()
+            ->where('normalized_company_key', $key)
+            ->where('auto_dismiss', true)
+            ->first();
+
+        if ($rule !== null) {
+            $attrs['status'] = AggregatorListingStatus::AUTO_DISMISSED->value;
+        }
+
+        return $attrs;
     }
 
     /**

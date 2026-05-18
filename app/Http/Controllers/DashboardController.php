@@ -5,11 +5,16 @@ declare(strict_types=1);
 namespace App\Http\Controllers;
 
 use App\Models\Company;
+use App\Scrapers\Aggregator\ActiveAutoDismissRulesQuery;
 use Inertia\Inertia;
 use Inertia\Response;
 
 final readonly class DashboardController
 {
+    public function __construct(
+        private ActiveAutoDismissRulesQuery $autoDismissRules,
+    ) {}
+
     public function __invoke(): Response
     {
         $companies = Company::query()
@@ -20,6 +25,7 @@ final readonly class DashboardController
         return Inertia::render('Dashboard', [
             'companies' => $companies,
             'companies_count' => $companies->count(),
+            'active_auto_dismiss_rules' => $this->autoDismissRules->active(),
         ]);
     }
 }

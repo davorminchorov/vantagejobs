@@ -14,12 +14,19 @@ interface DashboardCompany {
     last_checked_at: string | null;
 }
 
+interface AutoDismissRule {
+    display_name: string;
+    normalized_company_key: string;
+    dismiss_count: number;
+}
+
 interface Props {
     companies: DashboardCompany[];
     companies_count: number;
+    active_auto_dismiss_rules: AutoDismissRule[];
 }
 
-export default function DashboardPage({ companies, companies_count }: Props) {
+export default function DashboardPage({ companies, companies_count, active_auto_dismiss_rules }: Props) {
     return (
         <AuthenticatedLayout>
             <Head title="Dashboard" />
@@ -34,6 +41,10 @@ export default function DashboardPage({ companies, companies_count }: Props) {
                         </p>
                     </div>
                 </header>
+
+                {active_auto_dismiss_rules.length > 0 && (
+                    <AutoDismissBanner rules={active_auto_dismiss_rules} />
+                )}
 
                 {companies_count === 0 ? (
                     <EmptyState />
@@ -86,6 +97,31 @@ export default function DashboardPage({ companies, companies_count }: Props) {
                 )}
             </div>
         </AuthenticatedLayout>
+    );
+}
+
+function AutoDismissBanner({ rules }: { rules: AutoDismissRule[] }) {
+    const preview = rules.slice(0, 5);
+    const remaining = rules.length - preview.length;
+
+    return (
+        <div className="mb-6 rounded-md border border-dashed border-muted-foreground/30 bg-muted/30 px-4 py-3 text-sm text-muted-foreground">
+            <div className="flex items-baseline justify-between gap-4">
+                <p>
+                    Auto-dismissing listings from{' '}
+                    <span className="font-medium text-foreground">
+                        {preview.map((rule) => `${rule.display_name} (${rule.dismiss_count})`).join(', ')}
+                    </span>
+                    {remaining > 0 && ` and ${remaining} more`}.
+                </p>
+                <Link
+                    href="/discover/sources"
+                    className="shrink-0 text-xs uppercase tracking-wide hover:text-foreground"
+                >
+                    Manage
+                </Link>
+            </div>
+        </div>
     );
 }
 
