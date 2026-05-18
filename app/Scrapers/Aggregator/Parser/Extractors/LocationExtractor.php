@@ -47,7 +47,7 @@ final class LocationExtractor implements Extractor
             }
         }
 
-        foreach (['candidate_required_location', 'location', 'region'] as $key) {
+        foreach (['candidate_required_location', 'location', 'jobGeo', 'region'] as $key) {
             $raw = $ctx->structured[$key] ?? null;
             if (! is_string($raw)) {
                 continue;
