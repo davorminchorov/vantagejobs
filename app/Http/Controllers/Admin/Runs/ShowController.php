@@ -112,7 +112,7 @@ final readonly class ShowController
             $message = $entry['message'] ?? null;
             $context = $entry['context'] ?? null;
             $out[] = [
-                'message' => is_string($message) ? $message : json_encode($entry, JSON_UNESCAPED_SLASHES) ?: '',
+                'message' => is_string($message) ? $message : (json_encode($entry, JSON_UNESCAPED_SLASHES) ?: ''),
                 'context' => is_array($context) ? $context : null,
             ];
         }
