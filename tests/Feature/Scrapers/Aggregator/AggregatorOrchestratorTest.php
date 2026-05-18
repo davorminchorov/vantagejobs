@@ -36,7 +36,7 @@ final class AggregatorOrchestratorTest extends TestCase
         app(TenantContext::class)->setCurrent($this->tenant);
 
         $this->registry = $this->app->make(AggregatorRegistry::class);
-        $this->orchestrator = new AggregatorOrchestrator($this->registry);
+        $this->orchestrator = $this->app->make(AggregatorOrchestrator::class);
     }
 
     #[Test]
@@ -101,8 +101,8 @@ final class AggregatorOrchestratorTest extends TestCase
     #[Test]
     public function records_error_when_no_scraper_is_registered_for_source_type(): void
     {
-        $registry = new AggregatorRegistry();
-        $orchestrator = new AggregatorOrchestrator($registry);
+        $this->app->instance(AggregatorRegistry::class, new AggregatorRegistry());
+        $orchestrator = $this->app->make(AggregatorOrchestrator::class);
 
         $source = AggregatorSource::factory()->ofType(AggregatorSourceType::HIMALAYAS)->create();
 
@@ -159,8 +159,8 @@ final class AggregatorOrchestratorTest extends TestCase
     #[Test]
     public function missing_registration_also_counts_as_a_failure_on_the_source(): void
     {
-        $registry = new AggregatorRegistry();
-        $orchestrator = new AggregatorOrchestrator($registry);
+        $this->app->instance(AggregatorRegistry::class, new AggregatorRegistry());
+        $orchestrator = $this->app->make(AggregatorOrchestrator::class);
 
         $source = AggregatorSource::factory()->ofType(AggregatorSourceType::HACKERNEWS)->create();
 

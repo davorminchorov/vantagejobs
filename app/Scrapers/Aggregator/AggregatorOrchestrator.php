@@ -6,6 +6,7 @@ namespace App\Scrapers\Aggregator;
 
 use App\Models\AggregatorSource;
 use App\Models\ScrapeRun;
+use App\Scrapers\Aggregator\Artifacts\ScrapeArtifactContext;
 use Carbon\CarbonImmutable;
 use InvalidArgumentException;
 use Throwable;
@@ -21,7 +22,10 @@ use Throwable;
  */
 final class AggregatorOrchestrator
 {
-    public function __construct(private readonly AggregatorRegistry $registry) {}
+    public function __construct(
+        private readonly AggregatorRegistry $registry,
+        private readonly ScrapeArtifactContext $artifactContext,
+    ) {}
 
     public function runForSource(AggregatorSource $source): ScrapeRun
     {
@@ -43,12 +47,22 @@ final class AggregatorOrchestrator
             return $this->finalize($run, status: 'error', errors: [['message' => $e->getMessage()]]);
         }
 
+        $this->artifactContext->set(
+            scrapeRunId: (int) $run->id,
+            tenantId: $run->tenant_id === null ? null : (int) $run->tenant_id,
+            sourceKind: 'aggregator',
+            sourceId: (int) $source->id,
+            companyId: null,
+        );
+
         try {
             $result = $scraper->run($source);
         } catch (Throwable $e) {
             $this->recordFailure($source, $e->getMessage());
 
             return $this->finalize($run, status: 'error', errors: [['message' => $e->getMessage()]]);
+        } finally {
+            $this->artifactContext->clear();
         }
 
         $this->recordSuccess($source);

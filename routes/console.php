@@ -60,3 +60,4 @@ foreach (['remotive', 'himalayas', 'weworkremotely', 'remoteok'] as $type) {
 
 Schedule::command('bookmarks:warn-expiring')->dailyAt('06:00');
 Schedule::command('bookmarks:expire')->dailyAt('06:05');
+Schedule::command('scrape-artifacts:purge')->dailyAt('03:00');

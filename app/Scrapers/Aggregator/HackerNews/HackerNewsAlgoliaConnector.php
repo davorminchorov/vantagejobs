@@ -4,7 +4,10 @@ declare(strict_types=1);
 
 namespace App\Scrapers\Aggregator\HackerNews;
 
+use App\Scrapers\Aggregator\Artifacts\RecordResponseArtifact;
+use Illuminate\Container\Container;
 use Saloon\Http\Connector;
+use Saloon\Http\PendingRequest;
 
 /**
  * Saloon connector for the Algolia HackerNews API.
@@ -40,5 +43,13 @@ final class HackerNewsAlgoliaConnector extends Connector
             'timeout' => (int) config('scrapers.aggregators.hackernews.timeout'),
             'connect_timeout' => (int) config('scrapers.aggregators.hackernews.connect_timeout'),
         ];
+    }
+
+    public function boot(PendingRequest $pendingRequest): void
+    {
+        $pendingRequest->middleware()->onResponse(
+            Container::getInstance()->make(RecordResponseArtifact::class),
+            'recordResponseArtifact',
+        );
     }
 }
