@@ -22,7 +22,28 @@ interface AuthenticatedLayoutProps {
     header?: ReactNode;
 }
 
-const NAV_ITEMS: ReadonlyArray<string> = ['Dashboard', 'Companies', 'Discover', 'Pipeline', 'Settings'];
+interface NavItem {
+    readonly name: string;
+    readonly href: string | null;
+}
+
+const NAV_ITEMS: ReadonlyArray<NavItem> = [
+    { name: 'Dashboard', href: '/dashboard' },
+    { name: 'Companies', href: '/companies' },
+    { name: 'Discover', href: null },
+    { name: 'Pipeline', href: null },
+    { name: 'Settings', href: '/settings/profile' },
+];
+
+function isActive(currentUrl: string, item: NavItem): boolean {
+    if (item.href === null) {
+        return false;
+    }
+    if (item.href === '/settings/profile') {
+        return currentUrl.startsWith('/settings');
+    }
+    return currentUrl === item.href || currentUrl.startsWith(`${item.href}/`);
+}
 
 function initialsFor(user: User): string {
     const source = user.name?.trim() || user.email;
@@ -43,8 +64,10 @@ function handleSignOut(): void {
 }
 
 export default function AuthenticatedLayout({ children, header }: AuthenticatedLayoutProps): ReactNode {
-    const { auth } = usePage<PageProps>().props;
+    const page = usePage<PageProps>();
+    const { auth } = page.props;
     const user = auth.user;
+    const currentUrl = page.url.split('?')[0] ?? '/';
     const [mobileOpen, setMobileOpen] = useState(false);
 
     return (
@@ -68,19 +91,40 @@ export default function AuthenticatedLayout({ children, header }: AuthenticatedL
                                     <SheetTitle>VantageJobs</SheetTitle>
                                 </SheetHeader>
                                 <nav className="mt-6 flex flex-col gap-1">
-                                    {NAV_ITEMS.map((item) => (
-                                        <a
-                                            key={item}
-                                            href="#"
-                                            onClick={() => setMobileOpen(false)}
-                                            className={cn(
-                                                'text-foreground hover:bg-accent hover:text-accent-foreground',
-                                                'focus-visible:ring-ring inline-flex min-h-11 items-center rounded-md px-3 text-sm font-medium focus-visible:outline-none focus-visible:ring-2',
-                                            )}
-                                        >
-                                            {item}
-                                        </a>
-                                    ))}
+                                    {NAV_ITEMS.map((item) => {
+                                        const active = isActive(currentUrl, item);
+                                        const baseClasses =
+                                            'focus-visible:ring-ring inline-flex min-h-11 items-center rounded-md px-3 text-sm font-medium focus-visible:outline-none focus-visible:ring-2';
+
+                                        if (item.href === null) {
+                                            return (
+                                                <span
+                                                    key={item.name}
+                                                    className={cn(baseClasses, 'text-muted-foreground cursor-not-allowed')}
+                                                    aria-disabled="true"
+                                                >
+                                                    {item.name}
+                                                </span>
+                                            );
+                                        }
+
+                                        return (
+                                            <Link
+                                                key={item.name}
+                                                href={item.href}
+                                                onClick={() => setMobileOpen(false)}
+                                                aria-current={active ? 'page' : undefined}
+                                                className={cn(
+                                                    baseClasses,
+                                                    active
+                                                        ? 'bg-accent text-accent-foreground'
+                                                        : 'text-foreground hover:bg-accent hover:text-accent-foreground',
+                                                )}
+                                            >
+                                                {item.name}
+                                            </Link>
+                                        );
+                                    })}
                                 </nav>
                             </SheetContent>
                         </Sheet>
@@ -93,18 +137,39 @@ export default function AuthenticatedLayout({ children, header }: AuthenticatedL
                         </Link>
 
                         <nav className="ml-6 hidden items-center gap-1 md:flex" aria-label="Primary">
-                            {NAV_ITEMS.map((item) => (
-                                <a
-                                    key={item}
-                                    href="#"
-                                    className={cn(
-                                        'text-muted-foreground hover:text-foreground hover:bg-accent',
-                                        'focus-visible:ring-ring inline-flex h-9 items-center rounded-md px-3 text-sm font-medium focus-visible:outline-none focus-visible:ring-2',
-                                    )}
-                                >
-                                    {item}
-                                </a>
-                            ))}
+                            {NAV_ITEMS.map((item) => {
+                                const active = isActive(currentUrl, item);
+                                const baseClasses =
+                                    'focus-visible:ring-ring inline-flex h-9 items-center rounded-md px-3 text-sm font-medium focus-visible:outline-none focus-visible:ring-2';
+
+                                if (item.href === null) {
+                                    return (
+                                        <span
+                                            key={item.name}
+                                            className={cn(baseClasses, 'text-muted-foreground cursor-not-allowed')}
+                                            aria-disabled="true"
+                                        >
+                                            {item.name}
+                                        </span>
+                                    );
+                                }
+
+                                return (
+                                    <Link
+                                        key={item.name}
+                                        href={item.href}
+                                        aria-current={active ? 'page' : undefined}
+                                        className={cn(
+                                            baseClasses,
+                                            active
+                                                ? 'bg-accent text-foreground'
+                                                : 'text-muted-foreground hover:text-foreground hover:bg-accent',
+                                        )}
+                                    >
+                                        {item.name}
+                                    </Link>
+                                );
+                            })}
                         </nav>
                     </div>
 

@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Http\Controllers\Companies\IndexCompaniesController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\HealthController;
 use App\Http\Controllers\Settings\PasswordController;
@@ -15,6 +16,8 @@ Route::get('/', fn () => Inertia::render('Welcome'))->name('home');
 
 Route::middleware(['auth'])->group(function (): void {
     Route::get('/dashboard', DashboardController::class)->name('dashboard');
+
+    Route::get('/companies', IndexCompaniesController::class)->name('companies.index');
 
     Route::get('/health', HealthController::class)->name('health');
 
