@@ -15,6 +15,7 @@ use App\Http\Controllers\Import\MapFormController;
 use App\Http\Controllers\Import\RunImportController;
 use App\Http\Controllers\Import\UploadCsvController;
 use App\Http\Controllers\Import\UploadFormController;
+use App\Http\Controllers\Search\GlobalSearchController;
 use App\Http\Controllers\Tags\AttachTagController;
 use App\Http\Controllers\Tags\AutocompleteTagsController;
 use App\Http\Controllers\Tags\DetachTagController;
@@ -44,6 +45,8 @@ Route::middleware(['auth'])->group(function (): void {
     Route::get('/import/map', MapFormController::class)->name('import.map');
     Route::post('/import/run', RunImportController::class)->name('import.run');
     Route::post('/import/cancel', CancelImportController::class)->name('import.cancel');
+
+    Route::get('/search', GlobalSearchController::class)->name('search');
 
     Route::get('/tags', AutocompleteTagsController::class)->name('tags.autocomplete');
     Route::post('/companies/{company}/tags', AttachTagController::class)->name('companies.tags.attach');

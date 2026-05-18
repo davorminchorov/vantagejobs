@@ -2,6 +2,7 @@ import { Link, router, usePage } from '@inertiajs/react';
 import { Menu } from 'lucide-react';
 import { useState, type ReactNode } from 'react';
 
+import GlobalCommandPalette from '@/components/search/GlobalCommandPalette';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import {
@@ -214,6 +215,8 @@ export default function AuthenticatedLayout({ children, header }: AuthenticatedL
             ) : null}
 
             <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 sm:px-6">{children}</main>
+
+            <GlobalCommandPalette />
         </div>
     );
 }
