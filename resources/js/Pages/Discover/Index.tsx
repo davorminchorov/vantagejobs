@@ -98,6 +98,9 @@ export default function DiscoverIndex({ listings, filters, options }: Props) {
             } else if (e.key === 's') {
                 e.preventDefault();
                 actOn(listing, 'snooze');
+            } else if (e.key === 'b') {
+                e.preventDefault();
+                actOn(listing, 'bookmark');
             } else if (e.key === 'Escape') {
                 setFocusIndex(-1);
             }
@@ -113,7 +116,7 @@ export default function DiscoverIndex({ listings, filters, options }: Props) {
         }
     }, [focusIndex]);
 
-    function actOn(listing: Listing, verb: 'keep' | 'dismiss' | 'snooze') {
+    function actOn(listing: Listing, verb: 'keep' | 'dismiss' | 'snooze' | 'bookmark') {
         router.post(
             `/discover/${listing.id}/${verb}`,
             {},
@@ -148,7 +151,7 @@ export default function DiscoverIndex({ listings, filters, options }: Props) {
                     <div>
                         <h1 className="text-2xl font-semibold tracking-tight">Discover</h1>
                         <p className="text-sm text-muted-foreground">
-                            {listings.total} {listings.total === 1 ? 'listing' : 'listings'} · J/↓ next · ↑ prev · K keep · X dismiss · S snooze
+                            {listings.total} {listings.total === 1 ? 'listing' : 'listings'} · J/↓ next · ↑ prev · K keep · X dismiss · S snooze · B bookmark
                         </p>
                     </div>
                     <form onSubmit={onSearchSubmit} className="flex gap-2">
@@ -267,7 +270,7 @@ interface ListingCardProps {
     listing: Listing;
     isFocused: boolean;
     onFocus: () => void;
-    onAction: (verb: 'keep' | 'dismiss' | 'snooze') => void;
+    onAction: (verb: 'keep' | 'dismiss' | 'snooze' | 'bookmark') => void;
     ref?: React.Ref<HTMLDivElement>;
 }
 
@@ -337,6 +340,16 @@ function ListingCard({ listing, isFocused, onFocus, onAction, ref }: ListingCard
                             }}
                         >
                             Keep
+                        </Button>
+                        <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                onAction('bookmark');
+                            }}
+                        >
+                            Bookmark
                         </Button>
                         <Button
                             size="sm"

@@ -9,11 +9,19 @@ use App\Http\Controllers\Companies\IndexCompaniesController;
 use App\Http\Controllers\Companies\ShowCompanyController;
 use App\Http\Controllers\Companies\StoreCompanyController;
 use App\Http\Controllers\Companies\UpdateCompanyController;
+use App\Http\Controllers\Bookmarks\CreateBookmarkController;
+use App\Http\Controllers\Bookmarks\DeleteBookmarkController;
+use App\Http\Controllers\Bookmarks\IndexController as BookmarksIndexController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\Discover\BookmarkListingController;
 use App\Http\Controllers\Discover\DismissListingController;
 use App\Http\Controllers\Discover\IndexController as DiscoverIndexController;
 use App\Http\Controllers\Discover\KeepListingController;
 use App\Http\Controllers\Discover\SnoozeListingController;
+use App\Http\Controllers\Discover\Sources\IndexController as SourcesIndexController;
+use App\Http\Controllers\Discover\Sources\RevokeAutoDismissController;
+use App\Http\Controllers\Discover\Sources\RunSourceController;
+use App\Http\Controllers\Discover\Sources\ToggleSourceController;
 use App\Http\Controllers\Import\CancelImportController;
 use App\Http\Controllers\Import\MapFormController;
 use App\Http\Controllers\Import\RunImportController;
@@ -54,6 +62,16 @@ Route::middleware(['auth'])->group(function (): void {
     Route::post('/discover/{listing}/keep', KeepListingController::class)->name('discover.listings.keep');
     Route::post('/discover/{listing}/dismiss', DismissListingController::class)->name('discover.listings.dismiss');
     Route::post('/discover/{listing}/snooze', SnoozeListingController::class)->name('discover.listings.snooze');
+    Route::post('/discover/{listing}/bookmark', BookmarkListingController::class)->name('discover.listings.bookmark');
+
+    Route::get('/discover/sources', SourcesIndexController::class)->name('discover.sources.index');
+    Route::post('/discover/sources/{source}/toggle', ToggleSourceController::class)->name('discover.sources.toggle');
+    Route::post('/discover/sources/{source}/run', RunSourceController::class)->name('discover.sources.run');
+    Route::post('/discover/auto-dismiss-rules/{rule}/revoke', RevokeAutoDismissController::class)->name('discover.rules.revoke');
+
+    Route::get('/bookmarks', BookmarksIndexController::class)->name('bookmarks.index');
+    Route::post('/bookmarks/listings/{listing}', CreateBookmarkController::class)->name('bookmarks.listings.create');
+    Route::delete('/bookmarks/{bookmark}', DeleteBookmarkController::class)->name('bookmarks.destroy');
 
     Route::get('/search', GlobalSearchController::class)->name('search');
 
