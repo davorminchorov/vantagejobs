@@ -14,4 +14,5 @@ enum EventType: string
     case NOTE_ADDED = 'note_added';
     case GRAVEYARDED = 'graveyarded';
     case RESTORED = 'restored';
+    case BOOMERANG = 'boomerang';
 }

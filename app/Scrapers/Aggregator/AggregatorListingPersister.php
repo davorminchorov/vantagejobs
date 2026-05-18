@@ -43,11 +43,17 @@ final readonly class AggregatorListingPersister
      */
     private const DEDUP_WINDOW_DAYS = 14;
 
+    /**
+     * Boomerang re-post gap per PRD §6.3.7.
+     */
+    private const BOOMERANG_GAP_DAYS = 14;
+
     public function __construct(
         private ParserPipeline $pipeline,
         private CompanyKeyNormalizer $normalizer,
         private MatchCompanyAction $matcher,
         private VolumeCapAction $volumeCap,
+        private RoleHasher $hasher,
     ) {}
 
     /**
@@ -85,6 +91,8 @@ final readonly class AggregatorListingPersister
             if ($listing->status === AggregatorListingStatus::NEW) {
                 $this->attemptAutoLink($listing, $parsed);
             }
+
+            $this->detectBoomerang($listing);
 
             return (int) $listing->id;
         }
@@ -262,13 +270,84 @@ final readonly class AggregatorListingPersister
             'parsed_comp_max_usd' => $maxUsd,
             'has_comp' => $hasComp,
             'stack_tags' => is_array($stackTags) ? $stackTags : null,
-            'normalized_company_key' => $this->normalizer->normalize($this->asString($parsed->value('company_name'))),
-            'normalized_role_key' => $this->normalizer->normalize($this->asString($parsed->value('role_title'))),
-            'location_bucket' => $this->asString($parsed->value('region')),
+            'normalized_company_key' => $companyKey = $this->normalizer->normalize($this->asString($parsed->value('company_name'))),
+            'normalized_role_key' => $roleKey = $this->normalizer->normalize($this->asString($parsed->value('role_title'))),
+            'location_bucket' => $locationBucket = $this->asString($parsed->value('region')),
+            'role_hash' => $this->hasher->hash($companyKey, $roleKey, $locationBucket),
             'status' => AggregatorListingStatus::NEW->value,
             'posted_at' => $context->postedAt,
             'fetched_at' => CarbonImmutable::now(),
         ];
+    }
+
+    /**
+     * Per PRD §6.3.7: when a fresh listing's role_hash matches a prior
+     * listing that was last seen ≥ 14 days ago, mark it a boomerang and
+     * emit an Event so the timeline shows the re-post. Skip when the
+     * listing is already gated (duplicate/auto-dismissed) — those flags
+     * win, no point cluttering the timeline.
+     */
+    private function detectBoomerang(AggregatorListing $listing): void
+    {
+        if (in_array($listing->status, [
+            AggregatorListingStatus::DUPLICATE,
+            AggregatorListingStatus::AUTO_DISMISSED,
+        ], true)) {
+            return;
+        }
+
+        if (! $this->hasher->isComplete(
+            $listing->normalized_company_key,
+            $listing->normalized_role_key,
+            $listing->location_bucket,
+        )) {
+            return;
+        }
+
+        $threshold = CarbonImmutable::now()->subDays(self::BOOMERANG_GAP_DAYS);
+
+        $priorMaxFetched = AggregatorListing::query()
+            ->where('id', '!=', $listing->id)
+            ->where('role_hash', $listing->role_hash)
+            ->whereNotIn('status', [
+                AggregatorListingStatus::DUPLICATE->value,
+                AggregatorListingStatus::AUTO_DISMISSED->value,
+            ])
+            ->max('fetched_at');
+
+        if ($priorMaxFetched === null) {
+            return;
+        }
+
+        $priorMaxFetched = $priorMaxFetched instanceof CarbonImmutable
+            ? $priorMaxFetched
+            : CarbonImmutable::parse((string) $priorMaxFetched);
+
+        if ($priorMaxFetched->greaterThan($threshold)) {
+            // Prior sighting is inside the 14-day window; not a boomerang.
+            return;
+        }
+
+        $companyId = $listing->matched_company_id;
+        if ($companyId === null) {
+            // No tracked company to hang the timeline event off. We still
+            // count it as a boomerang via the role_hash join later; we just
+            // can't write a per-company Event row here.
+            return;
+        }
+
+        Event::query()->create([
+            'company_id' => $companyId,
+            'role_id' => null,
+            'type' => EventType::BOOMERANG->value,
+            'title' => 'Role re-posted after '.$priorMaxFetched->diffInDays(CarbonImmutable::now()).' days',
+            'body' => (string) json_encode([
+                'aggregator_listing_id' => $listing->id,
+                'role_hash' => $listing->role_hash,
+                'previously_seen_at' => $priorMaxFetched->toIso8601String(),
+            ]),
+            'occurred_at' => $listing->fetched_at ?? CarbonImmutable::now(),
+        ]);
     }
 
     private function asString(mixed $value): ?string

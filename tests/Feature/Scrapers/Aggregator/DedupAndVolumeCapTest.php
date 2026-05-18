@@ -13,6 +13,7 @@ use App\Scrapers\Aggregator\CompanyKeyNormalizer;
 use App\Scrapers\Aggregator\MatchCompanyAction;
 use App\Scrapers\Aggregator\Parser\ParserPipeline;
 use App\Scrapers\Aggregator\Parser\SourceContext;
+use App\Scrapers\Aggregator\RoleHasher;
 use App\Scrapers\Aggregator\VolumeCapAction;
 use App\Tenancy\Tenant;
 use App\Tenancy\TenantContext;
@@ -302,6 +303,7 @@ final class DedupAndVolumeCapTest extends TestCase
             normalizer: new CompanyKeyNormalizer(),
             matcher: new MatchCompanyAction(new CompanyKeyNormalizer()),
             volumeCap: new VolumeCapAction(triggerThreshold: $trigger, keepTop: $keep),
+            hasher: new RoleHasher(),
         );
     }
 }
