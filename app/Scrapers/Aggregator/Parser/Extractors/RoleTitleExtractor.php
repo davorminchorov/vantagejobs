@@ -10,10 +10,11 @@ use App\Scrapers\Aggregator\Parser\ExtractionSource;
 use App\Scrapers\Aggregator\Parser\SourceContext;
 
 /**
- *   Remotive / Himalayas / We Work Remotely : structured.title
- *   RemoteOK                                : structured.position
- *   HackerNews                              : scraper pre-splits first line
- *                                             and sets structured.title
+ *   Remotive / Himalayas / We Work Remotely / Arbeitnow : structured.title
+ *   RemoteOK                                            : structured.position
+ *   Jobicy                                              : structured.jobTitle
+ *   HackerNews                                          : scraper pre-splits first line
+ *                                                         and sets structured.title
  */
 final class RoleTitleExtractor implements Extractor
 {
@@ -26,7 +27,7 @@ final class RoleTitleExtractor implements Extractor
 
     public function extract(SourceContext $ctx): ExtractedField
     {
-        foreach (['title', 'position'] as $key) {
+        foreach (['title', 'position', 'jobTitle'] as $key) {
             $raw = $ctx->structured[$key] ?? null;
             if (! is_string($raw)) {
                 continue;
