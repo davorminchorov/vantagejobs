@@ -4,7 +4,10 @@ declare(strict_types=1);
 
 namespace App\Scrapers\Aggregator\Remotive;
 
+use App\Scrapers\Aggregator\Artifacts\RecordResponseArtifact;
+use Illuminate\Container\Container;
 use Saloon\Http\Connector;
+use Saloon\Http\PendingRequest;
 
 /**
  * Saloon connector for the Remotive remote-jobs API.
@@ -40,5 +43,13 @@ final class RemotiveConnector extends Connector
             'timeout' => (int) config('scrapers.aggregators.remotive.timeout'),
             'connect_timeout' => (int) config('scrapers.aggregators.remotive.connect_timeout'),
         ];
+    }
+
+    public function boot(PendingRequest $pendingRequest): void
+    {
+        $pendingRequest->middleware()->onResponse(
+            Container::getInstance()->make(RecordResponseArtifact::class),
+            'recordResponseArtifact',
+        );
     }
 }

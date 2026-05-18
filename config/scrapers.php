@@ -28,6 +28,20 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Raw HTTP response retention
+    |--------------------------------------------------------------------------
+    |
+    | Every aggregator response body is gzipped and written to the local disk
+    | by the RecordResponseArtifact middleware. The scrape-artifacts:purge
+    | command sweeps any row whose retained_until has elapsed. Default 7 days
+    | per PRD §11.2; override via SCRAPER_ARTIFACT_RETENTION_DAYS if you need
+    | a longer or shorter window.
+    |
+    */
+    'artifact_retention_days' => env('SCRAPER_ARTIFACT_RETENTION_DAYS', 7),
+
+    /*
+    |--------------------------------------------------------------------------
     | Per-source defaults
     |--------------------------------------------------------------------------
     |

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Providers;
 
 use App\Scrapers\Aggregator\AggregatorRegistry;
+use App\Scrapers\Aggregator\Artifacts\ScrapeArtifactContext;
 use App\Scrapers\Aggregator\HackerNews\HackerNewsScraper;
 use App\Scrapers\Aggregator\SaveFixtureAction;
 use App\Scrapers\Aggregator\Himalayas\HimalayasScraper;
@@ -44,6 +45,11 @@ final class AggregatorServiceProvider extends ServiceProvider
             $app->make(\App\Scrapers\Aggregator\SourceContextFactory::class),
             base_path('tests/Fixtures/parsers'),
         ));
+
+        // Carries the in-flight scrape_runs.id + tenant/source/company context
+        // into the Saloon response middleware. Scoped so Octane resets it
+        // between requests instead of leaking state across runs.
+        $this->app->scoped(ScrapeArtifactContext::class, fn (): ScrapeArtifactContext => new ScrapeArtifactContext());
 
         $this->app->scoped(ParserPipeline::class, fn (): ParserPipeline => new ParserPipeline([
             new CompanyNameExtractor(),

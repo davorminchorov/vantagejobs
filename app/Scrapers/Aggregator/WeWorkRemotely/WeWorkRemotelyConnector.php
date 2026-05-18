@@ -4,7 +4,10 @@ declare(strict_types=1);
 
 namespace App\Scrapers\Aggregator\WeWorkRemotely;
 
+use App\Scrapers\Aggregator\Artifacts\RecordResponseArtifact;
+use Illuminate\Container\Container;
 use Saloon\Http\Connector;
+use Saloon\Http\PendingRequest;
 
 /**
  * Saloon connector for the We Work Remotely public RSS feeds.
@@ -41,5 +44,13 @@ final class WeWorkRemotelyConnector extends Connector
             'timeout' => (int) config('scrapers.aggregators.weworkremotely.timeout'),
             'connect_timeout' => (int) config('scrapers.aggregators.weworkremotely.connect_timeout'),
         ];
+    }
+
+    public function boot(PendingRequest $pendingRequest): void
+    {
+        $pendingRequest->middleware()->onResponse(
+            Container::getInstance()->make(RecordResponseArtifact::class),
+            'recordResponseArtifact',
+        );
     }
 }
