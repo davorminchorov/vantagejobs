@@ -36,19 +36,31 @@ final readonly class ReparseAction
 
     public function reparse(AggregatorListing $listing, bool $force = false): AggregatorListing
     {
-        $context = $this->contextFactory->buildFor($listing);
-        $parsed = $this->pipeline->parse($context);
-
-        return DB::transaction(function () use ($listing, $parsed, $force): AggregatorListing {
-            $this->writeParsedToListing($listing, $parsed);
-            $listing->save();
-
-            if (! $force) {
-                $this->overlayCorrections($listing);
-            }
+        return DB::transaction(function () use ($listing, $force): AggregatorListing {
+            $this->reparseWithoutTransaction($listing, $force);
 
             return $listing->fresh() ?? $listing;
         });
+    }
+
+    /**
+     * Re-parse a single listing without opening its own transaction. Used by
+     * bulk callers (parser:reparse-all) that wrap a whole chunk of listings
+     * in one transaction to keep the DB friendlier under load.
+     */
+    public function reparseWithoutTransaction(AggregatorListing $listing, bool $force = false): AggregatorListing
+    {
+        $context = $this->contextFactory->buildFor($listing);
+        $parsed = $this->pipeline->parse($context);
+
+        $this->writeParsedToListing($listing, $parsed);
+        $listing->save();
+
+        if (! $force) {
+            $this->overlayCorrections($listing);
+        }
+
+        return $listing;
     }
 
     /**
