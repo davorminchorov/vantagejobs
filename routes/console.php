@@ -75,3 +75,46 @@ Schedule::call(static function () use ($tenantSlug): void {
     }
     Artisan::call('signals:snapshot:daily', ['--tenant' => $slug]);
 })->name('signals:snapshot:daily')->dailyAt('04:00');
+
+// Layoffs cross-reference (Phase 4 §6.3.2). Reads a locally-staged
+// Kaggle export — Kaggle auto-download is a follow-up.
+Schedule::call(static function () use ($tenantSlug): void {
+    $slug = $tenantSlug();
+    if (! is_string($slug) || $slug === '') {
+        return;
+    }
+    Artisan::call('signals:layoffs:sync', [
+        '--tenant' => $slug,
+        '--source' => 'local',
+        '--path' => storage_path('app/signals/layoffs.csv'),
+    ]);
+})->name('signals:layoffs:sync')->dailyAt('04:15');
+
+// GitHub org activity (Phase 4 §6.3.3). Weekly to respect the 5000
+// req/h auth budget once the watchlist grows.
+Schedule::call(static function () use ($tenantSlug): void {
+    $slug = $tenantSlug();
+    if (! is_string($slug) || $slug === '') {
+        return;
+    }
+    Artisan::call('signals:github:poll', ['--tenant' => $slug]);
+})->name('signals:github:poll')->weeklyOn(1, '04:30');
+
+// yc-oss YC mirror sync. Cheap (static JSON), weekly.
+Schedule::call(static function () use ($tenantSlug): void {
+    $slug = $tenantSlug();
+    if (! is_string($slug) || $slug === '') {
+        return;
+    }
+    Artisan::call('signals:funding:yc-oss', ['--tenant' => $slug]);
+})->name('signals:funding:yc-oss')->weeklyOn(1, '04:45');
+
+// Engineering-blog RSS poll (Phase 4 §6.3.4). After the snapshot job
+// so blog cadence can fold into the quality score later in the day.
+Schedule::call(static function () use ($tenantSlug): void {
+    $slug = $tenantSlug();
+    if (! is_string($slug) || $slug === '') {
+        return;
+    }
+    Artisan::call('signals:blog:poll', ['--tenant' => $slug]);
+})->name('signals:blog:poll')->dailyAt('05:00');

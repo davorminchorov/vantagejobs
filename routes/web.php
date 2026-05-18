@@ -10,6 +10,7 @@ use App\Http\Controllers\Admin\Runs\IndexController as AdminRunsIndexController;
 use App\Http\Controllers\Admin\Runs\ShowController as AdminRunsShowController;
 use App\Http\Controllers\Companies\CreateCompanyController;
 use App\Http\Controllers\Companies\DetectAtsController;
+use App\Http\Controllers\Companies\AddFundingController;
 use App\Http\Controllers\Companies\EditCompanyController;
 use App\Http\Controllers\Companies\GraveyardCompanyController;
 use App\Http\Controllers\Companies\IndexCompaniesController;
@@ -38,6 +39,7 @@ use App\Http\Controllers\Import\MapFormController;
 use App\Http\Controllers\Import\RunImportController;
 use App\Http\Controllers\Import\UploadCsvController;
 use App\Http\Controllers\Import\UploadFormController;
+use App\Http\Controllers\Insights\CompInsightsController;
 use App\Http\Controllers\Insights\HiringInsightsController;
 use App\Http\Controllers\SavedViews\DestroySavedViewController;
 use App\Http\Controllers\SavedViews\StoreSavedViewController;
@@ -68,8 +70,10 @@ Route::middleware(['auth'])->group(function (): void {
     Route::put('/companies/{company}', UpdateCompanyController::class)->name('companies.update');
     Route::post('/companies/{company}/graveyard', GraveyardCompanyController::class)->name('companies.graveyard');
     Route::post('/companies/{company}/restore', RestoreCompanyController::class)->name('companies.restore');
+    Route::post('/companies/{company}/funding', AddFundingController::class)->name('companies.funding.store');
 
     Route::get('/insights/hiring', HiringInsightsController::class)->name('insights.hiring');
+    Route::get('/insights/comp', CompInsightsController::class)->name('insights.comp');
 
     Route::get('/import', UploadFormController::class)->name('import.upload');
     Route::post('/import', UploadCsvController::class)->name('import.upload.store');

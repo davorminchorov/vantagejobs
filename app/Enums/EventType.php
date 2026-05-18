@@ -15,4 +15,8 @@ enum EventType: string
     case GRAVEYARDED = 'graveyarded';
     case RESTORED = 'restored';
     case BOOMERANG = 'boomerang';
+    case FUNDING = 'funding';
+    case BLOG_POST = 'blog_post';
+    case LAYOFF = 'layoff';
+    case GHOST_DETECTED = 'ghost_detected';
 }
