@@ -8,6 +8,7 @@ use App\Scrapers\Ashby\AshbyScraper;
 use App\Scrapers\Greenhouse\GreenhouseScraper;
 use App\Scrapers\Lever\LeverScraper;
 use App\Scrapers\ScraperRegistry;
+use App\Scrapers\Workable\WorkableScraper;
 use Illuminate\Support\ServiceProvider;
 
 /**
@@ -33,5 +34,6 @@ final class ScraperServiceProvider extends ServiceProvider
         $registry->register($this->app->make(GreenhouseScraper::class));
         $registry->register($this->app->make(LeverScraper::class));
         $registry->register($this->app->make(AshbyScraper::class));
+        $registry->register($this->app->make(WorkableScraper::class));
     }
 }
