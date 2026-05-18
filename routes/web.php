@@ -30,6 +30,9 @@ use App\Http\Controllers\Import\MapFormController;
 use App\Http\Controllers\Import\RunImportController;
 use App\Http\Controllers\Import\UploadCsvController;
 use App\Http\Controllers\Import\UploadFormController;
+use App\Http\Controllers\SavedViews\DestroySavedViewController;
+use App\Http\Controllers\SavedViews\StoreSavedViewController;
+use App\Http\Controllers\SavedViews\UpdateSavedViewController;
 use App\Http\Controllers\Search\GlobalSearchController;
 use App\Http\Controllers\Tags\AttachTagController;
 use App\Http\Controllers\Tags\AutocompleteTagsController;
@@ -80,6 +83,14 @@ Route::middleware(['auth'])->group(function (): void {
     Route::delete('/bookmarks/{bookmark}', DeleteBookmarkController::class)->name('bookmarks.destroy');
 
     Route::get('/search', GlobalSearchController::class)->name('search');
+
+    Route::post('/saved-views', StoreSavedViewController::class)->name('saved-views.store');
+    Route::patch('/saved-views/{view}', UpdateSavedViewController::class)
+        ->whereNumber('view')
+        ->name('saved-views.update');
+    Route::delete('/saved-views/{view}', DestroySavedViewController::class)
+        ->whereNumber('view')
+        ->name('saved-views.destroy');
 
     Route::get('/tags', AutocompleteTagsController::class)->name('tags.autocomplete');
     Route::post('/companies/{company}/tags', AttachTagController::class)->name('companies.tags.attach');
