@@ -1,8 +1,13 @@
 {
     "mcpServers": {
         "laravel-boost": {
-            "command": "php",
+            "command": "./vendor/bin/spin-mcp-wait.sh",
             "args": [
+                "./vendor/bin/spin",
+                "run",
+                "-T",
+                "php",
+                "php",
                 "artisan",
                 "boost:mcp"
             ]
