@@ -1,0 +1,18 @@
+{
+    "comment_id": "40000001",
+    "author": "founder_jane",
+    "created_at": "2026-05-01T15:30:00Z",
+    "text": "<p>Vercel | Staff Engineer, Edge | Remote (US/EU) | $220k-$280k + equity | TypeScript, React, Edge Computing | https://vercel.com/careers/staff-edge</p>",
+    "expected": {
+        "company_name": "Vercel",
+        "role_title": "Staff Engineer, Edge",
+        "seniority": "staff",
+        "remote.type": "remote",
+        "compensation.min_usd": 220000,
+        "compensation.max_usd": 280000,
+        "compensation.currency": "USD",
+        "compensation.equity": true,
+        "stack_tags_include": ["typescript", "react"],
+        "apply_method_contains": "vercel.com"
+    }
+}

@@ -33,7 +33,7 @@ final class DisciplineExtractor implements Extractor
         ['value' => 'backend', 'pattern' => '/\b(back[\s\-]?end|backend|server[\s\-]?side|api\s+engineer)\b/i'],
         ['value' => 'devops', 'pattern' => '/\b(devops|sre|site\s+reliability|platform\s+engineer|infrastructure\s+engineer)\b/i'],
         ['value' => 'data', 'pattern' => '/\b(data\s+engineer|analytics\s+engineer|data\s+scientist|data\s+analyst)\b/i'],
-        ['value' => 'ml', 'pattern' => '/\b(ml\s+engineer|machine\s+learning|ai\s+engineer|research\s+scientist)\b/i'],
+        ['value' => 'ml', 'pattern' => '/\b(ml\s+engineer|machine\s+learning|ai\s+engineer|research\s+(?:engineer|scientist))\b/i'],
         ['value' => 'security', 'pattern' => '/\b(security\s+engineer|appsec|application\s+security|infosec)\b/i'],
         ['value' => 'qa', 'pattern' => '/\b(qa\s+engineer|quality\s+assurance|test\s+engineer|sdet)\b/i'],
         ['value' => 'design', 'pattern' => '/\b(product\s+designer|ux\s+designer|ui\s+designer|design\s+engineer)\b/i'],

@@ -29,7 +29,7 @@ final class RegionExtractor implements Extractor
      */
     private const RULES = [
         ['value' => 'worldwide', 'pattern' => '/\b(worldwide|anywhere(?:\s+in\s+the\s+world)?)\b/i'],
-        ['value' => 'emea', 'pattern' => '/\b(emea|europe(?:an)?(?:\s+only)?|eu\s+only|cet)\b/i'],
+        ['value' => 'emea', 'pattern' => '/\b(emea|europe(?:an)?(?:\s+only)?|eu(?:\s+only)?|cet)\b/i'],
         ['value' => 'us', 'pattern' => '/\b(usa?(?:\s+only)?|united\s+states|north\s+america|us[\s\-]based)\b/i'],
         ['value' => 'apac', 'pattern' => '/\b(apac|asia(?:[\s\-]pacific)?|australia)\b/i'],
         ['value' => 'americas', 'pattern' => '/\b(americas|latam|latin\s+america)\b/i'],

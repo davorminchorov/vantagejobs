@@ -1,0 +1,14 @@
+{
+    "comment_id": "40000007",
+    "author": "anthropic_recruiter",
+    "created_at": "2026-05-01T18:00:00Z",
+    "text": "<p>Anthropic | Research Engineer | Remote (US/UK) | $300k+ | Python, PyTorch, JAX | https://anthropic.com/jobs</p>",
+    "expected": {
+        "company_name": "Anthropic",
+        "role_title": "Research Engineer",
+        "discipline": "ml",
+        "remote.type": "remote",
+        "compensation.min_usd": 300000,
+        "stack_tags_include": ["python", "pytorch", "jax"]
+    }
+}

@@ -1,0 +1,15 @@
+{
+    "comment_id": "40000008",
+    "author": "wayne_eng",
+    "created_at": "2026-05-01T18:30:00Z",
+    "text": "<p>Wayne Enterprises | Lead Engineer, Platform | Gotham, NY (On-site) | $200k-$260k | Java, Spring Boot, Kafka | https://wayne.com/careers/lead-platform</p>",
+    "expected": {
+        "company_name": "Wayne Enterprises",
+        "role_title": "Lead Engineer, Platform",
+        "seniority": "lead",
+        "remote.type": "on_site",
+        "compensation.min_usd": 200000,
+        "compensation.max_usd": 260000,
+        "stack_tags_include": ["java", "spring", "kafka"]
+    }
+}

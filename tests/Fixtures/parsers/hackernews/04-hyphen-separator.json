@@ -1,0 +1,16 @@
+{
+    "comment_id": "40000004",
+    "author": "initech_eng",
+    "created_at": "2026-05-01T17:00:00Z",
+    "text": "<p>Initech - Senior Full-Stack Engineer - Berlin or Remote - €90k - €120k - TypeScript, React, Postgres - https://initech.com/apply</p>",
+    "expected": {
+        "company_name": "Initech",
+        "role_title": "Senior Full-Stack Engineer",
+        "seniority": "senior",
+        "discipline": "fullstack",
+        "compensation.min": 90000,
+        "compensation.max": 120000,
+        "compensation.currency": "EUR",
+        "stack_tags_include": ["typescript", "react", "postgres"]
+    }
+}

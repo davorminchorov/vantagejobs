@@ -1,0 +1,14 @@
+{
+    "comment_id": "40000014",
+    "author": "bigco_intern_recruiter",
+    "created_at": "2026-05-01T21:30:00Z",
+    "text": "<p>BigCo | Software Engineer Internship Summer 2026 | Mountain View, CA (On-site) | $10,000/month | Python, Java, Go | https://bigco.com/internships</p>",
+    "expected": {
+        "company_name": "BigCo",
+        "role_title": "Software Engineer Internship Summer 2026",
+        "seniority": "intern",
+        "employment_type": "internship",
+        "remote.type": "on_site",
+        "stack_tags_include": ["python", "java", "go"]
+    }
+}

@@ -1,0 +1,18 @@
+{
+    "comment_id": "40000006",
+    "author": "monzo_eng",
+    "created_at": "2026-05-01T17:30:00Z",
+    "text": "<p>Monzo | Senior Backend Engineer | London (Hybrid) | £85k - £120k + equity | Go, Postgres, AWS | https://monzo.com/careers</p>",
+    "expected": {
+        "company_name": "Monzo",
+        "role_title": "Senior Backend Engineer",
+        "seniority": "senior",
+        "discipline": "backend",
+        "remote.type": "hybrid",
+        "compensation.min": 85000,
+        "compensation.max": 120000,
+        "compensation.currency": "GBP",
+        "compensation.equity": true,
+        "stack_tags_include": ["go", "postgres", "aws"]
+    }
+}

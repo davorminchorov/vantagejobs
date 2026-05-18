@@ -161,7 +161,12 @@ final class HackerNewsContextBuilder
                 if (! isset($structured['location'])) {
                     $structured['location'] = $token;
                 }
-                $structured['is_remote'] = true;
+                // Only flag is_remote for genuinely remote markers — hybrid
+                // and on-site tokens flow through to RemoteExtractor's regex
+                // pass so it can pick the right `type`.
+                if ($this->looksLikeRemoteWord($token)) {
+                    $structured['is_remote'] = true;
+                }
 
                 continue;
             }
@@ -197,6 +202,11 @@ final class HackerNewsContextBuilder
     private function looksLikeRemoteMarker(string $token): bool
     {
         return (bool) preg_match('/\b(remote|wfh|work\s+from\s+home|distributed|fully\s+remote|anywhere|onsite|on[\s\-]site|hybrid)\b/i', $token);
+    }
+
+    private function looksLikeRemoteWord(string $token): bool
+    {
+        return (bool) preg_match('/\b(remote|wfh|work\s+from\s+home|distributed|fully\s+remote|anywhere)\b/i', $token);
     }
 
     /**

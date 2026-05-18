@@ -1,0 +1,16 @@
+{
+    "comment_id": "40000005",
+    "author": "stripe_eng",
+    "created_at": "2026-05-01T17:15:00Z",
+    "text": "<p>Stripe | Staff Software Engineer | Remote (US) | $250,000 - $320,000 | Ruby, Rails, Go | https://stripe.com/jobs/listing/staff-engineer</p>",
+    "expected": {
+        "company_name": "Stripe",
+        "role_title": "Staff Software Engineer",
+        "seniority": "staff",
+        "region": "us",
+        "remote.type": "remote",
+        "compensation.min_usd": 250000,
+        "compensation.max_usd": 320000,
+        "stack_tags_include": ["ruby", "rails", "go"]
+    }
+}
