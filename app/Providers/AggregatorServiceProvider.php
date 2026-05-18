@@ -26,6 +26,7 @@ use App\Scrapers\Aggregator\Parser\ParserPipeline;
 use App\Scrapers\Aggregator\RemoteOk\RemoteOkScraper;
 use App\Scrapers\Aggregator\Remotive\RemotiveScraper;
 use App\Scrapers\Aggregator\WeWorkRemotely\WeWorkRemotelyScraper;
+use App\Scrapers\Aggregator\WorkingNomads\WorkingNomadsScraper;
 use Illuminate\Support\ServiceProvider;
 
 /**
@@ -77,5 +78,6 @@ final class AggregatorServiceProvider extends ServiceProvider
         $registry->register($this->app->make(WeWorkRemotelyScraper::class));
         $registry->register($this->app->make(RemoteOkScraper::class));
         $registry->register($this->app->make(FourDayWeekScraper::class));
+        $registry->register($this->app->make(WorkingNomadsScraper::class));
     }
 }
