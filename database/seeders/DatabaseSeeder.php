@@ -15,6 +15,7 @@ final class DatabaseSeeder extends Seeder
             CreateInitialTenantSeeder::class,
             CreateAdminUserSeeder::class,
             ExampleCompaniesSeeder::class,
+            AggregatorSourcesSeeder::class,
         ]);
 
         // Reset tenant context so the seeder process leaves no global state.

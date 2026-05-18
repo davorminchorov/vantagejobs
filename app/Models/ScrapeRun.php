@@ -14,6 +14,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 #[Fillable([
     'company_id',
     'source',
+    'source_kind',
     'status',
     'started_at',
     'finished_at',

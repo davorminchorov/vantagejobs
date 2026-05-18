@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
+use App\Models\AggregatorListing;
 use App\Models\Company;
 use App\Models\Role;
 use Illuminate\Database\Eloquent\Relations\Relation;
@@ -36,6 +37,7 @@ class AppServiceProvider extends ServiceProvider
         Relation::enforceMorphMap([
             'company' => Company::class,
             'role' => Role::class,
+            'aggregator_listing' => AggregatorListing::class,
         ]);
     }
 }
