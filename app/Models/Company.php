@@ -24,6 +24,14 @@ use Illuminate\Database\Eloquent\Relations\MorphToMany;
     'last_checked_at',
     'etag',
     'last_modified',
+    'funding_stage',
+    'funding_last_raised_at',
+    'funding_last_amount_usd',
+    'github_org',
+    'eng_blog_rss_url',
+    'is_active',
+    'ats_status',
+    'ats_consecutive_404s',
 ])]
 final class Company extends Model
 {
@@ -36,6 +44,10 @@ final class Company extends Model
     {
         return [
             'last_checked_at' => 'immutable_datetime',
+            'funding_last_raised_at' => 'immutable_datetime',
+            'funding_last_amount_usd' => 'integer',
+            'is_active' => 'boolean',
+            'ats_consecutive_404s' => 'integer',
         ];
     }
 

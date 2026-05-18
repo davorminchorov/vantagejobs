@@ -32,6 +32,8 @@ use Illuminate\Database\Eloquent\Relations\MorphMany;
     'normalized_company_key',
     'normalized_role_key',
     'location_bucket',
+    'role_hash',
+    'requisition_id',
     'status',
     'matched_company_id',
     'duplicate_of_id',
