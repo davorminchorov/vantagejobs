@@ -12,4 +12,6 @@ enum EventType: string
     case ROLE_UPDATED = 'role_updated';
     case COMPANY_ADDED = 'company_added';
     case NOTE_ADDED = 'note_added';
+    case GRAVEYARDED = 'graveyarded';
+    case RESTORED = 'restored';
 }

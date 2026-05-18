@@ -11,7 +11,9 @@ use App\Http\Controllers\Admin\Runs\ShowController as AdminRunsShowController;
 use App\Http\Controllers\Companies\CreateCompanyController;
 use App\Http\Controllers\Companies\DetectAtsController;
 use App\Http\Controllers\Companies\EditCompanyController;
+use App\Http\Controllers\Companies\GraveyardCompanyController;
 use App\Http\Controllers\Companies\IndexCompaniesController;
+use App\Http\Controllers\Companies\RestoreCompanyController;
 use App\Http\Controllers\Companies\ShowCompanyController;
 use App\Http\Controllers\Companies\StoreCompanyController;
 use App\Http\Controllers\Companies\UpdateCompanyController;
@@ -63,6 +65,8 @@ Route::middleware(['auth'])->group(function (): void {
     Route::get('/companies/{company}', ShowCompanyController::class)->name('companies.show');
     Route::get('/companies/{company}/edit', EditCompanyController::class)->name('companies.edit');
     Route::put('/companies/{company}', UpdateCompanyController::class)->name('companies.update');
+    Route::post('/companies/{company}/graveyard', GraveyardCompanyController::class)->name('companies.graveyard');
+    Route::post('/companies/{company}/restore', RestoreCompanyController::class)->name('companies.restore');
 
     Route::get('/import', UploadFormController::class)->name('import.upload');
     Route::post('/import', UploadCsvController::class)->name('import.upload.store');

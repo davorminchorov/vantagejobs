@@ -44,6 +44,7 @@ final readonly class CompanyListFilters
         'rejected',
         'offer',
         'passed',
+        'graveyard',
     ];
 
     public const VALID_LAST_CHECKED = [
@@ -75,6 +76,7 @@ final readonly class CompanyListFilters
         public ?string $lastChecked,
         public ?string $domain,
         public ?string $q,
+        public bool $graveyard,
     ) {}
 
     /**
@@ -93,6 +95,12 @@ final readonly class CompanyListFilters
             default => null,
         };
 
+        $graveyardRaw = $input['graveyard'] ?? null;
+        $graveyard = match (is_string($graveyardRaw) ? $graveyardRaw : $graveyardRaw) {
+            '1', 1, true, 'true', 'yes' => true,
+            default => false,
+        };
+
         return new self(
             tier: self::filterMulti($input['tier'] ?? null, self::VALID_TIERS),
             status: self::filterMulti($input['status'] ?? null, self::VALID_STATUSES),
@@ -105,6 +113,7 @@ final readonly class CompanyListFilters
             lastChecked: self::inSet($input['last_checked'] ?? null, self::VALID_LAST_CHECKED),
             domain: self::nonEmptyString($input['domain'] ?? null),
             q: self::nonEmptyString($input['q'] ?? null),
+            graveyard: $graveyard,
         );
     }
 
@@ -119,6 +128,14 @@ final readonly class CompanyListFilters
      */
     public function applyTo(Builder $query): Builder
     {
+        // Default queries exclude graveyard. The toggle flips to graveyard-only
+        // so the /companies?graveyard=1 view shares this controller.
+        if ($this->graveyard) {
+            $query->where('is_active', false);
+        } else {
+            $query->where('is_active', true);
+        }
+
         if ($this->tier !== []) {
             $query->whereIn('tier', $this->tier);
         }
@@ -190,6 +207,7 @@ final readonly class CompanyListFilters
             'last_checked' => $this->lastChecked,
             'domain' => $this->domain,
             'q' => $this->q,
+            'graveyard' => $this->graveyard,
         ];
     }
 

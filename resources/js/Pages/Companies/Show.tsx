@@ -1,4 +1,4 @@
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, useForm } from '@inertiajs/react';
 import { useState } from 'react';
 
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
@@ -19,10 +19,17 @@ interface CompanyDetail {
     ats_slug: string | null;
     tier: 'A' | 'B' | 'C' | 'graveyard';
     status: string;
+    is_active: boolean;
     last_checked_at: string | null;
     etag: string | null;
     last_modified: string | null;
     created_at: string | null;
+}
+
+interface GraveyardInfo {
+    demoted_at: string | null;
+    reason: string | null;
+    tags: string[];
 }
 
 interface RoleRow {
@@ -73,6 +80,8 @@ interface Props {
     timeline: TimelineItem[];
     tags: TagSummary[];
     counts: Counts;
+    graveyard: GraveyardInfo | null;
+    graveyard_preset_tags: string[];
 }
 
 const TIER_VARIANT: Record<string, 'default' | 'secondary' | 'outline'> = {
@@ -105,7 +114,15 @@ function formatComp(role: RoleRow): string | null {
     return `${currency} ${min}-${max}${interval}`.trim();
 }
 
-export default function ShowCompanyPage({ company, roles, timeline, tags, counts }: Props) {
+export default function ShowCompanyPage({
+    company,
+    roles,
+    timeline,
+    tags,
+    counts,
+    graveyard,
+    graveyard_preset_tags,
+}: Props) {
     const [tab, setTab] = useState<'overview' | 'roles' | 'timeline'>('overview');
 
     return (
@@ -137,8 +154,15 @@ export default function ShowCompanyPage({ company, roles, timeline, tags, counts
                         <Button asChild variant="outline">
                             <Link href={`/companies/${company.id}/edit`}>Edit</Link>
                         </Button>
+                        <GraveyardControls
+                            companyId={company.id}
+                            isActive={company.is_active}
+                            presetTags={graveyard_preset_tags}
+                        />
                     </div>
                 </header>
+
+                {graveyard ? <GraveyardBanner info={graveyard} /> : null}
 
                 <Tabs value={tab} onValueChange={(v) => setTab(v as typeof tab)}>
                     <TabsList>
@@ -382,5 +406,118 @@ function Timeline({ items }: { items: TimelineItem[] }) {
                 </ol>
             </CardContent>
         </Card>
+    );
+}
+
+function GraveyardBanner({ info }: { info: GraveyardInfo }) {
+    return (
+        <Card className="border-destructive/40 bg-destructive/5">
+            <CardContent className="space-y-2 py-4 text-sm">
+                <div className="flex flex-wrap items-center gap-2">
+                    <Badge variant="destructive">Graveyard</Badge>
+                    <span className="text-xs text-muted-foreground">
+                        Demoted {info.demoted_at ? new Date(info.demoted_at).toLocaleString() : ''}
+                    </span>
+                    {info.tags.map((tag) => (
+                        <Badge key={tag} variant="outline">
+                            {humanize(tag)}
+                        </Badge>
+                    ))}
+                </div>
+                {info.reason ? <p className="text-muted-foreground">{info.reason}</p> : null}
+            </CardContent>
+        </Card>
+    );
+}
+
+function GraveyardControls({
+    companyId,
+    isActive,
+    presetTags,
+}: {
+    companyId: number;
+    isActive: boolean;
+    presetTags: string[];
+}) {
+    const [open, setOpen] = useState(false);
+    const demote = useForm<{ reason: string; tags: string[] }>({ reason: '', tags: [] });
+    const restore = useForm({});
+
+    if (!isActive) {
+        return (
+            <Button
+                variant="outline"
+                disabled={restore.processing}
+                onClick={() =>
+                    restore.post(`/companies/${companyId}/restore`, { preserveScroll: true })
+                }
+            >
+                Restore to C-tier
+            </Button>
+        );
+    }
+
+    return (
+        <div className="relative">
+            <Button variant="outline" onClick={() => setOpen((v) => !v)}>
+                Move to graveyard
+            </Button>
+            {open ? (
+                <div className="absolute right-0 z-10 mt-2 w-80 space-y-3 rounded-md border bg-background p-3 shadow-md">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                        Reason
+                    </p>
+                    <textarea
+                        className="min-h-20 w-full rounded border bg-background p-2 text-sm"
+                        placeholder="Why are you graveyarding this company?"
+                        value={demote.data.reason}
+                        onChange={(e) => demote.setData('reason', e.target.value)}
+                    />
+                    <div className="flex flex-wrap gap-1">
+                        {presetTags.map((tag) => {
+                            const active = demote.data.tags.includes(tag);
+                            return (
+                                <button
+                                    key={tag}
+                                    type="button"
+                                    className={`rounded border px-2 py-1 text-xs ${
+                                        active
+                                            ? 'border-foreground bg-foreground text-background'
+                                            : 'border-muted text-muted-foreground hover:text-foreground'
+                                    }`}
+                                    onClick={() =>
+                                        demote.setData(
+                                            'tags',
+                                            active
+                                                ? demote.data.tags.filter((t) => t !== tag)
+                                                : [...demote.data.tags, tag],
+                                        )
+                                    }
+                                >
+                                    {humanize(tag)}
+                                </button>
+                            );
+                        })}
+                    </div>
+                    <div className="flex justify-end gap-2">
+                        <Button variant="ghost" size="sm" onClick={() => setOpen(false)}>
+                            Cancel
+                        </Button>
+                        <Button
+                            size="sm"
+                            disabled={demote.processing}
+                            onClick={() =>
+                                demote.post(`/companies/${companyId}/graveyard`, {
+                                    preserveScroll: true,
+                                    onSuccess: () => setOpen(false),
+                                })
+                            }
+                        >
+                            Demote
+                        </Button>
+                    </div>
+                </div>
+            ) : null}
+        </div>
     );
 }

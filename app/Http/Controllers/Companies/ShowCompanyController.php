@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Companies;
 
 use App\Models\Company;
+use App\Models\CompanyGraveyardReason;
 use App\Models\Event;
 use App\Models\Note;
-use Carbon\CarbonImmutable;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -66,6 +66,12 @@ final readonly class ShowCompanyController
             ->map(fn ($tag) => ['id' => $tag->id, 'slug' => $tag->slug, 'name' => $tag->name])
             ->values();
 
+        $graveyardReason = CompanyGraveyardReason::query()
+            ->where('company_id', $company->id)
+            ->whereNull('restored_at')
+            ->latest('demoted_at')
+            ->first();
+
         return Inertia::render('Companies/Show', [
             'company' => [
                 'id' => $company->id,
@@ -77,6 +83,7 @@ final readonly class ShowCompanyController
                 'ats_slug' => $company->ats_slug,
                 'tier' => $company->tier,
                 'status' => $company->status,
+                'is_active' => (bool) $company->is_active,
                 'last_checked_at' => $company->last_checked_at?->toIso8601String(),
                 'etag' => $company->etag,
                 'last_modified' => $company->last_modified,
@@ -90,6 +97,12 @@ final readonly class ShowCompanyController
                 'total_roles' => $totalCount,
                 'timeline_items' => $timeline->count(),
             ],
+            'graveyard' => $graveyardReason === null ? null : [
+                'demoted_at' => $graveyardReason->demoted_at?->toIso8601String(),
+                'reason' => $graveyardReason->reason,
+                'tags' => $graveyardReason->tags ?? [],
+            ],
+            'graveyard_preset_tags' => CompanyGraveyardReason::PRESET_TAGS,
         ]);
     }
 }
