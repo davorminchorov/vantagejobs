@@ -73,7 +73,7 @@ final class IndexCompaniesTest extends TestCase
             ->assertInertia(fn ($page) => $page
                 ->where('companies.total', 1)
                 ->where('companies.data.0.name', 'Atier')
-                ->where('filters.tier', 'A')
+                ->where('filters.tier', ['A'])
             );
     }
 
@@ -190,6 +190,49 @@ final class IndexCompaniesTest extends TestCase
     }
 
     #[Test]
+    public function filters_accept_multi_value_tier_arrays(): void
+    {
+        Company::factory()->create(['tier' => 'A', 'name' => 'A Co']);
+        Company::factory()->create(['tier' => 'B', 'name' => 'B Co']);
+        Company::factory()->create(['tier' => 'C', 'name' => 'C Co']);
+
+        $this->actingAs($this->user)
+            ->get('/companies?tier[]=A&tier[]=B')
+            ->assertInertia(fn ($page) => $page
+                ->where('companies.total', 2)
+                ->where('filters.tier', ['A', 'B']));
+    }
+
+    #[Test]
+    public function filters_accept_multi_value_tier_csv(): void
+    {
+        Company::factory()->create(['tier' => 'A', 'name' => 'A Co']);
+        Company::factory()->create(['tier' => 'B', 'name' => 'B Co']);
+        Company::factory()->create(['tier' => 'C', 'name' => 'C Co']);
+
+        $this->actingAs($this->user)
+            ->get('/companies?tier=A,B')
+            ->assertInertia(fn ($page) => $page
+                ->where('companies.total', 2)
+                ->where('filters.tier', ['A', 'B']));
+    }
+
+    #[Test]
+    public function unknown_filter_keys_and_values_are_dropped_silently(): void
+    {
+        Company::factory()->create(['tier' => 'A']);
+
+        // `tier=Q` is outside the whitelist; `bogus_field=lol` is an unknown key.
+        // Either page-level controller should ignore both rather than 500.
+        $this->actingAs($this->user)
+            ->get('/companies?tier=Q&bogus_field=lol&last_checked=tomorrow')
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->where('filters.tier', [])
+                ->where('filters.last_checked', null));
+    }
+
+    #[Test]
     public function unknown_filter_values_are_ignored_gracefully(): void
     {
         Company::factory()->create();
@@ -198,9 +241,9 @@ final class IndexCompaniesTest extends TestCase
             ->get('/companies?tier=&status=&ats_type=&has_open_roles=&last_checked=&q=')
             ->assertOk()
             ->assertInertia(fn ($page) => $page
-                ->where('filters.tier', null)
-                ->where('filters.status', null)
-                ->where('filters.ats_type', null)
+                ->where('filters.tier', [])
+                ->where('filters.status', [])
+                ->where('filters.ats_type', [])
                 ->where('filters.has_open_roles', null)
                 ->where('filters.last_checked', null)
                 ->where('filters.q', null));

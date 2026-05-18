@@ -1,11 +1,12 @@
 import { Head, Link, router } from '@inertiajs/react';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { cn } from '@/lib/utils';
 
@@ -31,12 +32,17 @@ interface PaginatedCompanies {
     links: { url: string | null; label: string; active: boolean }[];
 }
 
-interface Filters {
-    tier: string | null;
-    status: string | null;
-    ats_type: string | null;
+export interface CompanyFilters {
+    tier: string[];
+    status: string[];
+    ats_type: string[];
+    stage: string[];
+    size: string[];
+    remote_policy: string[];
+    primary_stack: string[];
     has_open_roles: boolean | null;
     last_checked: string | null;
+    domain: string | null;
     q: string | null;
 }
 
@@ -45,11 +51,15 @@ interface Options {
     statuses: string[];
     ats_types: string[];
     last_checked: string[];
+    stages: string[];
+    sizes: string[];
+    remote_policies: string[];
+    primary_stacks: string[];
 }
 
 interface Props {
     companies: PaginatedCompanies;
-    filters: Filters;
+    filters: CompanyFilters;
     options: Options;
 }
 
@@ -68,20 +78,72 @@ const LAST_CHECKED_LABELS: Record<string, string> = {
     older_than_30d: 'Older than 30 days',
 };
 
-function toQueryParams(filters: Filters): Record<string, string> {
-    const params: Record<string, string> = {};
-    if (filters.tier) params.tier = filters.tier;
-    if (filters.status) params.status = filters.status;
-    if (filters.ats_type) params.ats_type = filters.ats_type;
+const EMPTY_FILTERS: CompanyFilters = {
+    tier: [],
+    status: [],
+    ats_type: [],
+    stage: [],
+    size: [],
+    remote_policy: [],
+    primary_stack: [],
+    has_open_roles: null,
+    last_checked: null,
+    domain: null,
+    q: null,
+};
+
+interface QuickChip {
+    readonly key: string;
+    readonly label: string;
+    readonly filters: Partial<CompanyFilters>;
+}
+
+const QUICK_CHIPS: ReadonlyArray<QuickChip> = [
+    { key: 'a-tier', label: 'A-tier', filters: { tier: ['A'] } },
+    { key: 'has-open-roles', label: 'Hiring now', filters: { has_open_roles: true } },
+    { key: 'stale-7d', label: 'Stale > 7d', filters: { last_checked: 'older_than_30d' } },
+    { key: 'ats-detected', label: 'ATS detected', filters: { ats_type: ['greenhouse', 'lever', 'ashby'] } },
+    { key: 'recently-funded', label: 'Recently funded (n/a)', filters: {} },
+];
+
+export function companyFiltersToQuery(filters: CompanyFilters): Record<string, string | string[]> {
+    const params: Record<string, string | string[]> = {};
+    if (filters.tier.length > 0) params.tier = filters.tier;
+    if (filters.status.length > 0) params.status = filters.status;
+    if (filters.ats_type.length > 0) params.ats_type = filters.ats_type;
+    if (filters.stage.length > 0) params.stage = filters.stage;
+    if (filters.size.length > 0) params.size = filters.size;
+    if (filters.remote_policy.length > 0) params.remote_policy = filters.remote_policy;
+    if (filters.primary_stack.length > 0) params.primary_stack = filters.primary_stack;
     if (filters.has_open_roles !== null) params.has_open_roles = filters.has_open_roles ? '1' : '0';
     if (filters.last_checked) params.last_checked = filters.last_checked;
+    if (filters.domain) params.domain = filters.domain;
     if (filters.q) params.q = filters.q;
     return params;
 }
 
+function toggleArrayValue(current: string[], value: string): string[] {
+    return current.includes(value) ? current.filter((v) => v !== value) : [...current, value];
+}
+
+function chipMatches(active: CompanyFilters, chip: QuickChip): boolean {
+    return Object.entries(chip.filters).every(([k, v]) => {
+        const actual = (active as unknown as Record<string, unknown>)[k];
+        if (Array.isArray(v)) {
+            return Array.isArray(actual) && v.length === actual.length && v.every((x) => (actual as string[]).includes(x));
+        }
+        return actual === v;
+    });
+}
+
 export default function CompaniesIndexPage({ companies, filters, options }: Props) {
-    const [local, setLocal] = useState<Filters>(filters);
+    const [local, setLocal] = useState<CompanyFilters>(filters);
     const isFirstRender = useRef(true);
+
+    useEffect(() => {
+        setLocal(filters);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [JSON.stringify(filters)]);
 
     useEffect(() => {
         if (isFirstRender.current) {
@@ -90,7 +152,7 @@ export default function CompaniesIndexPage({ companies, filters, options }: Prop
         }
 
         const handle = window.setTimeout(() => {
-            router.get('/companies', toQueryParams(local), {
+            router.get('/companies', companyFiltersToQuery(local), {
                 preserveState: true,
                 preserveScroll: true,
                 replace: true,
@@ -99,25 +161,48 @@ export default function CompaniesIndexPage({ companies, filters, options }: Prop
 
         return () => window.clearTimeout(handle);
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [local.tier, local.status, local.ats_type, local.has_open_roles, local.last_checked, local.q]);
+    }, [JSON.stringify(local)]);
 
-    function setFilter<K extends keyof Filters>(key: K, value: Filters[K]) {
-        setLocal((prev) => ({ ...prev, [key]: value }));
+    function patchFilters(patch: Partial<CompanyFilters>) {
+        setLocal((prev) => ({ ...prev, ...patch }));
     }
 
     function clearFilters() {
-        setLocal({
-            tier: null,
-            status: null,
-            ats_type: null,
-            has_open_roles: null,
-            last_checked: null,
-            q: null,
-        });
+        setLocal(EMPTY_FILTERS);
     }
 
-    const hasAnyFilter =
-        local.tier || local.status || local.ats_type || local.has_open_roles !== null || local.last_checked || local.q;
+    function applyChip(chip: QuickChip) {
+        if (chipMatches(local, chip)) {
+            // toggle off — clear just the dimensions this chip controls.
+            const cleared: Partial<CompanyFilters> = {};
+            for (const k of Object.keys(chip.filters)) {
+                cleared[k as keyof CompanyFilters] = (EMPTY_FILTERS as unknown as Record<string, unknown>)[k] as never;
+            }
+            patchFilters(cleared);
+            return;
+        }
+        patchFilters(chip.filters);
+    }
+
+    const hasAnyFilter = useMemo(() => {
+        return (
+            local.tier.length > 0 ||
+            local.status.length > 0 ||
+            local.ats_type.length > 0 ||
+            local.stage.length > 0 ||
+            local.size.length > 0 ||
+            local.remote_policy.length > 0 ||
+            local.primary_stack.length > 0 ||
+            local.has_open_roles !== null ||
+            local.last_checked !== null ||
+            local.domain !== null ||
+            local.q !== null
+        );
+    }, [local]);
+
+    const filterPanel = (
+        <FilterPanel local={local} options={options} patchFilters={patchFilters} onClear={clearFilters} hasAny={hasAnyFilter} />
+    );
 
     return (
         <AuthenticatedLayout>
@@ -142,152 +227,139 @@ export default function CompaniesIndexPage({ companies, filters, options }: Prop
                     </div>
                 </header>
 
-                <Card>
-                    <CardHeader className="space-y-4">
-                        <CardTitle className="text-sm font-medium">Filters</CardTitle>
-                        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-6">
-                            <FilterSelect
-                                label="Tier"
-                                value={local.tier}
-                                onChange={(v) => setFilter('tier', v)}
-                                options={options.tiers.map((t) => ({ value: t, label: t === 'graveyard' ? 'Graveyard' : `Tier ${t}` }))}
-                            />
-                            <FilterSelect
-                                label="Status"
-                                value={local.status}
-                                onChange={(v) => setFilter('status', v)}
-                                options={options.statuses.map((s) => ({ value: s, label: humanize(s) }))}
-                            />
-                            <FilterSelect
-                                label="ATS"
-                                value={local.ats_type}
-                                onChange={(v) => setFilter('ats_type', v)}
-                                options={options.ats_types.map((a) => ({ value: a, label: humanize(a) }))}
-                            />
-                            <FilterSelect
-                                label="Last checked"
-                                value={local.last_checked}
-                                onChange={(v) => setFilter('last_checked', v)}
-                                options={options.last_checked.map((l) => ({ value: l, label: LAST_CHECKED_LABELS[l] ?? l }))}
-                            />
-                            <FilterSelect
-                                label="Open roles"
-                                value={local.has_open_roles === null ? null : local.has_open_roles ? '1' : '0'}
-                                onChange={(v) => setFilter('has_open_roles', v === null ? null : v === '1')}
-                                options={[
-                                    { value: '1', label: 'Has open roles' },
-                                    { value: '0', label: 'No open roles' },
-                                ]}
-                            />
-                            <div className="flex flex-col gap-1.5">
-                                <label className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                                    Search
-                                </label>
-                                <Input
-                                    type="search"
-                                    placeholder="Name, domain, slug…"
-                                    value={local.q ?? ''}
-                                    onChange={(e) => setFilter('q', e.target.value === '' ? null : e.target.value)}
-                                />
-                            </div>
-                        </div>
-                        {hasAnyFilter ? (
-                            <div>
-                                <Button variant="ghost" size="sm" onClick={clearFilters}>
-                                    Clear filters
-                                </Button>
-                            </div>
-                        ) : null}
-                    </CardHeader>
-                    <CardContent className="p-0">
-                        {companies.data.length === 0 ? (
-                            <div className="px-6 py-12 text-center text-sm text-muted-foreground">
-                                No matching companies. Try clearing some filters.
-                            </div>
-                        ) : (
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Name</TableHead>
-                                        <TableHead>Tier</TableHead>
-                                        <TableHead>Status</TableHead>
-                                        <TableHead>ATS</TableHead>
-                                        <TableHead>Open roles</TableHead>
-                                        <TableHead>Last checked</TableHead>
-                                        <TableHead className="text-right">Actions</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {companies.data.map((company) => (
-                                        <TableRow key={company.id}>
-                                            <TableCell>
-                                                <div className="flex flex-col">
-                                                    <Link
-                                                        href={`/companies/${company.id}`}
-                                                        className="font-medium hover:underline"
-                                                    >
-                                                        {company.name}
-                                                    </Link>
-                                                    {company.domain ? (
-                                                        <span className="text-xs text-muted-foreground">
-                                                            {company.domain}
-                                                        </span>
-                                                    ) : null}
-                                                </div>
-                                            </TableCell>
-                                            <TableCell>
-                                                <Badge variant={TIER_VARIANT[company.tier] ?? 'outline'}>
-                                                    {company.tier === 'graveyard' ? 'Graveyard' : `Tier ${company.tier}`}
-                                                </Badge>
-                                            </TableCell>
-                                            <TableCell>
-                                                <span className="text-sm">{humanize(company.status)}</span>
-                                            </TableCell>
-                                            <TableCell>
-                                                {company.ats_type ? (
-                                                    <div className="flex flex-col">
-                                                        <span className="text-sm">{humanize(company.ats_type)}</span>
-                                                        {company.ats_slug ? (
-                                                            <span className="text-xs text-muted-foreground">
-                                                                {company.ats_slug}
-                                                            </span>
-                                                        ) : null}
-                                                    </div>
-                                                ) : (
-                                                    <span className="text-xs text-muted-foreground">—</span>
-                                                )}
-                                            </TableCell>
-                                            <TableCell>
-                                                {company.open_roles_count > 0 ? (
-                                                    <Badge variant="success">{company.open_roles_count}</Badge>
-                                                ) : (
-                                                    <span className="text-xs text-muted-foreground">0</span>
-                                                )}
-                                            </TableCell>
-                                            <TableCell>
-                                                <span className="text-xs text-muted-foreground">
-                                                    {company.last_checked_at
-                                                        ? new Date(company.last_checked_at).toLocaleString()
-                                                        : 'Never'}
-                                                </span>
-                                            </TableCell>
-                                            <TableCell className="text-right">
-                                                <Link
-                                                    href={`/companies/${company.id}/edit`}
-                                                    className="text-xs font-medium text-muted-foreground hover:text-foreground"
-                                                >
-                                                    Edit
-                                                </Link>
-                                            </TableCell>
-                                        </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
-                        )}
-                    </CardContent>
-                </Card>
+                <div className="flex flex-wrap items-center gap-2" aria-label="Quick filters">
+                    {QUICK_CHIPS.map((chip) => {
+                        const active = chipMatches(local, chip);
+                        const isPlaceholder = Object.keys(chip.filters).length === 0;
+                        return (
+                            <Button
+                                key={chip.key}
+                                size="sm"
+                                variant={active ? 'default' : 'outline'}
+                                disabled={isPlaceholder}
+                                onClick={() => applyChip(chip)}
+                                title={isPlaceholder ? 'Deferred to Phase 4' : undefined}
+                            >
+                                {chip.label}
+                            </Button>
+                        );
+                    })}
+                </div>
 
-                {companies.last_page > 1 ? <Pagination links={companies.links} /> : null}
+                <div className="grid gap-6 md:grid-cols-[18rem_1fr]">
+                    <aside className="hidden md:block">{filterPanel}</aside>
+
+                    <div className="space-y-3">
+                        <div className="flex items-center justify-between md:hidden">
+                            <Sheet>
+                                <SheetTrigger asChild>
+                                    <Button variant="outline" size="sm">
+                                        Filters{hasAnyFilter ? ' •' : ''}
+                                    </Button>
+                                </SheetTrigger>
+                                <SheetContent side="left" className="w-80 overflow-y-auto">
+                                    <SheetHeader>
+                                        <SheetTitle>Filters</SheetTitle>
+                                    </SheetHeader>
+                                    <div className="mt-4">{filterPanel}</div>
+                                </SheetContent>
+                            </Sheet>
+                        </div>
+
+                        <Card>
+                            <CardContent className="p-0">
+                                {companies.data.length === 0 ? (
+                                    <div className="px-6 py-12 text-center text-sm text-muted-foreground">
+                                        No matching companies. Try clearing some filters.
+                                    </div>
+                                ) : (
+                                    <Table>
+                                        <TableHeader>
+                                            <TableRow>
+                                                <TableHead>Name</TableHead>
+                                                <TableHead>Tier</TableHead>
+                                                <TableHead>Status</TableHead>
+                                                <TableHead>ATS</TableHead>
+                                                <TableHead>Open roles</TableHead>
+                                                <TableHead>Last checked</TableHead>
+                                                <TableHead className="text-right">Actions</TableHead>
+                                            </TableRow>
+                                        </TableHeader>
+                                        <TableBody>
+                                            {companies.data.map((company) => (
+                                                <TableRow key={company.id}>
+                                                    <TableCell>
+                                                        <div className="flex flex-col">
+                                                            <Link
+                                                                href={`/companies/${company.id}`}
+                                                                className="font-medium hover:underline"
+                                                            >
+                                                                {company.name}
+                                                            </Link>
+                                                            {company.domain ? (
+                                                                <span className="text-xs text-muted-foreground">
+                                                                    {company.domain}
+                                                                </span>
+                                                            ) : null}
+                                                        </div>
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        <Badge variant={TIER_VARIANT[company.tier] ?? 'outline'}>
+                                                            {company.tier === 'graveyard'
+                                                                ? 'Graveyard'
+                                                                : `Tier ${company.tier}`}
+                                                        </Badge>
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        <span className="text-sm">{humanize(company.status)}</span>
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        {company.ats_type ? (
+                                                            <div className="flex flex-col">
+                                                                <span className="text-sm">{humanize(company.ats_type)}</span>
+                                                                {company.ats_slug ? (
+                                                                    <span className="text-xs text-muted-foreground">
+                                                                        {company.ats_slug}
+                                                                    </span>
+                                                                ) : null}
+                                                            </div>
+                                                        ) : (
+                                                            <span className="text-xs text-muted-foreground">—</span>
+                                                        )}
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        {company.open_roles_count > 0 ? (
+                                                            <Badge variant="success">{company.open_roles_count}</Badge>
+                                                        ) : (
+                                                            <span className="text-xs text-muted-foreground">0</span>
+                                                        )}
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        <span className="text-xs text-muted-foreground">
+                                                            {company.last_checked_at
+                                                                ? new Date(company.last_checked_at).toLocaleString()
+                                                                : 'Never'}
+                                                        </span>
+                                                    </TableCell>
+                                                    <TableCell className="text-right">
+                                                        <Link
+                                                            href={`/companies/${company.id}/edit`}
+                                                            className="text-xs font-medium text-muted-foreground hover:text-foreground"
+                                                        >
+                                                            Edit
+                                                        </Link>
+                                                    </TableCell>
+                                                </TableRow>
+                                            ))}
+                                        </TableBody>
+                                    </Table>
+                                )}
+                            </CardContent>
+                        </Card>
+
+                        {companies.last_page > 1 ? <Pagination links={companies.links} /> : null}
+                    </div>
+                </div>
             </div>
         </AuthenticatedLayout>
     );
@@ -297,14 +369,134 @@ function humanize(value: string): string {
     return value.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
-interface FilterSelectProps {
+interface FilterPanelProps {
+    local: CompanyFilters;
+    options: Options;
+    patchFilters: (patch: Partial<CompanyFilters>) => void;
+    onClear: () => void;
+    hasAny: boolean;
+}
+
+function FilterPanel({ local, options, patchFilters, onClear, hasAny }: FilterPanelProps) {
+    return (
+        <Card>
+            <CardHeader className="space-y-4">
+                <div className="flex items-center justify-between">
+                    <CardTitle className="text-sm font-medium">Filters</CardTitle>
+                    {hasAny ? (
+                        <Button variant="ghost" size="sm" onClick={onClear}>
+                            Clear
+                        </Button>
+                    ) : null}
+                </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+                <MultiCheckboxGroup
+                    label="Tier"
+                    selected={local.tier}
+                    onChange={(next) => patchFilters({ tier: next })}
+                    options={options.tiers.map((t) => ({ value: t, label: t === 'graveyard' ? 'Graveyard' : `Tier ${t}` }))}
+                />
+                <MultiCheckboxGroup
+                    label="Status"
+                    selected={local.status}
+                    onChange={(next) => patchFilters({ status: next })}
+                    options={options.statuses.map((s) => ({ value: s, label: humanize(s) }))}
+                />
+                <MultiCheckboxGroup
+                    label="ATS"
+                    selected={local.ats_type}
+                    onChange={(next) => patchFilters({ ats_type: next })}
+                    options={options.ats_types.map((a) => ({ value: a, label: humanize(a) }))}
+                />
+                <SingleSelect
+                    label="Last checked"
+                    value={local.last_checked}
+                    onChange={(v) => patchFilters({ last_checked: v })}
+                    options={options.last_checked.map((l) => ({ value: l, label: LAST_CHECKED_LABELS[l] ?? l }))}
+                />
+                <SingleSelect
+                    label="Open roles"
+                    value={local.has_open_roles === null ? null : local.has_open_roles ? '1' : '0'}
+                    onChange={(v) => patchFilters({ has_open_roles: v === null ? null : v === '1' })}
+                    options={[
+                        { value: '1', label: 'Has open roles' },
+                        { value: '0', label: 'No open roles' },
+                    ]}
+                />
+                <div className="space-y-1.5">
+                    <label className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                        Domain contains
+                    </label>
+                    <Input
+                        type="search"
+                        placeholder="example.com"
+                        value={local.domain ?? ''}
+                        onChange={(e) => patchFilters({ domain: e.target.value === '' ? null : e.target.value })}
+                    />
+                </div>
+                <div className="space-y-1.5">
+                    <label className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Search</label>
+                    <Input
+                        type="search"
+                        placeholder="Name, domain, slug…"
+                        value={local.q ?? ''}
+                        onChange={(e) => patchFilters({ q: e.target.value === '' ? null : e.target.value })}
+                    />
+                </div>
+
+                <div className="space-y-2 border-t pt-3">
+                    <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Deferred to Phase 4</p>
+                    <DeferredRow label="Stage" />
+                    <DeferredRow label="Size" />
+                    <DeferredRow label="Remote policy" />
+                    <DeferredRow label="Primary stack" />
+                    <DeferredRow label="Quality score" />
+                </div>
+            </CardContent>
+        </Card>
+    );
+}
+
+interface MultiCheckboxGroupProps {
+    label: string;
+    selected: string[];
+    onChange: (next: string[]) => void;
+    options: { value: string; label: string }[];
+}
+
+function MultiCheckboxGroup({ label, selected, onChange, options }: MultiCheckboxGroupProps) {
+    return (
+        <fieldset className="space-y-1.5">
+            <legend className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</legend>
+            <div className="flex flex-col gap-1">
+                {options.map((option) => {
+                    const checked = selected.includes(option.value);
+                    return (
+                        <label key={option.value} className="flex cursor-pointer items-center gap-2 text-sm">
+                            <input
+                                type="checkbox"
+                                className="size-4 rounded border-input"
+                                checked={checked}
+                                onChange={() => onChange(toggleArrayValue(selected, option.value))}
+                            />
+                            <span>{option.label}</span>
+                        </label>
+                    );
+                })}
+            </div>
+        </fieldset>
+    );
+}
+
+interface SingleSelectProps {
     label: string;
     value: string | null;
     onChange: (value: string | null) => void;
     options: { value: string; label: string }[];
 }
 
-function FilterSelect({ label, value, onChange, options }: FilterSelectProps) {
+function SingleSelect({ label, value, onChange, options }: SingleSelectProps) {
     return (
         <div className="flex flex-col gap-1.5">
             <label className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</label>
@@ -323,6 +515,15 @@ function FilterSelect({ label, value, onChange, options }: FilterSelectProps) {
                     </option>
                 ))}
             </select>
+        </div>
+    );
+}
+
+function DeferredRow({ label }: { label: string }) {
+    return (
+        <div className="flex items-center justify-between text-xs text-muted-foreground">
+            <span>{label}</span>
+            <span className="italic">n/a</span>
         </div>
     );
 }
