@@ -209,6 +209,34 @@ return [
             'retry_times' => 3,
             'retry_sleep_ms' => 2000,
         ],
+        'python_org' => [
+            'concurrency' => 1,
+            'timeout' => 15,
+            'connect_timeout' => 5,
+            'retry_times' => 3,
+            'retry_sleep_ms' => 2000,
+        ],
+        'django_news' => [
+            'concurrency' => 1,
+            'timeout' => 15,
+            'connect_timeout' => 5,
+            'retry_times' => 3,
+            'retry_sleep_ms' => 2000,
+        ],
+        'elixir_jobs' => [
+            'concurrency' => 1,
+            'timeout' => 15,
+            'connect_timeout' => 5,
+            'retry_times' => 3,
+            'retry_sleep_ms' => 2000,
+        ],
+        'hexhire' => [
+            'concurrency' => 1,
+            'timeout' => 15,
+            'connect_timeout' => 5,
+            'retry_times' => 3,
+            'retry_sleep_ms' => 2000,
+        ],
     ],
 
     /*

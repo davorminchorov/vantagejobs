@@ -23,6 +23,10 @@ enum AggregatorSourceType: string
     case LARAJOBS = 'larajobs';
     case JOBICY = 'jobicy';
     case ARBEITNOW = 'arbeitnow';
+    case PYTHON_ORG = 'python_org';
+    case DJANGO_NEWS = 'django_news';
+    case ELIXIR_JOBS = 'elixir_jobs';
+    case HEXHIRE = 'hexhire';
 
     public function displayName(): string
     {
@@ -38,6 +42,10 @@ enum AggregatorSourceType: string
             self::LARAJOBS => 'LaraJobs',
             self::JOBICY => 'Jobicy',
             self::ARBEITNOW => 'Arbeitnow',
+            self::PYTHON_ORG => 'Python.org Jobs',
+            self::DJANGO_NEWS => 'Django Job Board',
+            self::ELIXIR_JOBS => 'Elixir Jobs',
+            self::HEXHIRE => 'HexHire',
         };
     }
 
@@ -59,7 +67,11 @@ enum AggregatorSourceType: string
             self::ADZUNA,
             self::LARAJOBS,
             self::JOBICY,
-            self::ARBEITNOW => 60 * 24,
+            self::ARBEITNOW,
+            self::PYTHON_ORG,
+            self::DJANGO_NEWS,
+            self::ELIXIR_JOBS,
+            self::HEXHIRE => 60 * 24,
         };
     }
 }
