@@ -1,0 +1,43 @@
+{
+  "jobs": [
+    {
+      "id": 4001001,
+      "title": "Senior Backend Engineer",
+      "absolute_url": "https://job-boards.greenhouse.io/acme/jobs/4001001",
+      "location": { "name": "Remote — Americas" },
+      "departments": [{ "id": 1, "name": "Engineering" }],
+      "offices": [{ "id": 1, "name": "Remote", "location": null }],
+      "metadata": [
+        { "name": "Salary Range", "value": "180000-240000", "value_type": "currency_range" }
+      ],
+      "content": "<p>Help us build cool things.</p>",
+      "updated_at": "2026-05-10T14:32:00.000Z",
+      "requisition_id": "ENG-123"
+    },
+    {
+      "id": 4001002,
+      "title": "Staff Product Designer",
+      "absolute_url": "https://job-boards.greenhouse.io/acme/jobs/4001002",
+      "location": { "name": "New York, NY" },
+      "departments": [{ "id": 2, "name": "Design" }],
+      "offices": [{ "id": 2, "name": "New York HQ", "location": "New York, NY" }],
+      "metadata": [],
+      "content": "<p>Design at scale.</p>",
+      "updated_at": "2026-05-09T09:15:00.000Z",
+      "requisition_id": "DES-7"
+    },
+    {
+      "id": 4001003,
+      "title": "Engineering Manager, Platform",
+      "absolute_url": "https://job-boards.greenhouse.io/acme/jobs/4001003",
+      "location": { "name": "Remote, US" },
+      "departments": [{ "id": 1, "name": "Engineering" }],
+      "offices": [{ "id": 1, "name": "Remote", "location": null }],
+      "metadata": [],
+      "content": "<p>Lead a platform team.</p>",
+      "updated_at": "2026-05-11T18:00:00.000Z",
+      "requisition_id": "ENG-456"
+    }
+  ],
+  "meta": { "total": 3 }
+}
