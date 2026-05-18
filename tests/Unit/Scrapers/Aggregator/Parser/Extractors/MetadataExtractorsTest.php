@@ -139,7 +139,7 @@ final class MetadataExtractorsTest extends TestCase
     public function apply_method_falls_back_to_context_url(): void
     {
         $ctx = new SourceContext(
-            sourceType: AggregatorSourceType::HN,
+            sourceType: AggregatorSourceType::HACKERNEWS,
             structured: [],
             url: 'https://acme.com/careers/staff',
         );

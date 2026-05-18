@@ -15,8 +15,8 @@ return new class extends Migration
             $table->foreignId('tenant_id')->constrained('tenants')->cascadeOnDelete();
             $table->foreignId('source_id')->constrained('aggregator_sources')->cascadeOnDelete();
 
-            // Stable per-source identifier. HN comment id, Remotive job id, RemoteOK id,
-            // Himalayas guid, WWR RSS guid.
+            // Stable per-source identifier. HackerNews comment id, Remotive job id,
+            // RemoteOK id, Himalayas guid, We Work Remotely RSS guid.
             $table->string('external_id');
 
             $table->text('url')->nullable();

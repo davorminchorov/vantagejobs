@@ -19,9 +19,9 @@ final class AggregatorRegistryTest extends TestCase
     public function resolves_a_registered_scraper_by_source_type(): void
     {
         $registry = new AggregatorRegistry();
-        $registry->register($this->fakeScraper(AggregatorSourceType::HN));
+        $registry->register($this->fakeScraper(AggregatorSourceType::HACKERNEWS));
 
-        $this->assertSame(AggregatorSourceType::HN, $registry->resolve(AggregatorSourceType::HN)->name());
+        $this->assertSame(AggregatorSourceType::HACKERNEWS, $registry->resolve(AggregatorSourceType::HACKERNEWS)->name());
     }
 
     #[Test]
@@ -37,11 +37,11 @@ final class AggregatorRegistryTest extends TestCase
     public function has_reports_registration_state(): void
     {
         $registry = new AggregatorRegistry();
-        $this->assertFalse($registry->has(AggregatorSourceType::WWR));
+        $this->assertFalse($registry->has(AggregatorSourceType::WEWORKREMOTELY));
 
-        $registry->register($this->fakeScraper(AggregatorSourceType::WWR));
+        $registry->register($this->fakeScraper(AggregatorSourceType::WEWORKREMOTELY));
 
-        $this->assertTrue($registry->has(AggregatorSourceType::WWR));
+        $this->assertTrue($registry->has(AggregatorSourceType::WEWORKREMOTELY));
     }
 
     #[Test]

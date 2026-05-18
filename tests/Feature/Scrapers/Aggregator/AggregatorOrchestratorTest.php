@@ -43,17 +43,17 @@ final class AggregatorOrchestratorTest extends TestCase
     public function writes_a_completed_aggregator_run_when_scraper_succeeds(): void
     {
         $this->registry->register($this->fakeScraper(
-            AggregatorSourceType::HN,
+            AggregatorSourceType::HACKERNEWS,
             result: new AggregatorRunResult(fetched: 312, newCount: 87),
         ));
 
-        $source = AggregatorSource::factory()->ofType(AggregatorSourceType::HN)->create();
+        $source = AggregatorSource::factory()->ofType(AggregatorSourceType::HACKERNEWS)->create();
 
         $run = $this->orchestrator->runForSource($source);
 
         $this->assertSame('completed', $run->status);
         $this->assertSame('aggregator', $run->source_kind);
-        $this->assertSame('hn', $run->source);
+        $this->assertSame('hackernews', $run->source);
         $this->assertNull($run->company_id);
         $this->assertSame(312, $run->fetched);
         $this->assertSame(87, $run->new_count);
@@ -86,11 +86,11 @@ final class AggregatorOrchestratorTest extends TestCase
     public function records_error_when_scraper_throws(): void
     {
         $this->registry->register($this->fakeScraper(
-            AggregatorSourceType::WWR,
+            AggregatorSourceType::WEWORKREMOTELY,
             throws: new RuntimeException('rss feed 503'),
         ));
 
-        $source = AggregatorSource::factory()->ofType(AggregatorSourceType::WWR)->create();
+        $source = AggregatorSource::factory()->ofType(AggregatorSourceType::WEWORKREMOTELY)->create();
 
         $run = $this->orchestrator->runForSource($source);
 
@@ -162,7 +162,7 @@ final class AggregatorOrchestratorTest extends TestCase
         $registry = new AggregatorRegistry();
         $orchestrator = new AggregatorOrchestrator($registry);
 
-        $source = AggregatorSource::factory()->ofType(AggregatorSourceType::HN)->create();
+        $source = AggregatorSource::factory()->ofType(AggregatorSourceType::HACKERNEWS)->create();
 
         $orchestrator->runForSource($source);
         $source->refresh();

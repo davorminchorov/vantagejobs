@@ -12,7 +12,8 @@ namespace App\Scrapers\Aggregator\Parser;
  *   EXPLICIT  : structured source field with a directly-usable value
  *               (Remotive.salary, Himalayas.salaryMin, RemoteOK.salary_min)
  *   INFERRED  : derived from body text or heuristics
- *               (HN first-line regex, stack-tag dictionary match in body)
+ *               (HackerNews first-line regex, stack-tag dictionary match
+ *                in body)
  *   DEFAULT   : platform default applied in the absence of any signal
  *   MISSING   : nothing extracted; placeholder so the UI can flag the gap
  */

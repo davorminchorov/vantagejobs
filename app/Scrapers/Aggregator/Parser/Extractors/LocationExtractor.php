@@ -13,7 +13,7 @@ use App\Scrapers\Aggregator\Parser\SourceContext;
  *   Himalayas : structured.locationRestrictions[] — joined with ', '
  *   Remotive  : structured.candidate_required_location
  *   RemoteOK  : structured.location
- *   WWR       : structured.region (free-text)
+ *   We Work Remotely : structured.region (free-text)
  *
  * Confidence is lower for free-text "Worldwide" / "Anywhere" since those
  * carry no geographic precision; consumers should prefer remote.geo for

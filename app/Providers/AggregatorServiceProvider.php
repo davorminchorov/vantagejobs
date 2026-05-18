@@ -9,8 +9,8 @@ use Illuminate\Support\ServiceProvider;
 
 /**
  * Binds the aggregator registry as a scoped service. Concrete scraper
- * bindings (HN, Remotive, Himalayas, WWR, RemoteOK) land here as they're
- * implemented in steps 7-11.
+ * bindings (HackerNews, Remotive, Himalayas, We Work Remotely, RemoteOK)
+ * land here as they're implemented in steps 7-11.
  *
  * Mirrors ScraperServiceProvider in structure to keep the two pipelines
  * symmetric without coupling them. Aggregator config sits under

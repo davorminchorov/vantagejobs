@@ -15,7 +15,8 @@ use App\Scrapers\Aggregator\Parser\SourceContext;
  *   Remotive  : structured.company_name
  *   Himalayas : structured.companyName
  *   RemoteOK  : structured.company
- *   WWR / HN  : scraper pre-splits and sets structured.company_name
+ *   We Work Remotely / HackerNews : scraper pre-splits and sets
+ *                                   structured.company_name
  *
  * Trims, but preserves original casing — the normalizer in step 12 will
  * lowercase + strip suffixes for the dedup key, not here.

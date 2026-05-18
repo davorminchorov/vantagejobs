@@ -69,12 +69,12 @@ return [
     |
     | Per-source caps for the discovery-layer scrapers. Concurrency 1 across
     | the board: SOURCES.md §2.2 (Remotive ≤ 2 req/min), §2.3 (Himalayas
-    | 429 on abuse), §2.4 (WWR RSS), §2.5 (RemoteOK polite-poll). HN is
-    | serial-monthly per §2.1.
+    | 429 on abuse), §2.4 (We Work Remotely RSS), §2.5 (RemoteOK polite-poll).
+    | HackerNews is serial-monthly per §2.1.
     |
     */
     'aggregators' => [
-        'hn' => [
+        'hackernews' => [
             'concurrency' => 1,
             'timeout' => 30,
             'connect_timeout' => 5,
@@ -95,7 +95,7 @@ return [
             'retry_times' => 3,
             'retry_sleep_ms' => 2000,
         ],
-        'wwr' => [
+        'weworkremotely' => [
             'concurrency' => 1,
             'timeout' => 15,
             'connect_timeout' => 5,

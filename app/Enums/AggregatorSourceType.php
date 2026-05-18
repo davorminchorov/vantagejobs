@@ -13,35 +13,35 @@ namespace App\Enums;
  */
 enum AggregatorSourceType: string
 {
-    case HN = 'hn';
+    case HACKERNEWS = 'hackernews';
     case REMOTIVE = 'remotive';
     case HIMALAYAS = 'himalayas';
-    case WWR = 'wwr';
+    case WEWORKREMOTELY = 'weworkremotely';
     case REMOTEOK = 'remoteok';
 
     public function displayName(): string
     {
         return match ($this) {
-            self::HN => 'Hacker News "Who is Hiring"',
+            self::HACKERNEWS => 'HackerNews "Who is Hiring"',
             self::REMOTIVE => 'Remotive',
             self::HIMALAYAS => 'Himalayas',
-            self::WWR => 'We Work Remotely',
+            self::WEWORKREMOTELY => 'We Work Remotely',
             self::REMOTEOK => 'RemoteOK',
         };
     }
 
     /**
-     * Default polling cadence per SOURCES.md guidance. HN's monthly thread
-     * is run on the 3rd + 5th of each month via the scheduler; the cadence
-     * value here is the inter-run floor between manual triggers.
+     * Default polling cadence per SOURCES.md guidance. HackerNews's monthly
+     * thread is run on the 3rd + 5th of each month via the scheduler; the
+     * cadence value here is the inter-run floor between manual triggers.
      */
     public function defaultCadenceMinutes(): int
     {
         return match ($this) {
-            self::HN => 60 * 24 * 30,
+            self::HACKERNEWS => 60 * 24 * 30,
             self::REMOTIVE => 60 * 24,
             self::HIMALAYAS => 60 * 24,
-            self::WWR => 60 * 24,
+            self::WEWORKREMOTELY => 60 * 24,
             self::REMOTEOK => 60 * 24,
         };
     }

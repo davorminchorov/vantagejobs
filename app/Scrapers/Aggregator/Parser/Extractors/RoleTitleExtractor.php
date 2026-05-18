@@ -10,10 +10,10 @@ use App\Scrapers\Aggregator\Parser\ExtractionSource;
 use App\Scrapers\Aggregator\Parser\SourceContext;
 
 /**
- *   Remotive / Himalayas / WWR : structured.title
- *   RemoteOK                   : structured.position
- *   HN                         : scraper pre-splits first line and sets
- *                                structured.title
+ *   Remotive / Himalayas / We Work Remotely : structured.title
+ *   RemoteOK                                : structured.position
+ *   HackerNews                              : scraper pre-splits first line
+ *                                             and sets structured.title
  */
 final class RoleTitleExtractor implements Extractor
 {

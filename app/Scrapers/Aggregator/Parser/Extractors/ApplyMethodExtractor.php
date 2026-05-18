@@ -15,7 +15,7 @@ use App\Scrapers\Aggregator\Parser\SourceContext;
  *   Remotive  : structured.url
  *   Himalayas : structured.applicationLink
  *   RemoteOK  : structured.apply_url
- *   HN        : first URL or email in the body
+ *   HackerNews : first URL or email in the body
  */
 final class ApplyMethodExtractor implements Extractor
 {

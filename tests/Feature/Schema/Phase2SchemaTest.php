@@ -45,11 +45,11 @@ final class Phase2SchemaTest extends TestCase
     #[Test]
     public function aggregator_source_casts_type_and_dates(): void
     {
-        $source = AggregatorSource::factory()->ofType(AggregatorSourceType::HN)->create();
+        $source = AggregatorSource::factory()->ofType(AggregatorSourceType::HACKERNEWS)->create();
 
-        $this->assertSame(AggregatorSourceType::HN, $source->fresh()->type);
+        $this->assertSame(AggregatorSourceType::HACKERNEWS, $source->fresh()->type);
         $this->assertTrue($source->enabled);
-        $this->assertSame(AggregatorSourceType::HN->defaultCadenceMinutes(), $source->cadence_minutes);
+        $this->assertSame(AggregatorSourceType::HACKERNEWS->defaultCadenceMinutes(), $source->cadence_minutes);
     }
 
     #[Test]
@@ -78,7 +78,7 @@ final class Phase2SchemaTest extends TestCase
     #[Test]
     public function aggregator_listing_unique_per_source_and_external_id(): void
     {
-        $source = AggregatorSource::factory()->ofType(AggregatorSourceType::HN)->create();
+        $source = AggregatorSource::factory()->ofType(AggregatorSourceType::HACKERNEWS)->create();
         AggregatorListing::factory()->create([
             'source_id' => $source->id,
             'external_id' => 'hn-12345',
@@ -195,7 +195,7 @@ final class Phase2SchemaTest extends TestCase
     #[Test]
     public function aggregator_source_auto_fills_tenant_id(): void
     {
-        $source = AggregatorSource::factory()->ofType(AggregatorSourceType::WWR)->create();
+        $source = AggregatorSource::factory()->ofType(AggregatorSourceType::WEWORKREMOTELY)->create();
 
         $this->assertSame($this->tenant->id, $source->tenant_id);
     }
