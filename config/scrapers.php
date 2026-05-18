@@ -62,4 +62,53 @@ return [
         ],
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Aggregator sources (Phase 2)
+    |--------------------------------------------------------------------------
+    |
+    | Per-source caps for the discovery-layer scrapers. Concurrency 1 across
+    | the board: SOURCES.md §2.2 (Remotive ≤ 2 req/min), §2.3 (Himalayas
+    | 429 on abuse), §2.4 (WWR RSS), §2.5 (RemoteOK polite-poll). HN is
+    | serial-monthly per §2.1.
+    |
+    */
+    'aggregators' => [
+        'hn' => [
+            'concurrency' => 1,
+            'timeout' => 30,
+            'connect_timeout' => 5,
+            'retry_times' => 3,
+            'retry_sleep_ms' => 2000,
+        ],
+        'remotive' => [
+            'concurrency' => 1,
+            'timeout' => 15,
+            'connect_timeout' => 5,
+            'retry_times' => 2,
+            'retry_sleep_ms' => 30_000,
+        ],
+        'himalayas' => [
+            'concurrency' => 1,
+            'timeout' => 15,
+            'connect_timeout' => 5,
+            'retry_times' => 3,
+            'retry_sleep_ms' => 2000,
+        ],
+        'wwr' => [
+            'concurrency' => 1,
+            'timeout' => 15,
+            'connect_timeout' => 5,
+            'retry_times' => 3,
+            'retry_sleep_ms' => 2000,
+        ],
+        'remoteok' => [
+            'concurrency' => 1,
+            'timeout' => 15,
+            'connect_timeout' => 5,
+            'retry_times' => 3,
+            'retry_sleep_ms' => 2000,
+        ],
+    ],
+
 ];
