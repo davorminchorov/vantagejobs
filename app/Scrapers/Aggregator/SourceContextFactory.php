@@ -7,10 +7,14 @@ namespace App\Scrapers\Aggregator;
 use App\Enums\AggregatorSourceType;
 use App\Models\AggregatorListing;
 use App\Scrapers\Aggregator\Arbeitnow\ArbeitnowContextBuilder;
+use App\Scrapers\Aggregator\DjangoNews\DjangoNewsContextBuilder;
+use App\Scrapers\Aggregator\ElixirJobs\ElixirJobsContextBuilder;
 use App\Scrapers\Aggregator\HackerNews\HackerNewsContextBuilder;
+use App\Scrapers\Aggregator\HexHire\HexHireContextBuilder;
 use App\Scrapers\Aggregator\Himalayas\HimalayasContextBuilder;
 use App\Scrapers\Aggregator\Jobicy\JobicyContextBuilder;
 use App\Scrapers\Aggregator\Parser\SourceContext;
+use App\Scrapers\Aggregator\PythonOrg\PythonOrgContextBuilder;
 use App\Scrapers\Aggregator\RemoteOk\RemoteOkContextBuilder;
 use App\Scrapers\Aggregator\Remotive\RemotiveContextBuilder;
 use App\Scrapers\Aggregator\WeWorkRemotely\WeWorkRemotelyContextBuilder;
@@ -35,6 +39,10 @@ final readonly class SourceContextFactory
         private RemoteOkContextBuilder $remoteOk,
         private JobicyContextBuilder $jobicy,
         private ArbeitnowContextBuilder $arbeitnow,
+        private PythonOrgContextBuilder $pythonOrg,
+        private DjangoNewsContextBuilder $djangoNews,
+        private ElixirJobsContextBuilder $elixirJobs,
+        private HexHireContextBuilder $hexHire,
     ) {}
 
     public function buildFor(AggregatorListing $listing): SourceContext
@@ -56,6 +64,10 @@ final readonly class SourceContextFactory
             AggregatorSourceType::REMOTEOK => $this->remoteOk->build($raw),
             AggregatorSourceType::JOBICY => $this->jobicy->build($raw),
             AggregatorSourceType::ARBEITNOW => $this->arbeitnow->build($raw),
+            AggregatorSourceType::PYTHON_ORG => $this->pythonOrg->build($raw),
+            AggregatorSourceType::DJANGO_NEWS => $this->djangoNews->build($raw),
+            AggregatorSourceType::ELIXIR_JOBS => $this->elixirJobs->build($raw),
+            AggregatorSourceType::HEXHIRE => $this->hexHire->build($raw),
         };
     }
 

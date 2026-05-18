@@ -4,17 +4,20 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
-use App\Scrapers\Aggregator\Arbeitnow\ArbeitnowScraper;
 use App\Scrapers\Aggregator\Adzuna\AdzunaScraper;
 use App\Scrapers\Aggregator\AggregatorRegistry;
-use App\Scrapers\Aggregator\HexHire\HexHireScraper;
+use App\Scrapers\Aggregator\Arbeitnow\ArbeitnowScraper;
 use App\Scrapers\Aggregator\Artifacts\ScrapeArtifactContext;
+use App\Scrapers\Aggregator\DjangoNews\DjangoNewsScraper;
+use App\Scrapers\Aggregator\ElixirJobs\ElixirJobsScraper;
 use App\Scrapers\Aggregator\FourDayWeek\FourDayWeekScraper;
 use App\Scrapers\Aggregator\HackerNews\HackerNewsScraper;
-use App\Scrapers\Aggregator\SaveFixtureAction;
+use App\Scrapers\Aggregator\HexHire\HexHireScraper;
 use App\Scrapers\Aggregator\Himalayas\HimalayasScraper;
 use App\Scrapers\Aggregator\Jobicy\JobicyScraper;
 use App\Scrapers\Aggregator\Larajobs\LarajobsScraper;
+use App\Scrapers\Aggregator\PythonOrg\PythonOrgScraper;
+use App\Scrapers\Aggregator\SaveFixtureAction;
 use App\Scrapers\Aggregator\Parser\Extractors\ApplyMethodExtractor;
 use App\Scrapers\Aggregator\Parser\Extractors\CompanyNameExtractor;
 use App\Scrapers\Aggregator\Parser\Extractors\CompensationExtractor;
@@ -88,6 +91,9 @@ final class AggregatorServiceProvider extends ServiceProvider
         $registry->register($this->app->make(LarajobsScraper::class));
         $registry->register($this->app->make(JobicyScraper::class));
         $registry->register($this->app->make(ArbeitnowScraper::class));
+        $registry->register($this->app->make(PythonOrgScraper::class));
+        $registry->register($this->app->make(DjangoNewsScraper::class));
+        $registry->register($this->app->make(ElixirJobsScraper::class));
         $registry->register($this->app->make(HexHireScraper::class));
     }
 }
