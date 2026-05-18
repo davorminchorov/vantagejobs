@@ -25,6 +25,12 @@ final class ScrapeOrchestrator
 {
     public function __construct(private readonly ScraperRegistry $registry) {}
 
+    /**
+     * Threshold after which a company's existing ATS scrape is presumed dead and
+     * the redetect sweep kicks in (PRD §11.2).
+     */
+    public const ATS_REDETECT_404_THRESHOLD = 7;
+
     public function runForCompany(Company $company): ScrapeRun
     {
         $atsType = $this->resolveAtsType($company);
@@ -39,20 +45,29 @@ final class ScrapeOrchestrator
         try {
             $scraper = $this->registry->resolve($atsType);
         } catch (InvalidArgumentException $e) {
-            return $this->finalize($run, status: 'error', errors: [['message' => $e->getMessage()]]);
+            $finalRun = $this->finalize($run, status: 'error', errors: [['message' => $e->getMessage()]]);
+            $this->recordAtsHealth($company, $finalRun);
+
+            return $finalRun;
         }
 
         try {
             $result = $scraper->run($company);
         } catch (Throwable $e) {
-            return $this->finalize($run, status: 'error', errors: [['message' => $e->getMessage()]]);
+            $finalRun = $this->finalize($run, status: 'error', errors: [['message' => $e->getMessage()]]);
+            $this->recordAtsHealth($company, $finalRun);
+
+            return $finalRun;
         }
 
         if ($result->notModified) {
-            return $this->finalize($run, status: 'not_modified');
+            $finalRun = $this->finalize($run, status: 'not_modified');
+            $this->recordAtsHealth($company, $finalRun);
+
+            return $finalRun;
         }
 
-        return $this->finalize(
+        $finalRun = $this->finalize(
             $run,
             status: $result->hasErrors() ? 'partial' : 'completed',
             fetched: $result->fetched,
@@ -60,6 +75,10 @@ final class ScrapeOrchestrator
             closedCount: $result->closedCount,
             errors: $result->errors,
         );
+
+        $this->recordAtsHealth($company, $finalRun);
+
+        return $finalRun;
     }
 
     private function resolveAtsType(Company $company): AtsType
@@ -101,5 +120,68 @@ final class ScrapeOrchestrator
         ])->save();
 
         return $run->refresh();
+    }
+
+    /**
+     * Bookkeeping for the ATS-switch detector (PRD §11.2).
+     *
+     * Increment `ats_consecutive_404s` when the underlying transport reported
+     * a 404 (recorded in run errors as context.http_status). Reset to zero on
+     * any non-error outcome (completed / not_modified). Once the counter
+     * crosses the threshold, flip `ats_status` to 'needs_redetection' so the
+     * `signals:ats:redetect` command picks the company up.
+     *
+     * Only touches the columns it owns — never overwrites a 'redetect_failed'
+     * status with 'ok' on a single fluke success.
+     */
+    private function recordAtsHealth(Company $company, ScrapeRun $run): void
+    {
+        $is404 = $this->runHadFourOhFour($run);
+
+        if ($is404) {
+            $company->ats_consecutive_404s = (int) $company->ats_consecutive_404s + 1;
+
+            if (
+                $company->ats_consecutive_404s >= self::ATS_REDETECT_404_THRESHOLD
+                && $company->ats_status === 'ok'
+            ) {
+                $company->ats_status = 'needs_redetection';
+            }
+
+            $company->save();
+
+            return;
+        }
+
+        if (in_array($run->status, ['completed', 'not_modified'], true)) {
+            if ($company->ats_consecutive_404s === 0 && $company->ats_status === 'ok') {
+                return;
+            }
+
+            $company->ats_consecutive_404s = 0;
+            if ($company->ats_status === 'needs_redetection') {
+                $company->ats_status = 'ok';
+            }
+            $company->save();
+        }
+    }
+
+    private function runHadFourOhFour(ScrapeRun $run): bool
+    {
+        if (! is_array($run->errors)) {
+            return false;
+        }
+
+        foreach ($run->errors as $error) {
+            if (! is_array($error)) {
+                continue;
+            }
+            $status = $error['context']['http_status'] ?? null;
+            if (is_int($status) && $status === 404) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

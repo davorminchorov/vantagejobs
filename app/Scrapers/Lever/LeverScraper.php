@@ -69,6 +69,19 @@ final readonly class LeverScraper implements AtsScraperInterface
                 );
             }
 
+            $status = $response->status();
+            if ($status >= 400) {
+                return new ScraperRunResult(
+                    fetched: 0,
+                    newCount: 0,
+                    closedCount: 0,
+                    errors: [[
+                        'message' => "Lever postings returned HTTP {$status} for site [{$company->ats_slug}].",
+                        'context' => ['http_status' => $status],
+                    ]],
+                );
+            }
+
             /** @var array<int, array<string, mixed>> $body */
             $body = $response->json();
 

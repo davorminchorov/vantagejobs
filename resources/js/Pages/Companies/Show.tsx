@@ -84,6 +84,19 @@ interface Props {
     graveyard: GraveyardInfo | null;
     graveyard_preset_tags: string[];
     hiring_trend: { date: string; open_role_count: number; listings_count: number }[];
+    quality: QualityInfo | null;
+}
+
+interface QualityFactor {
+    weight: number;
+    contribution: number;
+    value: Record<string, unknown>;
+}
+
+interface QualityInfo {
+    score: number;
+    breakdown: Record<string, QualityFactor>;
+    snapshot_date: string | null;
 }
 
 const TIER_VARIANT: Record<string, 'default' | 'secondary' | 'outline'> = {
@@ -125,6 +138,7 @@ export default function ShowCompanyPage({
     graveyard,
     graveyard_preset_tags,
     hiring_trend,
+    quality,
 }: Props) {
     const [tab, setTab] = useState<'overview' | 'roles' | 'timeline'>('overview');
 
@@ -175,6 +189,7 @@ export default function ShowCompanyPage({
                     </TabsList>
 
                     <TabsContent value="overview">
+                        {quality ? <QualityCard quality={quality} /> : null}
                         <Card className="mb-4">
                             <CardHeader>
                                 <CardTitle className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
@@ -532,5 +547,77 @@ function GraveyardControls({
                 </div>
             ) : null}
         </div>
+    );
+}
+
+const FACTOR_LABEL: Record<string, string> = {
+    funding_recency: 'Funding recency',
+    github_activity: 'GitHub activity',
+    blog_cadence: 'Engineering blog cadence',
+    hiring_volume_stability: 'Hiring volume stability',
+    comp_transparency: 'Comp transparency',
+    layoff_penalty: 'Recent layoffs',
+    ghost_density_penalty: 'Ghost-role density',
+    no_eng_presence_penalty: 'No eng presence',
+};
+
+function QualityCard({ quality }: { quality: QualityInfo }) {
+    const score = quality.score;
+    const tone =
+        score >= 80 ? 'text-emerald-600' : score >= 60 ? 'text-amber-600' : 'text-red-600';
+
+    return (
+        <Card className="mb-4">
+            <CardHeader className="flex flex-row items-baseline justify-between space-y-0">
+                <CardTitle className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+                    Quality score
+                </CardTitle>
+                <span className="text-xs text-muted-foreground">
+                    as of {quality.snapshot_date ?? '—'}
+                </span>
+            </CardHeader>
+            <CardContent className="space-y-3">
+                <div className="flex items-baseline gap-2">
+                    <span className={`text-4xl font-bold tabular-nums ${tone}`}>{score}</span>
+                    <span className="text-sm text-muted-foreground">/ 100</span>
+                </div>
+                <table className="w-full text-sm">
+                    <thead className="text-xs uppercase tracking-wide text-muted-foreground">
+                        <tr>
+                            <th className="text-left font-semibold">Factor</th>
+                            <th className="text-right font-semibold">Weight</th>
+                            <th className="text-right font-semibold">Contribution</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {Object.entries(quality.breakdown).map(([key, factor]) => (
+                            <tr key={key} className="border-t">
+                                <td className="py-1.5">{FACTOR_LABEL[key] ?? key}</td>
+                                <td className="text-right tabular-nums text-muted-foreground">
+                                    {factor.weight > 0 ? '+' : ''}
+                                    {factor.weight}
+                                </td>
+                                <td
+                                    className={`text-right tabular-nums font-semibold ${
+                                        factor.contribution > 0
+                                            ? 'text-emerald-600'
+                                            : factor.contribution < 0
+                                              ? 'text-red-600'
+                                              : 'text-muted-foreground'
+                                    }`}
+                                >
+                                    {factor.contribution > 0 ? '+' : ''}
+                                    {factor.contribution}
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+                <p className="text-xs text-muted-foreground">
+                    Score starts at the baseline and is adjusted by each factor. Positive
+                    factors max at their weight; penalties subtract up to their weight.
+                </p>
+            </CardContent>
+        </Card>
     );
 }

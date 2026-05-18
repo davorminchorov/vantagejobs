@@ -40,6 +40,9 @@ use App\Http\Controllers\Import\RunImportController;
 use App\Http\Controllers\Import\UploadCsvController;
 use App\Http\Controllers\Import\UploadFormController;
 use App\Http\Controllers\Insights\CompInsightsController;
+use App\Http\Controllers\Insights\ConfirmFundingCandidateController;
+use App\Http\Controllers\Insights\DismissFundingCandidateController;
+use App\Http\Controllers\Insights\FundingCandidatesController;
 use App\Http\Controllers\Insights\HiringInsightsController;
 use App\Http\Controllers\SavedViews\DestroySavedViewController;
 use App\Http\Controllers\SavedViews\StoreSavedViewController;
@@ -74,6 +77,14 @@ Route::middleware(['auth'])->group(function (): void {
 
     Route::get('/insights/hiring', HiringInsightsController::class)->name('insights.hiring');
     Route::get('/insights/comp', CompInsightsController::class)->name('insights.comp');
+    Route::get('/insights/funding-candidates', FundingCandidatesController::class)
+        ->name('insights.funding-candidates.index');
+    Route::post('/insights/funding-candidates/{candidate}/confirm', ConfirmFundingCandidateController::class)
+        ->whereNumber('candidate')
+        ->name('insights.funding-candidates.confirm');
+    Route::post('/insights/funding-candidates/{candidate}/dismiss', DismissFundingCandidateController::class)
+        ->whereNumber('candidate')
+        ->name('insights.funding-candidates.dismiss');
 
     Route::get('/import', UploadFormController::class)->name('import.upload');
     Route::post('/import', UploadCsvController::class)->name('import.upload.store');

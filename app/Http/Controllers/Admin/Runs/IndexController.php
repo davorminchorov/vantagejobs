@@ -297,6 +297,35 @@ final readonly class IndexController
             }
         }
 
+        // Companies flagged by the ATS-switch detector (PRD §11.2).
+        $atsHealthCompanies = Company::query()
+            ->whereIn('ats_status', ['needs_redetection', 'redetect_failed'])
+            ->get(['id', 'name', 'ats_status', 'ats_consecutive_404s', 'ats_redetect_attempts', 'last_checked_at']);
+
+        foreach ($atsHealthCompanies as $company) {
+            $status = (string) $company->ats_status;
+            $reason = match ($status) {
+                'redetect_failed' => sprintf(
+                    'ATS redetection failed after %d attempts — manual review required',
+                    (int) $company->ats_redetect_attempts,
+                ),
+                'needs_redetection' => sprintf(
+                    '%d consecutive 404s — awaiting ATS redetection',
+                    (int) $company->ats_consecutive_404s,
+                ),
+                default => 'ATS health alert',
+            };
+
+            $health[] = [
+                'kind' => 'ats',
+                'value' => sprintf('ats:%d', (int) $company->id),
+                'label' => (string) $company->name,
+                'reason' => $reason,
+                'last_run_at' => $company->last_checked_at?->toIso8601String(),
+                'consecutive_failures' => (int) $company->ats_consecutive_404s,
+            ];
+        }
+
         return $health;
     }
 }

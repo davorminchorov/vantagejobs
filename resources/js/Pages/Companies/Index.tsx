@@ -45,6 +45,7 @@ export interface CompanyFilters {
     last_checked: string | null;
     domain: string | null;
     q: string | null;
+    recently_funded: boolean | null;
 }
 
 interface Options {
@@ -91,6 +92,7 @@ const EMPTY_FILTERS: CompanyFilters = {
     last_checked: null,
     domain: null,
     q: null,
+    recently_funded: null,
 };
 
 interface QuickChip {
@@ -104,7 +106,7 @@ const QUICK_CHIPS: ReadonlyArray<QuickChip> = [
     { key: 'has-open-roles', label: 'Hiring now', filters: { has_open_roles: true } },
     { key: 'stale-7d', label: 'Stale > 7d', filters: { last_checked: 'older_than_30d' } },
     { key: 'ats-detected', label: 'ATS detected', filters: { ats_type: ['greenhouse', 'lever', 'ashby'] } },
-    { key: 'recently-funded', label: 'Recently funded (n/a)', filters: {} },
+    { key: 'recently-funded', label: 'Funded in last 18mo', filters: { recently_funded: true } },
 ];
 
 export function companyFiltersToQuery(filters: CompanyFilters): Record<string, string | string[]> {
@@ -120,6 +122,7 @@ export function companyFiltersToQuery(filters: CompanyFilters): Record<string, s
     if (filters.last_checked) params.last_checked = filters.last_checked;
     if (filters.domain) params.domain = filters.domain;
     if (filters.q) params.q = filters.q;
+    if (filters.recently_funded !== null) params.recently_funded = filters.recently_funded ? '1' : '0';
     return params;
 }
 
@@ -197,7 +200,8 @@ export default function CompaniesIndexPage({ companies, filters, options }: Prop
             local.has_open_roles !== null ||
             local.last_checked !== null ||
             local.domain !== null ||
-            local.q !== null
+            local.q !== null ||
+            local.recently_funded !== null
         );
     }, [local]);
 
@@ -415,6 +419,23 @@ function FilterPanel({ local, options, patchFilters, onClear, hasAny }: FilterPa
                     onChange={(next) => patchFilters({ ats_type: next })}
                     options={options.ats_types.map((a) => ({ value: a, label: humanize(a) }))}
                 />
+                {options.stages.length > 0 ? (
+                    <MultiCheckboxGroup
+                        label="Funding stage"
+                        selected={local.stage}
+                        onChange={(next) => patchFilters({ stage: next })}
+                        options={options.stages.map((s) => ({ value: s, label: s }))}
+                    />
+                ) : null}
+                <SingleSelect
+                    label="Recently funded"
+                    value={local.recently_funded === null ? null : local.recently_funded ? '1' : '0'}
+                    onChange={(v) => patchFilters({ recently_funded: v === null ? null : v === '1' })}
+                    options={[
+                        { value: '1', label: 'Raised in last 18 months' },
+                        { value: '0', label: 'Not in last 18 months' },
+                    ]}
+                />
                 <SingleSelect
                     label="Last checked"
                     value={local.last_checked}
@@ -452,12 +473,13 @@ function FilterPanel({ local, options, patchFilters, onClear, hasAny }: FilterPa
                 </div>
 
                 <div className="space-y-2 border-t pt-3">
-                    <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Deferred to Phase 4</p>
-                    <DeferredRow label="Stage" />
-                    <DeferredRow label="Size" />
-                    <DeferredRow label="Remote policy" />
-                    <DeferredRow label="Primary stack" />
-                    <DeferredRow label="Quality score" />
+                    <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                        Coming in Phase 5+
+                    </p>
+                    <DeferredRow label="Size" title="Headcount not yet tracked" />
+                    <DeferredRow label="Remote policy" title="Lives at role/listing level; needs rollup" />
+                    <DeferredRow label="Primary stack" title="Needs aggregation of listing stack tags" />
+                    <DeferredRow label="Quality score" title="Quality scoring deferred" />
                 </div>
             </CardContent>
         </Card>
@@ -525,9 +547,12 @@ function SingleSelect({ label, value, onChange, options }: SingleSelectProps) {
     );
 }
 
-function DeferredRow({ label }: { label: string }) {
+function DeferredRow({ label, title }: { label: string; title?: string }) {
     return (
-        <div className="flex items-center justify-between text-xs text-muted-foreground">
+        <div
+            className="flex items-center justify-between text-xs text-muted-foreground"
+            title={title ?? 'Coming in Phase 5+'}
+        >
             <span>{label}</span>
             <span className="italic">n/a</span>
         </div>

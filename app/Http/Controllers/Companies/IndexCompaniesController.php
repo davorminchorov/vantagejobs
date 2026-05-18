@@ -44,6 +44,17 @@ final readonly class IndexCompaniesController
             ->paginate(20)
             ->withQueryString();
 
+        // Phase 4 step 16: stages are derived from observed funding_stage
+        // values (free-form per user input) so the filter chip can offer a
+        // tenant-scoped multi-select without inventing a whitelist.
+        $stages = Company::query()
+            ->whereNotNull('funding_stage')
+            ->orderBy('funding_stage')
+            ->distinct()
+            ->pluck('funding_stage')
+            ->values()
+            ->all();
+
         return Inertia::render('Companies/Index', [
             'companies' => $companies,
             'filters' => $filters->toArray(),
@@ -52,10 +63,10 @@ final readonly class IndexCompaniesController
                 'statuses' => CompanyListFilters::VALID_STATUSES,
                 'ats_types' => array_map(fn (AtsType $t) => $t->value, AtsType::cases()),
                 'last_checked' => CompanyListFilters::VALID_LAST_CHECKED,
-                // PRD §6.5.2 dimensions whose underlying columns are deferred
-                // to Phase 4. Surfaced here so the filter panel can render
-                // disabled placeholders without inventing data.
-                'stages' => [],
+                // Phase 4 step 16: stage is now live (sourced from observed
+                // funding_stage values). size/remote_policy/primary_stack
+                // remain placeholders pending Phase 5+ data work.
+                'stages' => $stages,
                 'sizes' => [],
                 'remote_policies' => [],
                 'primary_stacks' => [],

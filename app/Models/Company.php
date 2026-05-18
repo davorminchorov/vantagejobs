@@ -32,6 +32,7 @@ use Illuminate\Database\Eloquent\Relations\MorphToMany;
     'is_active',
     'ats_status',
     'ats_consecutive_404s',
+    'ats_redetect_attempts',
 ])]
 final class Company extends Model
 {
@@ -48,6 +49,7 @@ final class Company extends Model
             'funding_last_amount_usd' => 'integer',
             'is_active' => 'boolean',
             'ats_consecutive_404s' => 'integer',
+            'ats_redetect_attempts' => 'integer',
         ];
     }
 

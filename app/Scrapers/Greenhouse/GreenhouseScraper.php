@@ -57,6 +57,18 @@ final readonly class GreenhouseScraper implements AtsScraperInterface
                 return ScraperRunResult::notModified($company->etag, $company->last_modified);
             }
 
+            if ($status >= 400) {
+                return new ScraperRunResult(
+                    fetched: 0,
+                    newCount: 0,
+                    closedCount: 0,
+                    errors: [[
+                        'message' => "Greenhouse board returned HTTP {$status} for slug [{$company->ats_slug}].",
+                        'context' => ['http_status' => $status],
+                    ]],
+                );
+            }
+
             $payload = $response->json();
             $jobs = is_array($payload['jobs'] ?? null) ? $payload['jobs'] : [];
 

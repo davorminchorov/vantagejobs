@@ -68,6 +68,19 @@ final class AshbyScraper implements AtsScraperInterface
                 );
             }
 
+            $status = $response->status();
+            if ($status >= 400) {
+                return new ScraperRunResult(
+                    fetched: 0,
+                    newCount: 0,
+                    closedCount: 0,
+                    errors: [[
+                        'message' => "Ashby job board returned HTTP {$status} for name [{$company->ats_slug}].",
+                        'context' => ['http_status' => $status],
+                    ]],
+                );
+            }
+
             /** @var array{jobs?: list<array<string, mixed>>} $body */
             $body = $response->json();
             $jobs = $body['jobs'] ?? [];

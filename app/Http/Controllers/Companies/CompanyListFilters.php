@@ -29,7 +29,8 @@ use Illuminate\Http\Request;
  *     has_open_roles: ?bool,
  *     last_checked: ?string,
  *     domain: ?string,
- *     q: ?string
+ *     q: ?string,
+ *     recently_funded: ?bool
  * }
  */
 final readonly class CompanyListFilters
@@ -77,6 +78,7 @@ final readonly class CompanyListFilters
         public ?string $domain,
         public ?string $q,
         public bool $graveyard,
+        public ?bool $recentlyFunded,
     ) {}
 
     /**
@@ -101,6 +103,13 @@ final readonly class CompanyListFilters
             default => false,
         };
 
+        $recentlyFundedRaw = $input['recently_funded'] ?? null;
+        $recentlyFunded = match (is_string($recentlyFundedRaw) ? $recentlyFundedRaw : $recentlyFundedRaw) {
+            '1', 1, true, 'true', 'yes' => true,
+            '0', 0, false, 'false', 'no' => false,
+            default => null,
+        };
+
         return new self(
             tier: self::filterMulti($input['tier'] ?? null, self::VALID_TIERS),
             status: self::filterMulti($input['status'] ?? null, self::VALID_STATUSES),
@@ -114,6 +123,7 @@ final readonly class CompanyListFilters
             domain: self::nonEmptyString($input['domain'] ?? null),
             q: self::nonEmptyString($input['q'] ?? null),
             graveyard: $graveyard,
+            recentlyFunded: $recentlyFunded,
         );
     }
 
@@ -167,10 +177,26 @@ final readonly class CompanyListFilters
             });
         }
 
-        // `stage`, `size`, `remote_policy`, `primary_stack` are PRD §6.5.2
-        // dimensions whose columns are deferred to Phase 4. Accept the
-        // filter values (so saved views round-trip cleanly) but apply no
-        // narrowing yet.
+        // Phase 4 step 16: `stage` is now wired to companies.funding_stage
+        // (free-form text per user input, so no whitelist — saved views
+        // round-trip whatever the user picked).
+        if ($this->stage !== []) {
+            $query->whereIn('funding_stage', $this->stage);
+        }
+
+        // Phase 4 step 16: "recently funded" = raised within the last 18mo.
+        if ($this->recentlyFunded === true) {
+            $query->where('funding_last_raised_at', '>=', CarbonImmutable::now()->subMonths(18));
+        }
+
+        // TODO(phase 5+): `size` filter — companies table has no team_size
+        // column yet. Accepted into the dataclass for saved-view round-trip
+        // but applies no narrowing.
+        // TODO(phase 5+): `remote_policy` lives at the role/listing level
+        // (aggregator_listings), not on the company itself. Needs an
+        // aggregation rollup before it can filter the company list.
+        // TODO(phase 5+): `primary_stack` would require aggregating
+        // aggregator_listings.stack_tags to a per-company primary. Deferred.
 
         return $query;
     }
@@ -190,7 +216,8 @@ final readonly class CompanyListFilters
      *     has_open_roles: ?bool,
      *     last_checked: ?string,
      *     domain: ?string,
-     *     q: ?string
+     *     q: ?string,
+     *     recently_funded: ?bool
      * }
      */
     public function toArray(): array
@@ -208,6 +235,7 @@ final readonly class CompanyListFilters
             'domain' => $this->domain,
             'q' => $this->q,
             'graveyard' => $this->graveyard,
+            'recently_funded' => $this->recentlyFunded,
         ];
     }
 

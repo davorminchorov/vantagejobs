@@ -19,4 +19,6 @@ enum EventType: string
     case BLOG_POST = 'blog_post';
     case LAYOFF = 'layoff';
     case GHOST_DETECTED = 'ghost_detected';
+    case ATS_REDETECTED = 'ats_redetected';
+    case ATS_REDETECT_FAILED = 'ats_redetect_failed';
 }

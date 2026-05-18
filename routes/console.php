@@ -118,3 +118,44 @@ Schedule::call(static function () use ($tenantSlug): void {
     }
     Artisan::call('signals:blog:poll', ['--tenant' => $slug]);
 })->name('signals:blog:poll')->dailyAt('05:00');
+
+// Google News funding scan (Phase 4 §6.3.5). Review-queue pattern — a
+// human gates every hit, so weekly is enough.
+Schedule::call(static function () use ($tenantSlug): void {
+    $slug = $tenantSlug();
+    if (! is_string($slug) || $slug === '') {
+        return;
+    }
+    Artisan::call('signals:funding:news', ['--tenant' => $slug]);
+})->name('signals:funding:news')->weeklyOn(1, '05:15');
+
+// Ghost-job scan (Phase 4 §6.3.6) and quality-score recompute
+// (Phase 4 §6.3.9). Ordered last in the daily band so all signal
+// inputs are fresh.
+Schedule::call(static function () use ($tenantSlug): void {
+    $slug = $tenantSlug();
+    if (! is_string($slug) || $slug === '') {
+        return;
+    }
+    Artisan::call('signals:ghost:scan', ['--tenant' => $slug]);
+})->name('signals:ghost:scan')->dailyAt('05:30');
+
+Schedule::call(static function () use ($tenantSlug): void {
+    $slug = $tenantSlug();
+    if (! is_string($slug) || $slug === '') {
+        return;
+    }
+    Artisan::call('signals:quality:recompute', ['--tenant' => $slug]);
+})->name('signals:quality:recompute')->dailyAt('05:45');
+
+// ATS-switch detection (Phase 4 §11.2): the orchestrator already
+// flags companies as needs_redetection after 7 consecutive 404s.
+// This sweep picks them up hourly so a broken slug self-heals
+// without manual intervention.
+Schedule::call(static function () use ($tenantSlug): void {
+    $slug = $tenantSlug();
+    if (! is_string($slug) || $slug === '') {
+        return;
+    }
+    Artisan::call('signals:ats:redetect', ['--tenant' => $slug]);
+})->name('signals:ats:redetect')->hourly();

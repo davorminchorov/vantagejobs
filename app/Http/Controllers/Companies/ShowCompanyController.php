@@ -68,6 +68,11 @@ final readonly class ShowCompanyController
             ->map(fn ($tag) => ['id' => $tag->id, 'slug' => $tag->slug, 'name' => $tag->name])
             ->values();
 
+        $latestSnapshot = CompanySnapshot::query()
+            ->where('company_id', $company->id)
+            ->orderByDesc('snapshot_date')
+            ->first();
+
         $snapshotSince = CarbonImmutable::now()->subDays(90)->toDateString();
         $snapshots = CompanySnapshot::query()
             ->where('company_id', $company->id)
@@ -124,6 +129,11 @@ final readonly class ShowCompanyController
             ],
             'graveyard_preset_tags' => CompanyGraveyardReason::PRESET_TAGS,
             'hiring_trend' => $snapshots,
+            'quality' => $latestSnapshot === null || $latestSnapshot->quality_score === null ? null : [
+                'score' => $latestSnapshot->quality_score,
+                'breakdown' => $latestSnapshot->breakdown ?? [],
+                'snapshot_date' => $latestSnapshot->snapshot_date?->toDateString(),
+            ],
         ]);
     }
 }
