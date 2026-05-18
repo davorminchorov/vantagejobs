@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>HexHire - Elixir Jobs</title>
+    <link>https://hexhire.io/</link>
+    <description>Latest Elixir and Phoenix job listings from HexHire</description>
+    <language>en-us</language>
+    <lastBuildDate>Mon, 18 May 2026 22:28:19 GMT</lastBuildDate>
+    <atom:link href="https://hexhire.io/rss/jobs.xml" rel="self" type="application/rss+xml"/>
+    <item>
+      <title>Lead Backend Engineer at Tonsser</title>
+      <link>https://hexhire.io/jobs/912/lead-backend-engineer</link>
+      <guid isPermaLink="true">https://hexhire.io/jobs/912/lead-backend-engineer</guid>
+      <description>## Description • Lead the architectural direction of our backend platform as we evolve from where we are today toward what&apos;s next • Drive the technical roadmap for our new flagship project • Set the standard for how the team works with AI, both in our development workflow and as a product capability • Ship production code, review PRs, and mentor the engineers around you • Partner closely with product, mobile, and design to turn ambitious ideas into things that actually work at scale • Make pragm...</description>
+      <pubDate>Thu, 14 May 2026 11:13:03 GMT</pubDate>
+        <category>FULLTIME</category>
+        <category>Remote</category>
+        <category>Germany</category>
+
+    </item>
+    <item>
+      <title>Senior/Staff Elixir/Full at True Anomaly</title>
+      <link>https://hexhire.io/jobs/907/seniorstaff-elixirfull</link>
+      <guid isPermaLink="true">https://hexhire.io/jobs/907/seniorstaff-elixirfull</guid>
+      <description>True Anomaly delivers decisive capabilities for space superiority. We build autonomous spacecraft, advanced payloads, mission software, and space-based interceptors — enabling the U.S. and its Allies to secure the space environment and counter threats from the ultimate high ground. About us My name: Austin Morris My position: Director of Engineering - Mosaic Company name: True Anomaly Company website: https://www.trueanomaly.space/ Company headquarters (country): USA Company info and history (ho...</description>
+      <pubDate>Thu, 14 May 2026 11:11:01 GMT</pubDate>
+        <category>Denver or Long Beach, Remote USA</category>
+
+    </item>
+    <item>
+      <title>Software Engineer, Backend at sleeper</title>
+      <link>https://hexhire.io/jobs/896/software-engineer-backend</link>
+      <guid isPermaLink="true">https://hexhire.io/jobs/896/software-engineer-backend</guid>
+      <description>About Sleeper Sleeper is on a mission to connect people over sports through games and community. As one of the fastest-growing platforms in the fantasy sports and real-money gaming space, we&apos;re redefining how sports fans engage—whether it&apos;s through season-long leagues, pick&apos;em contests, or real-time interactions with friends. Our team is lean, passionate, and product-driven. We obsess over user experience and believe that building delightful, fast, and reliable products is the best way to grow. ...</description>
+      <pubDate>Sat, 09 May 2026 06:01:46 GMT</pubDate>
+        <category>FULLTIME</category>
+        <category>San Francisco</category>
+
+    </item>
+</channel>
+</rss>

@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+  <channel>
+    <title>Elixir Jobs</title>
+    <description>Find your next Elixir job.</description>
+    <link>https://elixirjobs.net/</link>
+    
+      <item>
+        <title><![CDATA[Senior Elixir Developer]]></title>
+        <description><![CDATA[
+          <font color="#aaa">
+            <font color="#aaa">
+              Job place: Both
+            </font><br />
+            <font color="#aaa">
+              Job type: Full time
+            </font><br />
+            <font color="#aaa">
+              Job location: Prague + remote
+            </font>
+          </font>
+          What you will work on:
+
+- Designing and building OTP-based services that orchestrate contract execution, scheduled obligations, and counterparty workflows
+- Integrating with open banking APIs, sanctions/KYC providers, and external data feeds (interest rates, IoT telemetry, asset registries)
+- Building robust event sourcing and audit trails that meet regulatory-grade evidence standards
+- Phoenix / LiveView interfaces for contract authoring, monitoring, and human-in-the-loop sign-off steps
+- Collaborating with our legal, compliance, and product teams to translate clauses into reliable executable behaviour
+- Contributing to architectural decisions around messaging, persistence, and integration with our Web3 layer (Stellar / Hyperledger)
+
+        ]]></description>
+        <pubDate>07 May 2026 09:51:29 +0000</pubDate>
+        <link><![CDATA[https://elixirjobs.net/offers/hunit-senior-elixir-developer-e40f86a8]]></link>
+        <guid><![CDATA[https://elixirjobs.net/offers/hunit-senior-elixir-developer-e40f86a8]]></guid>
+      </item>
+    
+      <item>
+        <title><![CDATA[Full-Stack Elixir Engineer]]></title>
+        <description><![CDATA[
+          <font color="#aaa">
+            <font color="#aaa">
+              Job place: Both
+            </font><br />
+            <font color="#aaa">
+              Job type: Full time
+            </font><br />
+            <font color="#aaa">
+              Job location: Netherlands
+            </font>
+          </font>
+          About GOAL3
+Every year, millions of lives are lost due to a lack of basic health monitoring. At GOAL3, we believe that technology should serve those who need it most. We develop the IMPALA system, a robust, easy-to-use patient monitoring platform designed specifically for environments where resources are limited but the need is great.
+
+We are currently in a scale-up phase whereby we currently operate in about 40 hospitals and expect to reach ~120 before end of year. This growth is also the reason why we want to expand on the capabilities of our platform and want to grow the team.
+
+Why we need you
+We are a small, dedicated team. We don't just need a coder; we need a problem-solver who understands that a bug in our code could mean a delay in patient care. We are looking for an engineer who enjoys the 'all-round' nature of the Elixir ecosystem, someone who can jump from debugging a hardware peripheral in Nerves to refining a UI component in Svelte.
+        ]]></description>
+        <pubDate>01 May 2026 11:30:38 +0000</pubDate>
+        <link><![CDATA[https://elixirjobs.net/offers/goal-3-full-stack-elixir-engineer-5cde74e3]]></link>
+        <guid><![CDATA[https://elixirjobs.net/offers/goal-3-full-stack-elixir-engineer-5cde74e3]]></guid>
+      </item>
+    
+      <item>
+        <title><![CDATA[Elixir engineer]]></title>
+        <description><![CDATA[
+          <font color="#aaa">
+            <font color="#aaa">
+              Job place: Onsite
+            </font><br />
+            <font color="#aaa">
+              Job type: Full time
+            </font><br />
+            <font color="#aaa">
+              Job location: Melbourne
+            </font>
+          </font>
+          We're looking for an Elixir engineer to join our team in Melbourne CBD. This is a full-time, on-site role paying $120k to $180k AUD depending on experience. We're open to both junior engineers starting their career and seasoned Elixir developers. You must have the legal right to work in Australia and be based in Australia.
+
+We're an early-stage, profitable startup on a mission to make superannuation easier to use and understand for Australians. We started with a simple idea: remove the friction from employee onboarding. Today, tens of thousands of Australians use our products every month, and we're building towards a future where every employer, payroll system, and super fund can connect seamlessly.
+
+We build three products on a single Elixir/Phoenix platform. Our flagship product, SuperAPI, is an embeddable super selection experience integrated into third-party payroll and HR platforms. We also run Xonboard, a Xero Payroll onboarding tool, and SuperChoiceForm, which enables easy superannuation form completion.
+
+Working at SuperAPI is a bit different from working at other organisations. We all come from practical, hands-on roles at previous organisations and, based on those experiences, have built the kind of organisation we want to work in. This means things like no hot desking, embracing the value of face to face communication, deploying code often and giving motivated individuals the tools to succeed.
+        ]]></description>
+        <pubDate>14 Apr 2026 08:22:29 +0000</pubDate>
+        <link><![CDATA[https://elixirjobs.net/offers/superapi-elixir-engineer-d15e7a6c]]></link>
+        <guid><![CDATA[https://elixirjobs.net/offers/superapi-elixir-engineer-d15e7a6c]]></guid>
+      </item>
+</channel>
+</rss>
