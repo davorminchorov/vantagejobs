@@ -28,6 +28,11 @@ USER root
 COPY .infrastructure/conf/traefik/dev/certificates/local-ca.pem /usr/local/share/ca-certificates/local-ca.crt
 RUN update-ca-certificates
 
+# Node so `php artisan octane:start --watch` can spawn chokidar; chokidar
+# itself lives in node_modules (added to package.json devDependencies and
+# installed by the node service into the shared bind mount). Dev-only.
+RUN apk add --no-cache nodejs
+
 # Set the user ID and group ID for www-data
 RUN docker-php-serversideup-set-id www-data $USER_ID:$GROUP_ID  && \
     docker-php-serversideup-set-file-permissions --owner $USER_ID:$GROUP_ID

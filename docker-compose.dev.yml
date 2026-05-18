@@ -36,6 +36,15 @@ services:
         GROUP_ID: ${SPIN_GROUP_ID}
       dockerfile: Dockerfile.php
     stop_signal: SIGTERM
+    # Override the base image's default command so dev runs Octane with
+    # the --watch flag. Watched paths live in config/octane.php; chokidar-cli
+    # is installed via Dockerfile.php's development stage.
+    # Note on --watch: FrankenPHP + Octane + chokidar segfaults reliably on
+    # this Alpine + macOS-bind-mount combination (exit 139 within seconds,
+    # with or without --poll). Watch deps (Node + chokidar) are installed
+    # for opt-in use via:
+    #   spin exec -T php php artisan octane:start --watch --poll
+    # When upstream stabilizes, restore --watch to the default command.
     volumes:
       - .:/var/www/html/
     networks:
