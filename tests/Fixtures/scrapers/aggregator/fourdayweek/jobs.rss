@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+  <channel>
+    <title>4dayweek.io: Reduced-Schedule Jobs</title>
+    <link>https://4dayweek.io/</link>
+    <description>Jobs at companies offering a 4-day work week.</description>
+    <language>en-us</language>
+    <pubDate>Mon, 12 May 2026 10:30:00 +0000</pubDate>
+    <item>
+      <guid isPermaLink="false">https://4dayweek.io/jobs/acme-corp-senior-backend-engineer-001</guid>
+      <title>Acme Corp - Senior Backend Engineer</title>
+      <link>https://4dayweek.io/jobs/acme-corp-senior-backend-engineer-001</link>
+      <description><![CDATA[<p>Acme Corp is hiring a Senior Backend Engineer to join our fully distributed engineering team. You will own services written in Python with Django on top of Postgres.</p>]]></description>
+      <pubDate>Mon, 12 May 2026 10:00:00 +0000</pubDate>
+      <category>Engineering</category>
+    </item>
+    <item>
+      <guid isPermaLink="false">https://4dayweek.io/jobs/globex-staff-platform-engineer-002</guid>
+      <title>Staff Platform Engineer at Globex</title>
+      <link>https://4dayweek.io/jobs/globex-staff-platform-engineer-002</link>
+      <description><![CDATA[<p>Globex is looking for a Staff Platform Engineer to lead our Kubernetes platform team. Strong TypeScript experience required.</p>]]></description>
+      <pubDate>Sun, 11 May 2026 08:00:00 +0000</pubDate>
+      <category>Engineering</category>
+    </item>
+  </channel>
+</rss>

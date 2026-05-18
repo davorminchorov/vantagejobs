@@ -6,6 +6,7 @@ namespace App\Providers;
 
 use App\Scrapers\Aggregator\AggregatorRegistry;
 use App\Scrapers\Aggregator\Artifacts\ScrapeArtifactContext;
+use App\Scrapers\Aggregator\FourDayWeek\FourDayWeekScraper;
 use App\Scrapers\Aggregator\HackerNews\HackerNewsScraper;
 use App\Scrapers\Aggregator\SaveFixtureAction;
 use App\Scrapers\Aggregator\Himalayas\HimalayasScraper;
@@ -75,5 +76,6 @@ final class AggregatorServiceProvider extends ServiceProvider
         $registry->register($this->app->make(HimalayasScraper::class));
         $registry->register($this->app->make(WeWorkRemotelyScraper::class));
         $registry->register($this->app->make(RemoteOkScraper::class));
+        $registry->register($this->app->make(FourDayWeekScraper::class));
     }
 }
