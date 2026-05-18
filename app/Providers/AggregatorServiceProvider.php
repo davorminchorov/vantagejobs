@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
+use App\Scrapers\Aggregator\Adzuna\AdzunaScraper;
 use App\Scrapers\Aggregator\AggregatorRegistry;
 use App\Scrapers\Aggregator\Artifacts\ScrapeArtifactContext;
 use App\Scrapers\Aggregator\FourDayWeek\FourDayWeekScraper;
@@ -79,5 +80,6 @@ final class AggregatorServiceProvider extends ServiceProvider
         $registry->register($this->app->make(RemoteOkScraper::class));
         $registry->register($this->app->make(FourDayWeekScraper::class));
         $registry->register($this->app->make(WorkingNomadsScraper::class));
+        $registry->register($this->app->make(AdzunaScraper::class));
     }
 }
