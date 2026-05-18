@@ -217,7 +217,12 @@ export default function CompaniesIndexPage({ companies, filters, options }: Prop
                                         <TableRow key={company.id}>
                                             <TableCell>
                                                 <div className="flex flex-col">
-                                                    <span className="font-medium">{company.name}</span>
+                                                    <Link
+                                                        href={`/companies/${company.id}`}
+                                                        className="font-medium hover:underline"
+                                                    >
+                                                        {company.name}
+                                                    </Link>
                                                     {company.domain ? (
                                                         <span className="text-xs text-muted-foreground">
                                                             {company.domain}
