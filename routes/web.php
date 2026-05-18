@@ -38,6 +38,7 @@ use App\Http\Controllers\Import\MapFormController;
 use App\Http\Controllers\Import\RunImportController;
 use App\Http\Controllers\Import\UploadCsvController;
 use App\Http\Controllers\Import\UploadFormController;
+use App\Http\Controllers\Insights\HiringInsightsController;
 use App\Http\Controllers\SavedViews\DestroySavedViewController;
 use App\Http\Controllers\SavedViews\StoreSavedViewController;
 use App\Http\Controllers\SavedViews\UpdateSavedViewController;
@@ -67,6 +68,8 @@ Route::middleware(['auth'])->group(function (): void {
     Route::put('/companies/{company}', UpdateCompanyController::class)->name('companies.update');
     Route::post('/companies/{company}/graveyard', GraveyardCompanyController::class)->name('companies.graveyard');
     Route::post('/companies/{company}/restore', RestoreCompanyController::class)->name('companies.restore');
+
+    Route::get('/insights/hiring', HiringInsightsController::class)->name('insights.hiring');
 
     Route::get('/import', UploadFormController::class)->name('import.upload');
     Route::post('/import', UploadCsvController::class)->name('import.upload.store');

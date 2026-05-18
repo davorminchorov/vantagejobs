@@ -2,6 +2,7 @@ import { Head, Link, useForm } from '@inertiajs/react';
 import { useState } from 'react';
 
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import HiringTrendChart from '@/components/charts/HiringTrendChart';
 import TagInput, { type TagSummary } from '@/components/companies/TagInput';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -82,6 +83,7 @@ interface Props {
     counts: Counts;
     graveyard: GraveyardInfo | null;
     graveyard_preset_tags: string[];
+    hiring_trend: { date: string; open_role_count: number; listings_count: number }[];
 }
 
 const TIER_VARIANT: Record<string, 'default' | 'secondary' | 'outline'> = {
@@ -122,6 +124,7 @@ export default function ShowCompanyPage({
     counts,
     graveyard,
     graveyard_preset_tags,
+    hiring_trend,
 }: Props) {
     const [tab, setTab] = useState<'overview' | 'roles' | 'timeline'>('overview');
 
@@ -172,6 +175,16 @@ export default function ShowCompanyPage({
                     </TabsList>
 
                     <TabsContent value="overview">
+                        <Card className="mb-4">
+                            <CardHeader>
+                                <CardTitle className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+                                    Hiring volume (90 days)
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <HiringTrendChart data={hiring_trend} />
+                            </CardContent>
+                        </Card>
                         <Overview company={company} counts={counts} tags={tags} />
                     </TabsContent>
 

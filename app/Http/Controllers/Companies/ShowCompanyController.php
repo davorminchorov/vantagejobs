@@ -6,8 +6,10 @@ namespace App\Http\Controllers\Companies;
 
 use App\Models\Company;
 use App\Models\CompanyGraveyardReason;
+use App\Models\CompanySnapshot;
 use App\Models\Event;
 use App\Models\Note;
+use Carbon\CarbonImmutable;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -66,6 +68,19 @@ final readonly class ShowCompanyController
             ->map(fn ($tag) => ['id' => $tag->id, 'slug' => $tag->slug, 'name' => $tag->name])
             ->values();
 
+        $snapshotSince = CarbonImmutable::now()->subDays(90)->toDateString();
+        $snapshots = CompanySnapshot::query()
+            ->where('company_id', $company->id)
+            ->where('snapshot_date', '>=', $snapshotSince)
+            ->orderBy('snapshot_date')
+            ->get(['snapshot_date', 'open_role_count', 'listings_count'])
+            ->map(fn (CompanySnapshot $s) => [
+                'date' => $s->snapshot_date?->toDateString(),
+                'open_role_count' => $s->open_role_count,
+                'listings_count' => $s->listings_count,
+            ])
+            ->values();
+
         $graveyardReason = CompanyGraveyardReason::query()
             ->where('company_id', $company->id)
             ->whereNull('restored_at')
@@ -103,6 +118,7 @@ final readonly class ShowCompanyController
                 'tags' => $graveyardReason->tags ?? [],
             ],
             'graveyard_preset_tags' => CompanyGraveyardReason::PRESET_TAGS,
+            'hiring_trend' => $snapshots,
         ]);
     }
 }
