@@ -2,6 +2,9 @@
 
 declare(strict_types=1);
 
+use App\Http\Controllers\Admin\Parser\IndexController as AdminParserIndexController;
+use App\Http\Controllers\Admin\Parser\ReparseAllController as AdminParserReparseAllController;
+use App\Http\Controllers\Admin\Parser\RunRollupController as AdminParserRunRollupController;
 use App\Http\Controllers\Admin\Runs\DownloadArtifactController;
 use App\Http\Controllers\Admin\Runs\IndexController as AdminRunsIndexController;
 use App\Http\Controllers\Admin\Runs\ShowController as AdminRunsShowController;
@@ -87,6 +90,12 @@ Route::middleware(['auth'])->group(function (): void {
 
     Route::get('/search', GlobalSearchController::class)->name('search');
 
+    Route::prefix('admin/parser')->name('admin.parser.')->group(function (): void {
+        Route::get('/', AdminParserIndexController::class)->name('index');
+        Route::post('/rollup', AdminParserRunRollupController::class)->name('rollup');
+        Route::post('/reparse-all', AdminParserReparseAllController::class)->name('reparse-all');
+    });
+
     Route::post('/saved-views', StoreSavedViewController::class)->name('saved-views.store');
     Route::patch('/saved-views/{view}', UpdateSavedViewController::class)
         ->whereNumber('view')
@@ -109,6 +118,12 @@ Route::middleware(['auth'])->group(function (): void {
         Route::get('/runs/{run}', AdminRunsShowController::class)
             ->whereNumber('run')
             ->name('runs.show');
+
+        Route::prefix('parser')->name('parser.')->group(function (): void {
+            Route::get('/', AdminParserIndexController::class)->name('index');
+            Route::post('/rollup', AdminParserRunRollupController::class)->name('rollup');
+            Route::post('/reparse-all', AdminParserReparseAllController::class)->name('reparse-all');
+        });
     });
 
     Route::prefix('settings')->name('settings.')->group(function (): void {
