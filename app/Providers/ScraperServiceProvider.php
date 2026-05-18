@@ -11,6 +11,7 @@ use App\Scrapers\Personio\PersonioScraper;
 use App\Scrapers\Recruitee\RecruiteeScraper;
 use App\Scrapers\ScraperRegistry;
 use App\Scrapers\SmartRecruiters\SmartRecruitersScraper;
+use App\Scrapers\Teamtailor\TeamtailorScraper;
 use App\Scrapers\Workable\WorkableScraper;
 use Illuminate\Support\ServiceProvider;
 
@@ -41,5 +42,6 @@ final class ScraperServiceProvider extends ServiceProvider
         $registry->register($this->app->make(SmartRecruitersScraper::class));
         $registry->register($this->app->make(PersonioScraper::class));
         $registry->register($this->app->make(RecruiteeScraper::class));
+        $registry->register($this->app->make(TeamtailorScraper::class));
     }
 }
