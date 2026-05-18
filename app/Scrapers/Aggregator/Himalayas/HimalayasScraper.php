@@ -57,7 +57,7 @@ final readonly class HimalayasScraper implements AggregatorScraperInterface
         $jobs = is_array($payload['jobs'] ?? null) ? $payload['jobs'] : [];
 
         $fetched = 0;
-        $newCount = 0;
+        $createdIds = [];
         $errors = [];
 
         foreach ($jobs as $job) {
@@ -73,8 +73,9 @@ final readonly class HimalayasScraper implements AggregatorScraperInterface
 
             try {
                 $context = $this->contextBuilder->build($job);
-                if ($this->persister->upsert($source, $context, $job, $externalId)) {
-                    $newCount++;
+                $id = $this->persister->upsert($source, $context, $job, $externalId);
+                if ($id !== null) {
+                    $createdIds[] = $id;
                 }
             } catch (Throwable $e) {
                 $errors[] = [
@@ -84,9 +85,11 @@ final readonly class HimalayasScraper implements AggregatorScraperInterface
             }
         }
 
+        $this->persister->capRun($createdIds);
+
         return new AggregatorRunResult(
             fetched: $fetched,
-            newCount: $newCount,
+            newCount: count($createdIds),
             errors: $errors,
         );
     }

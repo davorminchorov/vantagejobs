@@ -62,7 +62,8 @@ final readonly class WeWorkRemotelyScraper implements AggregatorScraperInterface
         $connector = new WeWorkRemotelyConnector();
 
         $fetched = 0;
-        $newCount = 0;
+        /** @var list<int> $createdIds */
+        $createdIds = [];
         $errors = [];
         /** @var array<string, true> $seenGuids */
         $seenGuids = [];
@@ -101,8 +102,9 @@ final readonly class WeWorkRemotelyScraper implements AggregatorScraperInterface
 
                 try {
                     $context = $this->contextBuilder->build($item);
-                    if ($this->persister->upsert($source, $context, $item, $externalId)) {
-                        $newCount++;
+                    $id = $this->persister->upsert($source, $context, $item, $externalId);
+                    if ($id !== null) {
+                        $createdIds[] = $id;
                     }
                 } catch (Throwable $e) {
                     $errors[] = [
@@ -113,9 +115,11 @@ final readonly class WeWorkRemotelyScraper implements AggregatorScraperInterface
             }
         }
 
+        $this->persister->capRun($createdIds);
+
         return new AggregatorRunResult(
             fetched: $fetched,
-            newCount: $newCount,
+            newCount: count($createdIds),
             errors: $errors,
         );
     }

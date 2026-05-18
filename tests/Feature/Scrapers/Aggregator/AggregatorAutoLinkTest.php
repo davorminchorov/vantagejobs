@@ -148,7 +148,7 @@ final class AggregatorAutoLinkTest extends TestCase
         ?string $companyName,
         string $roleTitle,
         ?CarbonImmutable $postedAt = null,
-    ): bool {
+    ): ?int {
         $structured = [
             'title' => $roleTitle,
         ];

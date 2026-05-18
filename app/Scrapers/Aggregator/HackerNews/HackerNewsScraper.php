@@ -75,7 +75,7 @@ final readonly class HackerNewsScraper implements AggregatorScraperInterface
         $children = is_array($tree['children'] ?? null) ? $tree['children'] : [];
 
         $fetched = 0;
-        $newCount = 0;
+        $createdIds = [];
         $errors = [];
 
         foreach ($children as $comment) {
@@ -89,8 +89,9 @@ final readonly class HackerNewsScraper implements AggregatorScraperInterface
                 $context = $this->contextBuilder->build($comment);
                 $externalId = (string) ($comment['id'] ?? '');
 
-                if ($this->persister->upsert($source, $context, $comment, $externalId)) {
-                    $newCount++;
+                $id = $this->persister->upsert($source, $context, $comment, $externalId);
+                if ($id !== null) {
+                    $createdIds[] = $id;
                 }
             } catch (Throwable $e) {
                 $errors[] = [
@@ -100,9 +101,11 @@ final readonly class HackerNewsScraper implements AggregatorScraperInterface
             }
         }
 
+        $this->persister->capRun($createdIds);
+
         return new AggregatorRunResult(
             fetched: $fetched,
-            newCount: $newCount,
+            newCount: count($createdIds),
             errors: $errors,
         );
     }

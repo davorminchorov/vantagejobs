@@ -65,7 +65,7 @@ final readonly class RemoteOkScraper implements AggregatorScraperInterface
         $items = array_values($payload);
 
         $fetched = 0;
-        $newCount = 0;
+        $createdIds = [];
         $errors = [];
 
         foreach ($items as $index => $item) {
@@ -85,8 +85,9 @@ final readonly class RemoteOkScraper implements AggregatorScraperInterface
 
             try {
                 $context = $this->contextBuilder->build($item);
-                if ($this->persister->upsert($source, $context, $item, $externalId)) {
-                    $newCount++;
+                $id = $this->persister->upsert($source, $context, $item, $externalId);
+                if ($id !== null) {
+                    $createdIds[] = $id;
                 }
             } catch (Throwable $e) {
                 $errors[] = [
@@ -96,9 +97,11 @@ final readonly class RemoteOkScraper implements AggregatorScraperInterface
             }
         }
 
+        $this->persister->capRun($createdIds);
+
         return new AggregatorRunResult(
             fetched: $fetched,
-            newCount: $newCount,
+            newCount: count($createdIds),
             errors: $errors,
         );
     }

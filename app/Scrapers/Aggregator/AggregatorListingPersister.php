@@ -23,28 +23,47 @@ use Carbon\CarbonImmutable;
  * snoozed) the triage UI may have written downstream.
  *
  * Shared by every aggregator scraper. Each scraper only owns its fetch +
- * filter + context-building; this service owns the parse-and-persist tail.
+ * filter + context-building; this service owns the parse-and-persist tail
+ * plus the ingestion-time gates:
+ *
+ *   1. AUTO_DISMISSED  — employer is on the auto-dismiss list (step 13).
+ *   2. DUPLICATE       — same (company, role, location) seen in the
+ *                        last 14 days (step 14, PRD §6.4.7).
+ *   3. LINKED          — fuzzy-matches an existing tracked Company
+ *                        (step 12, PRD §6.4.6).
+ *   4. NEW             — fall-through.
+ *
+ * Auto-link is skipped for AUTO_DISMISSED and DUPLICATE listings — they're
+ * already off the triage queue, no point emitting a NEW_ROLE Event.
  */
 final readonly class AggregatorListingPersister
 {
+    /**
+     * Cross-source dedup window per PRD §6.4.7.
+     */
+    private const DEDUP_WINDOW_DAYS = 14;
+
     public function __construct(
         private ParserPipeline $pipeline,
         private CompanyKeyNormalizer $normalizer,
         private MatchCompanyAction $matcher,
+        private VolumeCapAction $volumeCap,
     ) {}
 
     /**
      * @param  array<string, mixed>  $rawRecord
-     * @return bool true if a new row was inserted, false if an existing row was updated
+     * @return int|null  ID of the newly-inserted listing, or null when an
+     *                   existing row was updated. Scrapers accumulate the
+     *                   returned IDs and pass them to capRun() at end-of-run.
      */
     public function upsert(
         AggregatorSource $source,
         SourceContext $context,
         array $rawRecord,
         string $externalId,
-    ): bool {
+    ): ?int {
         if ($externalId === '') {
-            return false;
+            return null;
         }
 
         $parsed = $this->pipeline->parse($context);
@@ -58,22 +77,35 @@ final readonly class AggregatorListingPersister
 
         if ($existing === null) {
             $attrs = $this->applyAutoDismissGate($attrs);
+            $attrs = $this->applyDedupGate($attrs);
 
             /** @var AggregatorListing $listing */
             $listing = AggregatorListing::query()->create($attrs);
 
-            if ($listing->status !== AggregatorListingStatus::AUTO_DISMISSED) {
+            if ($listing->status === AggregatorListingStatus::NEW) {
                 $this->attemptAutoLink($listing, $parsed);
             }
 
-            return true;
+            return (int) $listing->id;
         }
 
         // Preserve user-set status on re-fetch — the triage UI is downstream.
         unset($attrs['status']);
         $existing->fill($attrs)->save();
 
-        return false;
+        return null;
+    }
+
+    /**
+     * Demote sub-50 NEW listings from `$createdIds` to OVERFLOW when the
+     * run produced more than the trigger threshold of new listings, per
+     * PRD §6.4.5. Returns count demoted.
+     *
+     * @param  list<int>  $createdIds
+     */
+    public function capRun(array $createdIds): int
+    {
+        return $this->volumeCap->cap($createdIds);
     }
 
     /**
@@ -138,6 +170,60 @@ final readonly class AggregatorListingPersister
 
         if ($rule !== null) {
             $attrs['status'] = AggregatorListingStatus::AUTO_DISMISSED->value;
+        }
+
+        return $attrs;
+    }
+
+    /**
+     * Per PRD §6.4.7: within a 14-day window, listings sharing the same
+     * (normalized_company_key, normalized_role_key, location_bucket) are
+     * marked as duplicates of the earliest visible match. Already-
+     * dismissed / auto-dismissed / duplicate rows are not candidates —
+     * if the user has actively hidden a listing, surfacing the same role
+     * from a different source as fresh-NEW is the desired behaviour.
+     *
+     * Skips dedup entirely when any of the three keys is null — we cannot
+     * collide what we cannot key on.
+     *
+     * @param  array<string, mixed>  $attrs
+     * @return array<string, mixed>
+     */
+    private function applyDedupGate(array $attrs): array
+    {
+        if (($attrs['status'] ?? null) === AggregatorListingStatus::AUTO_DISMISSED->value) {
+            // Auto-dismiss already won; no need to also flag duplicate.
+            return $attrs;
+        }
+
+        $companyKey = $attrs['normalized_company_key'] ?? null;
+        $roleKey = $attrs['normalized_role_key'] ?? null;
+        $locationBucket = $attrs['location_bucket'] ?? null;
+        if (! is_string($companyKey) || ! is_string($roleKey) || ! is_string($locationBucket)) {
+            return $attrs;
+        }
+        if ($companyKey === '' || $roleKey === '' || $locationBucket === '') {
+            return $attrs;
+        }
+
+        $window = CarbonImmutable::now()->subDays(self::DEDUP_WINDOW_DAYS);
+
+        $canonical = AggregatorListing::query()
+            ->where('normalized_company_key', $companyKey)
+            ->where('normalized_role_key', $roleKey)
+            ->where('location_bucket', $locationBucket)
+            ->whereNotIn('status', [
+                AggregatorListingStatus::DISMISSED->value,
+                AggregatorListingStatus::AUTO_DISMISSED->value,
+                AggregatorListingStatus::DUPLICATE->value,
+            ])
+            ->where('fetched_at', '>=', $window)
+            ->orderBy('fetched_at')
+            ->first(['id']);
+
+        if ($canonical !== null) {
+            $attrs['status'] = AggregatorListingStatus::DUPLICATE->value;
+            $attrs['duplicate_of_id'] = $canonical->id;
         }
 
         return $attrs;
