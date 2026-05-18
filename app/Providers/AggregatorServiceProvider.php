@@ -7,6 +7,7 @@ namespace App\Providers;
 use App\Scrapers\Aggregator\AggregatorRegistry;
 use App\Scrapers\Aggregator\HackerNews\HackerNewsScraper;
 use App\Scrapers\Aggregator\Parser\Extractors\ApplyMethodExtractor;
+use App\Scrapers\Aggregator\Remotive\RemotiveScraper;
 use App\Scrapers\Aggregator\Parser\Extractors\CompanyNameExtractor;
 use App\Scrapers\Aggregator\Parser\Extractors\CompensationExtractor;
 use App\Scrapers\Aggregator\Parser\Extractors\DisciplineExtractor;
@@ -55,5 +56,6 @@ final class AggregatorServiceProvider extends ServiceProvider
     {
         $registry = $this->app->make(AggregatorRegistry::class);
         $registry->register($this->app->make(HackerNewsScraper::class));
+        $registry->register($this->app->make(RemotiveScraper::class));
     }
 }

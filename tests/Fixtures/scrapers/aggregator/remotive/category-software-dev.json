@@ -1,0 +1,48 @@
+{
+    "0-legal-notice": "Remote jobs by Remotive (https://remotive.com) — Use of this data is subject to Remotive's terms of service.",
+    "job-count": 3,
+    "jobs": [
+        {
+            "id": 70001,
+            "url": "https://remotive.com/remote-jobs/software-dev/senior-backend-acme-70001",
+            "title": "Senior Backend Engineer",
+            "company_name": "Acme Corp",
+            "company_logo": "https://remotive.com/logos/acme.png",
+            "category": "Software Development",
+            "tags": ["python", "django", "postgres"],
+            "job_type": "full_time",
+            "publication_date": "2026-05-12T10:00:00",
+            "candidate_required_location": "Worldwide",
+            "salary": "$150,000 - $200,000",
+            "description": "<p>We are looking for a Senior Backend Engineer to join Acme's payments team. You will own services that move millions of dollars a day.</p><p>Strong Python experience required. Familiar with Django and Postgres. We sponsor visas for the right candidate. Compensation includes equity.</p>"
+        },
+        {
+            "id": 70002,
+            "url": "https://remotive.com/remote-jobs/software-dev/ml-engineer-cyberdyne-70002",
+            "title": "ML Engineer",
+            "company_name": "Cyberdyne",
+            "company_logo": "https://remotive.com/logos/cyberdyne.png",
+            "category": "Software Development",
+            "tags": ["python", "pytorch", "tensorflow"],
+            "job_type": "full_time",
+            "publication_date": "2026-05-11T16:00:00",
+            "candidate_required_location": "USA Only",
+            "salary": "$180,000 - $240,000",
+            "description": "<p>ML Engineer to work on cutting-edge computer vision. Deep PyTorch experience preferred. USA-based candidates only — we cannot sponsor visas at this time.</p>"
+        },
+        {
+            "id": 70003,
+            "url": "https://remotive.com/remote-jobs/software-dev/devops-fluxhq-70003",
+            "title": "Staff DevOps Engineer",
+            "company_name": "FluxHQ",
+            "company_logo": "https://remotive.com/logos/fluxhq.png",
+            "category": "Software Development",
+            "tags": ["go", "kubernetes", "terraform", "aws"],
+            "job_type": "full_time",
+            "publication_date": "2026-05-10T09:30:00",
+            "candidate_required_location": "EMEA",
+            "salary": "€100,000 - €140,000",
+            "description": "<p>Lead our platform team. Deep Kubernetes and Terraform experience required. EU-based, CET working hours preferred.</p>"
+        }
+    ]
+}
