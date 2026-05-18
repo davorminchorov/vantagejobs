@@ -7,6 +7,7 @@ namespace App\Providers;
 use App\Scrapers\Aggregator\Arbeitnow\ArbeitnowScraper;
 use App\Scrapers\Aggregator\Adzuna\AdzunaScraper;
 use App\Scrapers\Aggregator\AggregatorRegistry;
+use App\Scrapers\Aggregator\HexHire\HexHireScraper;
 use App\Scrapers\Aggregator\Artifacts\ScrapeArtifactContext;
 use App\Scrapers\Aggregator\FourDayWeek\FourDayWeekScraper;
 use App\Scrapers\Aggregator\HackerNews\HackerNewsScraper;
@@ -87,5 +88,6 @@ final class AggregatorServiceProvider extends ServiceProvider
         $registry->register($this->app->make(LarajobsScraper::class));
         $registry->register($this->app->make(JobicyScraper::class));
         $registry->register($this->app->make(ArbeitnowScraper::class));
+        $registry->register($this->app->make(HexHireScraper::class));
     }
 }
