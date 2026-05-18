@@ -193,6 +193,22 @@ return [
             'countries' => env('ADZUNA_COUNTRIES', 'gb,de,nl,fr,at,ch,pl'),
             'pages_per_country' => env('ADZUNA_PAGES_PER_COUNTRY', 3),
         ],
+        'jobicy' => [
+            'concurrency' => 1,
+            'timeout' => 15,
+            'connect_timeout' => 5,
+            'retry_times' => 3,
+            'retry_sleep_ms' => 2000,
+            // Jobicy documents a 1-req/hr poll limit; daily cadence
+            // (defaultCadenceMinutes) keeps us well inside it.
+        ],
+        'arbeitnow' => [
+            'concurrency' => 1,
+            'timeout' => 15,
+            'connect_timeout' => 5,
+            'retry_times' => 3,
+            'retry_sleep_ms' => 2000,
+        ],
     ],
 
     /*
