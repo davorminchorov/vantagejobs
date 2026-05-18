@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 
 #[Fillable([
@@ -19,6 +20,7 @@ use Illuminate\Database\Eloquent\Relations\MorphMany;
     'url',
     'raw',
     'parsed',
+    'parser_version',
     'parsed_company_name',
     'parsed_role_title',
     'parsed_seniority',
@@ -54,6 +56,7 @@ final class AggregatorListing extends Model
             'status' => AggregatorListingStatus::class,
             'parsed_comp_min_usd' => 'integer',
             'parsed_comp_max_usd' => 'integer',
+            'parser_version' => 'integer',
             'posted_at' => 'immutable_datetime',
             'fetched_at' => 'immutable_datetime',
             'snoozed_until' => 'immutable_datetime',
@@ -90,5 +93,13 @@ final class AggregatorListing extends Model
     public function bookmarks(): MorphMany
     {
         return $this->morphMany(Bookmark::class, 'bookmarkable');
+    }
+
+    /**
+     * @return HasMany<ParseCorrection, $this>
+     */
+    public function corrections(): HasMany
+    {
+        return $this->hasMany(ParseCorrection::class, 'listing_id');
     }
 }
