@@ -1,0 +1,24 @@
+{
+    "source": "weworkremotely",
+    "external_id": "https://weworkremotely.com/remote-jobs/fairgambling-blockchain-engineer-researcher",
+    "raw": {
+        "guid": "https://weworkremotely.com/remote-jobs/fairgambling-blockchain-engineer-researcher",
+        "link": "https://weworkremotely.com/remote-jobs/fairgambling-blockchain-engineer-researcher",
+        "title": "FairGambling: Blockchain Engineer & Researcher",
+        "region": "Anywhere in the World",
+        "pubDate": "Mon, 18 May 2026 12:15:53 +0000",
+        "description": "<p>\n  <strong>Headquarters:</strong> \n    <br /><strong>URL:</strong> <a href=\"https://fairgambling.com\">https://fairgambling.com</a>\n</p>\n\n<h1><strong>Blockchain Engineer / Analyst (Remote, Full-time or Contract)</strong></h1><p><strong>About us – FairGambling</strong> We're a fast-growing platform in the online gaming space. Not a casino ourselves, but the layer on top of it: we review, compare, and analyze operators across the industry, with transparency as the whole point. A lot of what we cover happens onchain, so we don't take operator numbers at face value – we verify them. Player reviews are checked against real on-platform activity, not just star ratings. The goal is simple: give players the honest picture the industry usually doesn't.</p><p><strong>The role</strong> A lot of what we verify lives onchain. We're hiring someone who's comfortable there – building tooling, tracking transactions across chains, and following contracts to surface what operators don't say themselves.</p><p><strong>What you'll do:</strong></p><ul><li><p>Build and maintain trackers, dashboards, and scripts</p></li><li><p>Monitor multiple chains, track transactions, and follow contracts onchain</p></li><li><p>Investigate transaction flows and surface insights for the research and content team</p></li><li><p>Follow trails through data – the work is genuinely investigative</p></li></ul><p><strong>What we're looking for:</strong></p><ul><li><p>Experience with trackers, dashboards, and scripts; smart contracts and transaction flows a strong plus</p></li><li><p>Multi-chain experience ideally (EVM, Solana, BSC, TRON, etc.)</p></li><li><p>Hands-on with blockchain explorers and analytics tools</p></li><li><p>Background in a crypto product (exchange, DeFi) is a big plus</p></li><li><p>Investigative mindset – you enjoy digging through data and following trails</p></li></ul><p><strong>To apply, please include:</strong></p><ol><li><p>Onchain tools, trackers, or investigations you've worked on (links / addresses welcome)</p></li><li><p>Your favorite analytics tool and something you've built or found with it</p></li><li><p>Your availability and preferred setup (full-time or contract)</p></li></ol>\n\n<p><strong>To apply:</strong> <a href=\"https://weworkremotely.com/remote-jobs/fairgambling-blockchain-engineer-researcher\">https://weworkremotely.com/remote-jobs/fairgambling-blockchain-engineer-researcher</a></p>"
+    },
+    "structured": {
+        "title": "Blockchain Engineer & Researcher",
+        "company_name": "FairGambling",
+        "region": "Anywhere in the World"
+    },
+    "expected": {
+        "company_name": "FairGambling",
+        "role_title": "Blockchain Engineer & Researcher",
+        "seniority": "senior",
+        "remote.type": "remote",
+        "region": "worldwide"
+    }
+}

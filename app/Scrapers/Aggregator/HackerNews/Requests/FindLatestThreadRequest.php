@@ -8,10 +8,14 @@ use Saloon\Enums\Method;
 use Saloon\Http\Request;
 
 /**
- * GET /api/v1/search?query=Ask+HN+Who+is+hiring&tags=story,author_whoishiring&hitsPerPage=5
+ * GET /api/v1/search_by_date?query=Ask+HN+Who+is+hiring&tags=story,author_whoishiring&hitsPerPage=1
  *
- * Algolia returns the most recent "Who is Hiring" threads. The first hit is
- * the latest by default (Algolia HackerNews orders by created_at desc).
+ * Algolia's `search_by_date` variant sorts hits by `created_at_i` desc — so
+ * the first hit is the most recent "Ask HN: Who is hiring?" thread.
+ *
+ * NOTE: do not use the plain `/api/v1/search` endpoint here. That one ranks
+ * by relevance/popularity, so a heavily-upvoted older thread can outrank the
+ * current month's thread and we'd silently scrape years-old data.
  */
 final class FindLatestThreadRequest extends Request
 {
@@ -19,7 +23,7 @@ final class FindLatestThreadRequest extends Request
 
     public function resolveEndpoint(): string
     {
-        return '/api/v1/search';
+        return '/api/v1/search_by_date';
     }
 
     /**
@@ -30,7 +34,7 @@ final class FindLatestThreadRequest extends Request
         return [
             'query' => 'Ask HN Who is hiring',
             'tags' => 'story,author_whoishiring',
-            'hitsPerPage' => '5',
+            'hitsPerPage' => '1',
         ];
     }
 }
