@@ -84,6 +84,13 @@ final class HackerNewsParserFixturesTest extends TestCase
             /** @var array<string, mixed> $decoded */
             $decoded = json_decode($raw, true, flags: JSON_THROW_ON_ERROR);
 
+            // Skip step-5 "save-as-fixture" exports: those carry a top-level
+            // `source` + `raw` + `structured` shape rather than the curated
+            // {comment_id, text, expected} shape this test drives.
+            if (! isset($decoded['comment_id']) || ! isset($decoded['text'])) {
+                continue;
+            }
+
             yield $name => [$name, $decoded];
         }
     }

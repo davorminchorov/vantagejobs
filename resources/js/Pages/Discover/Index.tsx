@@ -166,6 +166,18 @@ export default function DiscoverIndex({ listings, filters, options }: Props) {
         );
     }
 
+    function saveFixture(listing: Listing) {
+        router.post(
+            `/discover/${listing.id}/save-fixture`,
+            {},
+            {
+                preserveScroll: true,
+                preserveState: true,
+                only: ['listings'],
+            },
+        );
+    }
+
     function saveCorrection(listing: Listing, field: EditableField, newValue: unknown) {
         router.post(
             `/discover/${listing.id}/corrections`,
@@ -238,6 +250,7 @@ export default function DiscoverIndex({ listings, filters, options }: Props) {
                                     onEdit={(field) => setEditing({ listingId: listing.id, field })}
                                     onCancelEdit={() => setEditing(null)}
                                     onSave={(field, value) => saveCorrection(listing, field, value)}
+                                    onSaveFixture={() => saveFixture(listing)}
                                 />
                             </li>
                         ))}
@@ -330,6 +343,7 @@ interface ListingCardProps {
     onEdit: (field: EditableField) => void;
     onCancelEdit: () => void;
     onSave: (field: EditableField, value: unknown) => void;
+    onSaveFixture: () => void;
     ref?: React.Ref<HTMLDivElement>;
 }
 
@@ -342,6 +356,7 @@ function ListingCard({
     onEdit,
     onCancelEdit,
     onSave,
+    onSaveFixture,
     ref,
 }: ListingCardProps) {
     return (
@@ -503,8 +518,22 @@ function ListingCard({
                         field={editingField}
                         onSave={(value) => onSave(editingField, value)}
                         onCancel={onCancelEdit}
+                        onSaveFixture={onSaveFixture}
                     />
                 )}
+                <div className="flex justify-end">
+                    <button
+                        type="button"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            onSaveFixture();
+                        }}
+                        className="text-[10px] uppercase tracking-wide text-muted-foreground/60 hover:text-foreground"
+                        title="Save as test fixture"
+                    >
+                        save fixture
+                    </button>
+                </div>
             </CardContent>
         </Card>
     );
@@ -552,9 +581,10 @@ interface CorrectionEditorProps {
     field: EditableField;
     onSave: (value: unknown) => void;
     onCancel: () => void;
+    onSaveFixture: () => void;
 }
 
-function CorrectionEditor({ listing, field, onSave, onCancel }: CorrectionEditorProps) {
+function CorrectionEditor({ listing, field, onSave, onCancel, onSaveFixture }: CorrectionEditorProps) {
     const slot = listing.parsed?.[PARSED_SLOT_FOR_FIELD[field]] ?? null;
     const currentValue = currentValueFor(listing, field);
     const [value, setValue] = useState<unknown>(currentValue);
@@ -597,6 +627,9 @@ function CorrectionEditor({ listing, field, onSave, onCancel }: CorrectionEditor
                 </Button>
                 <Button type="button" size="sm" variant="ghost" onClick={onCancel}>
                     Cancel
+                </Button>
+                <Button type="button" size="sm" variant="outline" onClick={onSaveFixture}>
+                    Save as fixture
                 </Button>
                 <button
                     type="button"

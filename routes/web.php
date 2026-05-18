@@ -18,6 +18,7 @@ use App\Http\Controllers\Discover\DismissListingController;
 use App\Http\Controllers\Discover\IndexController as DiscoverIndexController;
 use App\Http\Controllers\Discover\KeepListingController;
 use App\Http\Controllers\Discover\SaveCorrectionController;
+use App\Http\Controllers\Discover\SaveFixtureController;
 use App\Http\Controllers\Discover\SnoozeListingController;
 use App\Http\Controllers\Discover\Sources\IndexController as SourcesIndexController;
 use App\Http\Controllers\Discover\Sources\RevokeAutoDismissController;
@@ -65,6 +66,7 @@ Route::middleware(['auth'])->group(function (): void {
     Route::post('/discover/{listing}/snooze', SnoozeListingController::class)->name('discover.listings.snooze');
     Route::post('/discover/{listing}/bookmark', BookmarkListingController::class)->name('discover.listings.bookmark');
     Route::post('/discover/{listing}/corrections', SaveCorrectionController::class)->name('discover.listings.corrections.store');
+    Route::post('/discover/{listing}/save-fixture', SaveFixtureController::class)->name('discover.listings.save-fixture');
 
     Route::get('/discover/sources', SourcesIndexController::class)->name('discover.sources.index');
     Route::post('/discover/sources/{source}/toggle', ToggleSourceController::class)->name('discover.sources.toggle');
