@@ -102,4 +102,20 @@ final class AggregatorListing extends Model
     {
         return $this->hasMany(ParseCorrection::class, 'listing_id');
     }
+
+    /**
+     * Per-field slot from the `parsed` jsonb column. Returns the
+     * {value, confidence, source, evidence} shape written by
+     * ParsedListing::toArray(), or null when the field is absent.
+     *
+     * Inline-correction UI reads from this; do not bypass.
+     *
+     * @return array{value: mixed, confidence: float, source: string, evidence: ?string}|null
+     */
+    public function parsedField(string $field): ?array
+    {
+        $parsed = $this->parsed ?? [];
+
+        return $parsed[$field] ?? null;
+    }
 }
