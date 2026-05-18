@@ -1,0 +1,59 @@
+[
+  {
+    "id": "lever-remote-1",
+    "text": "Senior Backend Engineer",
+    "categories": {
+      "team": "Platform",
+      "location": "Remote - US/EU",
+      "commitment": "Full-time",
+      "department": "Engineering",
+      "level": "Senior"
+    },
+    "hostedUrl": "https://jobs.lever.co/acme/lever-remote-1",
+    "applyUrl": "https://jobs.lever.co/acme/lever-remote-1/apply",
+    "description": "<p>Build distributed systems.</p>",
+    "lists": [{"text": "Responsibilities", "content": "<ul><li>Own services</li></ul>"}],
+    "createdAt": 1715000000000,
+    "workplaceType": "remote",
+    "salaryRange": {"currency": "USD", "interval": "per-year", "min": 180000, "max": 240000}
+  },
+  {
+    "id": "lever-onsite-1",
+    "text": "Office Manager",
+    "categories": {
+      "team": "People",
+      "location": "New York, NY",
+      "commitment": "Full-time",
+      "department": "Operations"
+    },
+    "hostedUrl": "https://jobs.lever.co/acme/lever-onsite-1",
+    "createdAt": 1716000000000,
+    "workplaceType": "on-site"
+  },
+  {
+    "id": "lever-hybrid-1",
+    "text": "Product Designer",
+    "categories": {
+      "team": "Design",
+      "location": "London, UK",
+      "commitment": "Full-time",
+      "department": "Design"
+    },
+    "hostedUrl": "https://jobs.lever.co/acme/lever-hybrid-1",
+    "createdAt": 1716500000000,
+    "workplaceType": "hybrid"
+  },
+  {
+    "id": "lever-unspec-1",
+    "text": "Recruiter",
+    "categories": {
+      "team": "Talent",
+      "location": "Anywhere",
+      "commitment": "Full-time",
+      "department": "People"
+    },
+    "hostedUrl": "https://jobs.lever.co/acme/lever-unspec-1",
+    "createdAt": 1717000000000,
+    "workplaceType": "unspecified"
+  }
+]
