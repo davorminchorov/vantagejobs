@@ -143,6 +143,18 @@ final class CompensationExtractor implements Extractor
     }
 
     /**
+     * Minimum plausible *annual* salary in USD. Anything resolving below
+     * this is treated as a false positive — the regex picked up
+     * "1-3 years experience" or "founded in 2015" rather than a salary.
+     */
+    private const ANNUAL_FLOOR_USD = 10_000;
+
+    /**
+     * Minimum plausible *hourly* rate in USD.
+     */
+    private const HOURLY_FLOOR_USD = 10;
+
+    /**
      * @return array<string, mixed>|null
      */
     private function parseRange(string $text, SourceContext $ctx): ?array
@@ -158,30 +170,48 @@ final class CompensationExtractor implements Extractor
         if (preg_match("/{$numberPattern}{$separator}{$numberPattern}/i", $text, $m) === 1) {
             $min = $this->toInt($m[1], $m[2] ?? '');
             $max = $this->toInt($m[3], $m[4] ?? '');
-
-            return [
-                'min' => $min,
-                'max' => $max,
-                'currency' => $currency,
-                'interval' => $interval,
-                'equity' => $this->detectEquity($ctx),
-            ];
+            if ($this->isPlausibleRange($min, $max, $currency, $interval)) {
+                return [
+                    'min' => $min,
+                    'max' => $max,
+                    'currency' => $currency,
+                    'interval' => $interval,
+                    'equity' => $this->detectEquity($ctx),
+                ];
+            }
         }
 
         // Single number followed by "+" — treat as a min.
         if (preg_match("/{$numberPattern}\s*\+/i", $text, $m) === 1) {
             $min = $this->toInt($m[1], $m[2] ?? '');
-
-            return [
-                'min' => $min,
-                'max' => null,
-                'currency' => $currency,
-                'interval' => $interval,
-                'equity' => $this->detectEquity($ctx),
-            ];
+            if ($this->isPlausibleRange($min, null, $currency, $interval)) {
+                return [
+                    'min' => $min,
+                    'max' => null,
+                    'currency' => $currency,
+                    'interval' => $interval,
+                    'equity' => $this->detectEquity($ctx),
+                ];
+            }
         }
 
         return null;
+    }
+
+    /**
+     * A match is plausible if the larger of (min, max), once converted to
+     * USD at the rough rate, clears the floor for the interval. Filters out
+     * matches like "1-3 years experience" or "founded in 2015" that the
+     * regex catches in body prose.
+     */
+    private function isPlausibleRange(int $min, ?int $max, string $currency, string $interval): bool
+    {
+        $candidate = max($min, $max ?? 0);
+        $rate = self::USD_RATES[$currency] ?? 1.0;
+        $usd = $candidate * $rate;
+        $floor = $interval === 'hourly' ? self::HOURLY_FLOOR_USD : self::ANNUAL_FLOOR_USD;
+
+        return $usd >= $floor;
     }
 
     private function detectCurrency(string $text): string
@@ -238,6 +268,13 @@ final class CompensationExtractor implements Extractor
 
         $min = isset($parsed['min']) && is_int($parsed['min']) && $parsed['min'] > 0 ? $parsed['min'] : null;
         $max = isset($parsed['max']) && is_int($parsed['max']) && $parsed['max'] > 0 ? $parsed['max'] : null;
+
+        // Inverted ranges leak in occasionally (a source ships "$200k - $150k"
+        // because of a copy-paste error). Swap so consumers can rely on
+        // min <= max.
+        if ($min !== null && $max !== null && $min > $max) {
+            [$min, $max] = [$max, $min];
+        }
 
         $minUsd = ($min !== null && $rate !== null) ? (int) round($min * $rate) : null;
         $maxUsd = ($max !== null && $rate !== null) ? (int) round($max * $rate) : null;
