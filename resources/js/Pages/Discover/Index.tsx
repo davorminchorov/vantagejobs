@@ -166,6 +166,18 @@ export default function DiscoverIndex({ listings, filters, options }: Props) {
         );
     }
 
+    function reparse(listing: Listing, force = false) {
+        router.post(
+            `/discover/${listing.id}/reparse${force ? '?force=1' : ''}`,
+            {},
+            {
+                preserveScroll: true,
+                preserveState: true,
+                only: ['listings'],
+            },
+        );
+    }
+
     function saveFixture(listing: Listing) {
         router.post(
             `/discover/${listing.id}/save-fixture`,
@@ -251,6 +263,7 @@ export default function DiscoverIndex({ listings, filters, options }: Props) {
                                     onCancelEdit={() => setEditing(null)}
                                     onSave={(field, value) => saveCorrection(listing, field, value)}
                                     onSaveFixture={() => saveFixture(listing)}
+                                    onReparse={(force) => reparse(listing, force)}
                                 />
                             </li>
                         ))}
@@ -344,6 +357,7 @@ interface ListingCardProps {
     onCancelEdit: () => void;
     onSave: (field: EditableField, value: unknown) => void;
     onSaveFixture: () => void;
+    onReparse: (force: boolean) => void;
     ref?: React.Ref<HTMLDivElement>;
 }
 
@@ -357,8 +371,10 @@ function ListingCard({
     onCancelEdit,
     onSave,
     onSaveFixture,
+    onReparse,
     ref,
 }: ListingCardProps) {
+    const [menuOpen, setMenuOpen] = useState(false);
     return (
         <Card
             ref={ref}
@@ -521,7 +537,7 @@ function ListingCard({
                         onSaveFixture={onSaveFixture}
                     />
                 )}
-                <div className="flex justify-end">
+                <div className="relative flex items-center justify-end gap-3">
                     <button
                         type="button"
                         onClick={(e) => {
@@ -533,6 +549,45 @@ function ListingCard({
                     >
                         save fixture
                     </button>
+                    <button
+                        type="button"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            setMenuOpen((v) => !v);
+                        }}
+                        className="text-[10px] uppercase tracking-wide text-muted-foreground/60 hover:text-foreground"
+                        title="More actions"
+                        aria-expanded={menuOpen}
+                    >
+                        ⌄ more
+                    </button>
+                    {menuOpen && (
+                        <div
+                            className="absolute right-0 top-full z-10 mt-1 flex flex-col gap-1 rounded border bg-background p-1 text-xs shadow-md"
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setMenuOpen(false);
+                                    onReparse(false);
+                                }}
+                                className="rounded px-2 py-1 text-left hover:bg-muted"
+                            >
+                                Re-parse (keep corrections)
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setMenuOpen(false);
+                                    onReparse(true);
+                                }}
+                                className="rounded px-2 py-1 text-left hover:bg-muted"
+                            >
+                                Re-parse (force — drop corrections)
+                            </button>
+                        </div>
+                    )}
                 </div>
             </CardContent>
         </Card>
