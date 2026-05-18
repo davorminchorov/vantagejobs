@@ -259,6 +259,36 @@ final class CompensationExtractor implements Extractor
     }
 
     /**
+     * "$180k - $200,000" → min=180, max=200000 (k stripped from min by the
+     * regex alternation). Detect annual-scale max with sub-1000 min and a
+     * >100× gap, and bump the small side by 1000× to recover the intended
+     * magnitude. Symmetrically handles the reverse case (small max alongside
+     * annual-scale min).
+     *
+     * No-op for hourly ranges and for ranges where both sides agree in scale
+     * (so legit small-USD figures like a $500 referral bonus pattern can't
+     * accidentally trigger here — they wouldn't survive the floor check
+     * anyway).
+     *
+     * @return array{0: ?int, 1: ?int}
+     */
+    private function rescueAsymmetricMagnitude(?int $min, ?int $max, string $interval): array
+    {
+        if ($interval !== 'annual' || $min === null || $max === null || $min <= 0 || $max <= 0) {
+            return [$min, $max];
+        }
+
+        if ($max >= 10_000 && $min < 1000 && ($max / $min) > 100) {
+            return [$min * 1000, $max];
+        }
+        if ($min >= 10_000 && $max < 1000 && ($min / $max) > 100) {
+            return [$min, $max * 1000];
+        }
+
+        return [$min, $max];
+    }
+
+    /**
      * @param  array<string, mixed>  $parsed
      */
     private function build(array $parsed, float $confidence, ExtractionSource $source, string $tag): ExtractedField
@@ -266,14 +296,40 @@ final class CompensationExtractor implements Extractor
         $currency = strtoupper((string) ($parsed['currency'] ?? 'USD'));
         $rate = self::USD_RATES[$currency] ?? null;
 
+        $interval = (string) ($parsed['interval'] ?? 'annual');
+
         $min = isset($parsed['min']) && is_int($parsed['min']) && $parsed['min'] > 0 ? $parsed['min'] : null;
         $max = isset($parsed['max']) && is_int($parsed['max']) && $parsed['max'] > 0 ? $parsed['max'] : null;
+
+        // Rescue asymmetric-magnitude ranges like "$180k - $200,000" where the
+        // regex caught the comma-thousands on max but dropped the "k" on min,
+        // yielding min=180 / max=200000. If one side is annual-scale and the
+        // other is < 1000 with a >100x gap, scale the smaller side up.
+        [$min, $max] = $this->rescueAsymmetricMagnitude($min, $max, $interval);
 
         // Inverted ranges leak in occasionally (a source ships "$200k - $150k"
         // because of a copy-paste error). Swap so consumers can rely on
         // min <= max.
         if ($min !== null && $max !== null && $min > $max) {
             [$min, $max] = [$max, $min];
+        }
+
+        // Final plausibility check applied to *every* extraction path,
+        // including structured fromHimalayas / fromRemoteOk, so an upstream
+        // glitch (e.g. salaryMin shipped as 1 instead of 100000) doesn't
+        // leak through.
+        $maxCandidate = $max ?? $min;
+        if ($maxCandidate === null || ! $this->isPlausibleRange($min ?? 0, $max, $currency, $interval)) {
+            return ExtractedField::missing(self::FIELD);
+        }
+
+        // Drop a tiny min when the max is plausible — keeps the upper bound
+        // visible to consumers without polluting filters with garbage floors.
+        if ($min !== null && $max !== null
+            && ! $this->isPlausibleRange($min, null, $currency, $interval)
+            && $this->isPlausibleRange($max, null, $currency, $interval)
+        ) {
+            $min = null;
         }
 
         $minUsd = ($min !== null && $rate !== null) ? (int) round($min * $rate) : null;
@@ -285,7 +341,7 @@ final class CompensationExtractor implements Extractor
                 'min' => $min,
                 'max' => $max,
                 'currency' => $currency,
-                'interval' => $parsed['interval'] ?? 'annual',
+                'interval' => $interval,
                 'equity' => (bool) ($parsed['equity'] ?? false),
                 'min_usd' => $minUsd,
                 'max_usd' => $maxUsd,
