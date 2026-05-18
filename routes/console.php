@@ -48,7 +48,12 @@ Schedule::call(static function () use ($tenantSlug): void {
     Artisan::call('aggregator:run', ['source' => 'hackernews', '--tenant' => $slug]);
 })->name('aggregator:hackernews:5th')->monthlyOn(5, '07:00');
 
-foreach (['remotive', 'himalayas', 'weworkremotely', 'remoteok'] as $type) {
+// Phase 2 + deferred-optional aggregators (SOURCES.md §2, §3). All poll
+// once daily; per-source ToS / rate-limit caps live in
+// config/scrapers.php → 'aggregators'. New entries here MUST also have a
+// matching AggregatorSource row (AggregatorSourcesSeeder), otherwise
+// aggregator:run is a no-op for that type.
+foreach (['remotive', 'himalayas', 'weworkremotely', 'remoteok', 'fourdayweek', 'workingnomads', 'adzuna'] as $type) {
     Schedule::call(static function () use ($tenantSlug, $type): void {
         $slug = $tenantSlug();
         if (! is_string($slug) || $slug === '') {
@@ -89,6 +94,17 @@ Schedule::call(static function () use ($tenantSlug): void {
         '--path' => storage_path('app/signals/layoffs.csv'),
     ]);
 })->name('signals:layoffs:sync')->dailyAt('04:15');
+
+// TrueUp layoffs fallback (SOURCES.md §4.2). Runs weekly — same cadence
+// as layoffs.fyi but offset by a day so a TrueUp blow-up doesn't take
+// the layoffs.fyi pass with it.
+Schedule::call(static function () use ($tenantSlug): void {
+    $slug = $tenantSlug();
+    if (! is_string($slug) || $slug === '') {
+        return;
+    }
+    Artisan::call('signals:layoffs:trueup', ['--tenant' => $slug]);
+})->name('signals:layoffs:trueup')->weeklyOn(2, '04:20');
 
 // GitHub org activity (Phase 4 §6.3.3). Weekly to respect the 5000
 // req/h auth budget once the watchlist grows.

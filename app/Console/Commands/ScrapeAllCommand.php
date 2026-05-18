@@ -17,7 +17,7 @@ final class ScrapeAllCommand extends Command
 {
     protected $signature = 'scrape:all
         {--tenant= : Tenant slug}
-        {--source= : Restrict to a single ATS type (greenhouse, lever, ashby)}';
+        {--source= : Restrict to a single ATS type (e.g. greenhouse, lever, ashby, workable, smartrecruiters, personio, recruitee, teamtailor)}';
 
     protected $description = 'Run ATS scrapers across every eligible company for a tenant. Cron-friendly: JSON summary on stdout.';
 
@@ -95,7 +95,8 @@ final class ScrapeAllCommand extends Command
 
         $type = AtsType::tryFrom($raw);
         if (! $type instanceof AtsType) {
-            $this->error("Unknown --source [{$raw}]. Expected one of: greenhouse, lever, ashby.");
+            $known = implode(', ', array_map(static fn (AtsType $t): string => $t->value, AtsType::cases()));
+            $this->error("Unknown --source [{$raw}]. Expected one of: {$known}.");
 
             return false;
         }
