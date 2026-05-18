@@ -2,6 +2,9 @@
 
 declare(strict_types=1);
 
+use App\Http\Controllers\Admin\Runs\DownloadArtifactController;
+use App\Http\Controllers\Admin\Runs\IndexController as AdminRunsIndexController;
+use App\Http\Controllers\Admin\Runs\ShowController as AdminRunsShowController;
 use App\Http\Controllers\Companies\CreateCompanyController;
 use App\Http\Controllers\Companies\DetectAtsController;
 use App\Http\Controllers\Companies\EditCompanyController;
@@ -97,6 +100,16 @@ Route::middleware(['auth'])->group(function (): void {
     Route::delete('/companies/{company}/tags/{tag}', DetachTagController::class)->name('companies.tags.detach');
 
     Route::get('/health', HealthController::class)->name('health');
+
+    Route::prefix('admin')->name('admin.')->group(function (): void {
+        Route::get('/runs', AdminRunsIndexController::class)->name('runs.index');
+        Route::get('/runs/artifacts/{artifact}/download', DownloadArtifactController::class)
+            ->whereNumber('artifact')
+            ->name('runs.artifacts.download');
+        Route::get('/runs/{run}', AdminRunsShowController::class)
+            ->whereNumber('run')
+            ->name('runs.show');
+    });
 
     Route::prefix('settings')->name('settings.')->group(function (): void {
         Route::redirect('/', '/settings/profile');

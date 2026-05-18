@@ -35,6 +35,7 @@ const NAV_ITEMS: ReadonlyArray<NavItem> = [
     { name: 'Companies', href: '/companies' },
     { name: 'Discover', href: '/discover' },
     { name: 'Bookmarks', href: '/bookmarks' },
+    { name: 'Runs', href: '/admin/runs' },
     { name: 'Pipeline', href: null },
     { name: 'Settings', href: '/settings/profile' },
 ];
