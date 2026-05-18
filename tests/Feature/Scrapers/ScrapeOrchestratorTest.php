@@ -135,9 +135,9 @@ final class ScrapeOrchestratorTest extends TestCase
     #[Test]
     public function throws_when_company_has_unknown_ats_type(): void
     {
-        $company = Company::factory()->create(['ats_type' => 'workable', 'ats_slug' => 'acme']);
+        $company = Company::factory()->create(['ats_type' => 'bamboohr', 'ats_slug' => 'acme']);
 
-        $this->expectExceptionMessage('unknown ats_type [workable]');
+        $this->expectExceptionMessage('unknown ats_type [bamboohr]');
         $this->orchestrator->runForCompany($company);
     }
 

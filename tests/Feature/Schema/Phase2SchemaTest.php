@@ -201,12 +201,12 @@ final class Phase2SchemaTest extends TestCase
     }
 
     #[Test]
-    public function seeder_creates_five_sources_idempotently(): void
+    public function seeder_creates_one_source_per_enum_case_idempotently(): void
     {
         $this->seed(AggregatorSourcesSeeder::class);
         $this->seed(AggregatorSourcesSeeder::class);
 
-        $this->assertSame(5, AggregatorSource::query()->count());
+        $this->assertSame(count(AggregatorSourceType::cases()), AggregatorSource::query()->count());
 
         foreach (AggregatorSourceType::cases() as $type) {
             $this->assertTrue(

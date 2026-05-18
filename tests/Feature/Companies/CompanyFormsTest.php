@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Companies;
 
+use App\Enums\AtsType;
 use App\Enums\EventType;
 use App\Models\Company;
 use App\Models\Event;
@@ -38,7 +39,7 @@ final class CompanyFormsTest extends TestCase
         $this->actingAs($this->user)
             ->get('/companies/create')
             ->assertOk()
-            ->assertInertia(fn ($page) => $page->component('Companies/Create')->has('options.ats_types', 3));
+            ->assertInertia(fn ($page) => $page->component('Companies/Create')->has('options.ats_types', count(AtsType::cases())));
     }
 
     #[Test]
