@@ -68,15 +68,6 @@ final class JobicyScraperTest extends TestCase
         AggregatorListing::query()->get()->each(function (AggregatorListing $row): void {
             $this->assertNotEmpty($row->external_id);
             $this->assertNotEmpty($row->parsed_company_name);
-            // RoleTitleExtractor only checks 'title' and 'position'; Jobicy sends
-            // 'jobTitle'. Until the extractor is taught the 'jobTitle' key this
-            // assertion cannot pass — skipped so the rest of the suite is green.
-            // See: App\Scrapers\Aggregator\Parser\Extractors\RoleTitleExtractor
-            $this->markTestSkipped(
-                'parsed_role_title is null: RoleTitleExtractor does not recognise the Jobicy "jobTitle" key. '
-                .'Add "jobTitle" to the extractor\'s key list to fix.',
-            );
-            // @phpstan-ignore-next-line
             $this->assertNotEmpty($row->parsed_role_title);
             $this->assertSame(AggregatorListingStatus::NEW, $row->status);
         });
