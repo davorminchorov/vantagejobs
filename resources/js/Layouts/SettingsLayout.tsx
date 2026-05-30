@@ -52,7 +52,7 @@ export default function SettingsLayout({ children, title, description }: Props) 
                                         className={cn(
                                             'min-h-11 rounded-md px-3 py-2 text-sm font-medium transition-colors',
                                             active
-                                                ? 'bg-secondary text-secondary-foreground'
+                                                ? 'bg-primary text-primary-foreground'
                                                 : 'text-muted-foreground hover:bg-secondary/50 hover:text-foreground',
                                         )}
                                     >

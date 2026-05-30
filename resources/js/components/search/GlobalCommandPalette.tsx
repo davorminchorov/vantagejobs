@@ -150,10 +150,10 @@ export default function GlobalCommandPalette() {
             onClick={close}
         >
             <div
-                className="mt-[10vh] w-full max-w-xl rounded-lg border bg-popover shadow-xl"
+                className="mt-[10vh] w-full max-w-xl rounded-xl border border-border bg-popover shadow-xl"
                 onClick={(e) => e.stopPropagation()}
             >
-                <div className="flex items-center gap-2 border-b px-3 py-3">
+                <div className="flex items-center gap-2 border-b border-border px-3 py-3">
                     <Search className="size-4 text-muted-foreground" aria-hidden="true" />
                     <input
                         ref={inputRef}
@@ -164,7 +164,7 @@ export default function GlobalCommandPalette() {
                         placeholder="Search companies and roles…"
                         className="w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground"
                     />
-                    <kbd className="hidden rounded border bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground sm:inline">
+                    <kbd className="hidden rounded border border-border bg-muted px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground sm:inline">
                         Esc
                     </kbd>
                 </div>
@@ -242,15 +242,15 @@ export default function GlobalCommandPalette() {
                     )}
                 </div>
 
-                <div className="flex items-center justify-between border-t px-3 py-2 text-[11px] text-muted-foreground">
+                <div className="flex items-center justify-between border-t border-border px-3 py-2 text-[11px] text-muted-foreground">
                     <span>
-                        <kbd className="rounded border bg-muted px-1">↑</kbd>{' '}
-                        <kbd className="rounded border bg-muted px-1">↓</kbd> to navigate ·{' '}
-                        <kbd className="rounded border bg-muted px-1">↵</kbd> to open
+                        <kbd className="rounded border border-border bg-muted px-1 font-mono">↑</kbd>{' '}
+                        <kbd className="rounded border border-border bg-muted px-1 font-mono">↓</kbd> to navigate ·{' '}
+                        <kbd className="rounded border border-border bg-muted px-1 font-mono">↵</kbd> to open
                     </span>
                     <span>
-                        <kbd className="rounded border bg-muted px-1">⌘</kbd>
-                        <kbd className="rounded border bg-muted px-1">K</kbd>
+                        <kbd className="rounded border border-border bg-muted px-1 font-mono">⌘</kbd>
+                        <kbd className="rounded border border-border bg-muted px-1 font-mono">K</kbd>
                     </span>
                 </div>
             </div>
@@ -261,7 +261,7 @@ export default function GlobalCommandPalette() {
 function Group({ label, children }: { label: string; children: React.ReactNode }) {
     return (
         <div className="px-1 py-1">
-            <div className="px-3 pb-1 pt-2 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+            <div className="px-3 pb-1 pt-2 font-mono text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
                 {label}
             </div>
             <ul className="space-y-px">{children}</ul>

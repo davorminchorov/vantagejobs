@@ -128,7 +128,7 @@ export default function CompanyForm({ mode, initial, options, action, method = '
     return (
         <form onSubmit={submit} className="space-y-6">
             <section className="space-y-4">
-                <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Identity</h2>
+                <h2 className="font-mono text-sm font-semibold uppercase tracking-wide text-muted-foreground">Identity</h2>
 
                 <Field id="name" label="Name" error={form.errors.name} required>
                     <Input
@@ -181,11 +181,11 @@ export default function CompanyForm({ mode, initial, options, action, method = '
 
             <section className="space-y-4">
                 <div className="flex items-baseline justify-between">
-                    <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">ATS</h2>
+                    <h2 className="font-mono text-sm font-semibold uppercase tracking-wide text-muted-foreground">ATS</h2>
                     {detecting ? (
-                        <span className="text-xs text-muted-foreground">Detecting…</span>
+                        <span className="text-sm text-muted-foreground">Detecting…</span>
                     ) : detectionHint ? (
-                        <span className="text-xs text-muted-foreground">{detectionHint}</span>
+                        <span className="text-sm text-muted-foreground">{detectionHint}</span>
                     ) : null}
                 </div>
 
@@ -214,7 +214,7 @@ export default function CompanyForm({ mode, initial, options, action, method = '
             </section>
 
             <section className="space-y-4">
-                <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Classification</h2>
+                <h2 className="font-mono text-sm font-semibold uppercase tracking-wide text-muted-foreground">Classification</h2>
 
                 <div className="grid gap-4 sm:grid-cols-2">
                     <Field id="tier" label="Tier" error={form.errors.tier}>
@@ -270,9 +270,9 @@ function Field({ id, label, error, hint, required, children }: FieldProps) {
             </Label>
             {children}
             {error ? (
-                <span className="text-xs text-destructive">{error}</span>
+                <span className="text-sm text-destructive">{error}</span>
             ) : hint ? (
-                <span className="text-xs text-muted-foreground">{hint}</span>
+                <span className="text-sm text-muted-foreground">{hint}</span>
             ) : null}
         </div>
     );

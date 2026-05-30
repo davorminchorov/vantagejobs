@@ -49,7 +49,7 @@ export default function SaveViewButton({ entity, filters, disabled = false }: Sa
             <Button variant="outline" disabled={disabled} onClick={() => setOpen(true)} type="button">
                 Save view
             </Button>
-            <DialogContent>
+            <DialogContent className="rounded-2xl">
                 <DialogHeader>
                     <DialogTitle>Save current filters as view</DialogTitle>
                     <DialogDescription>
@@ -58,7 +58,7 @@ export default function SaveViewButton({ entity, filters, disabled = false }: Sa
                 </DialogHeader>
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div className="space-y-1.5">
-                        <label className="text-xs font-medium uppercase tracking-wide text-muted-foreground" htmlFor="saved-view-name">
+                        <label className="font-mono text-xs font-medium uppercase tracking-wide text-muted-foreground" htmlFor="saved-view-name">
                             Name
                         </label>
                         <Input

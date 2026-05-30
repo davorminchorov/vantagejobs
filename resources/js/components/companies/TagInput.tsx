@@ -110,13 +110,13 @@ export default function TagInput({ companyId, tags }: TagInputProps) {
                     <span className="text-xs text-muted-foreground">No tags yet.</span>
                 ) : (
                     tags.map((tag) => (
-                        <Badge key={tag.id} variant="secondary" className="gap-1 py-1 pl-2 pr-1">
+                        <Badge key={tag.id} variant="secondary" className="gap-1 rounded-full py-1 pl-2 pr-1">
                             <span>{tag.name}</span>
                             <button
                                 type="button"
                                 onClick={() => detach(tag)}
                                 aria-label={`Remove tag ${tag.name}`}
-                                className="rounded p-0.5 hover:bg-background/50"
+                                className="rounded-full p-0.5 transition-colors hover:bg-background/50"
                             >
                                 <X className="size-3" aria-hidden="true" />
                             </button>
@@ -160,7 +160,9 @@ export default function TagInput({ companyId, tags }: TagInputProps) {
                                     >
                                         <span>{tag.name}</span>
                                         {typeof tag.usage_count === 'number' ? (
-                                            <span className="text-xs text-muted-foreground">{tag.usage_count}</span>
+                                            <span className="font-mono text-xs tabular-nums text-muted-foreground">
+                                                {tag.usage_count}
+                                            </span>
                                         ) : null}
                                     </button>
                                 </li>

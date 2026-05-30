@@ -9,7 +9,7 @@ interface GuestLayoutProps {
 
 export default function GuestLayout({ children, title }: GuestLayoutProps): ReactNode {
     return (
-        <div className="bg-muted text-foreground flex min-h-svh w-full flex-col items-center justify-center px-4 py-10 sm:px-6">
+        <div className="text-foreground flex min-h-svh w-full flex-col items-center justify-center bg-gradient-to-b from-teal-50 via-background to-background px-4 py-10 sm:px-6">
             <div className="flex w-full max-w-md flex-col items-center gap-6">
                 <a
                     href="/"
@@ -17,10 +17,10 @@ export default function GuestLayout({ children, title }: GuestLayoutProps): Reac
                 >
                     VantageJobs
                 </a>
-                <Card className="w-full">
+                <Card className="w-full rounded-2xl border-border bg-card shadow-sm">
                     {title ? (
-                        <div className="border-b px-6 pt-6 pb-4">
-                            <h1 className="text-lg font-semibold tracking-tight">{title}</h1>
+                        <div className="border-b border-border px-6 pt-6 pb-4">
+                            <h1 className="text-lg font-semibold tracking-tight text-foreground">{title}</h1>
                         </div>
                     ) : null}
                     <CardContent className="p-6">{children}</CardContent>

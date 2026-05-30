@@ -122,7 +122,7 @@ function SavedViewsGroup({ entity, label, views, onNavigate }: SavedViewsGroupPr
 
     return (
         <div>
-            <div className="px-3 pb-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</div>
+            <div className="px-3 pb-1 font-mono text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</div>
             <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
                 <SortableContext items={items.map((v) => v.id)} strategy={verticalListSortingStrategy}>
                     <ul className="flex flex-col">

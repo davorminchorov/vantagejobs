@@ -99,7 +99,7 @@ export default function AuthenticatedLayout({ children, header }: AuthenticatedL
                                     {NAV_ITEMS.map((item) => {
                                         const active = isActive(currentUrl, item);
                                         const baseClasses =
-                                            'focus-visible:ring-ring inline-flex min-h-11 items-center rounded-md px-3 text-sm font-medium focus-visible:outline-none focus-visible:ring-2';
+                                            'focus-visible:ring-ring inline-flex min-h-11 items-center rounded-md px-3 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2';
 
                                         if (item.href === null) {
                                             return (
@@ -122,7 +122,7 @@ export default function AuthenticatedLayout({ children, header }: AuthenticatedL
                                                 className={cn(
                                                     baseClasses,
                                                     active
-                                                        ? 'bg-accent text-accent-foreground'
+                                                        ? 'bg-primary text-primary-foreground'
                                                         : 'text-foreground hover:bg-accent hover:text-accent-foreground',
                                                 )}
                                             >
@@ -132,7 +132,7 @@ export default function AuthenticatedLayout({ children, header }: AuthenticatedL
                                     })}
                                 </nav>
                                 <Separator className="my-4" />
-                                <div className="px-2 pb-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                                <div className="text-muted-foreground px-2 pb-1 font-mono text-xs font-medium uppercase tracking-wide">
                                     Views
                                 </div>
                                 <SavedViewsNav variant="compact" onNavigate={() => setMobileOpen(false)} />
@@ -141,16 +141,16 @@ export default function AuthenticatedLayout({ children, header }: AuthenticatedL
 
                         <Link
                             href="/"
-                            className="focus-visible:ring-ring rounded-md px-2 py-1 text-lg font-semibold tracking-tight focus-visible:outline-none focus-visible:ring-2"
+                            className="focus-visible:ring-ring text-foreground rounded-md px-2 py-1 text-lg font-semibold tracking-tight focus-visible:outline-none focus-visible:ring-2"
                         >
-                            VantageJobs
+                            Vantage<span className="text-primary">Jobs</span>
                         </Link>
 
                         <nav className="ml-6 hidden items-center gap-1 md:flex" aria-label="Primary">
                             {NAV_ITEMS.map((item) => {
                                 const active = isActive(currentUrl, item);
                                 const baseClasses =
-                                    'focus-visible:ring-ring inline-flex h-9 items-center rounded-md px-3 text-sm font-medium focus-visible:outline-none focus-visible:ring-2';
+                                    'focus-visible:ring-ring inline-flex h-9 items-center rounded-md px-3 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2';
 
                                 if (item.href === null) {
                                     return (
@@ -172,7 +172,7 @@ export default function AuthenticatedLayout({ children, header }: AuthenticatedL
                                         className={cn(
                                             baseClasses,
                                             active
-                                                ? 'bg-accent text-foreground'
+                                                ? 'bg-primary text-primary-foreground'
                                                 : 'text-muted-foreground hover:text-foreground hover:bg-accent',
                                         )}
                                     >

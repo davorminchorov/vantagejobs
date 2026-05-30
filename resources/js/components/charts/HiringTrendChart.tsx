@@ -25,7 +25,7 @@ export default function HiringTrendChart({ data, showListings = true, height = 2
     if (data.length === 0) {
         return (
             <div
-                className="flex items-center justify-center rounded border border-dashed text-sm text-muted-foreground"
+                className="flex items-center justify-center rounded-2xl border border-dashed border-border bg-card text-sm text-muted-foreground"
                 style={{ height }}
             >
                 No snapshots yet. Charts populate after the first daily run.
@@ -42,16 +42,17 @@ export default function HiringTrendChart({ data, showListings = true, height = 2
                     tickFormatter={(d: string) => d.slice(5)}
                     fontSize={11}
                     stroke="currentColor"
-                    className="text-muted-foreground"
+                    className="font-mono tabular-nums text-muted-foreground"
                 />
                 <YAxis
                     fontSize={11}
                     allowDecimals={false}
                     stroke="currentColor"
-                    className="text-muted-foreground"
+                    className="font-mono tabular-nums text-muted-foreground"
                 />
                 <Tooltip
                     contentStyle={{ fontSize: 12 }}
+                    wrapperClassName="rounded-md border border-border bg-card text-card-foreground tabular-nums shadow-sm"
                     labelFormatter={(d: string) => new Date(d).toLocaleDateString()}
                 />
                 <Legend wrapperStyle={{ fontSize: 12 }} />
@@ -59,7 +60,7 @@ export default function HiringTrendChart({ data, showListings = true, height = 2
                     type="monotone"
                     dataKey="open_role_count"
                     name="Open roles"
-                    stroke="#2563eb"
+                    stroke="var(--primary)"
                     strokeWidth={2}
                     dot={false}
                 />
@@ -68,7 +69,7 @@ export default function HiringTrendChart({ data, showListings = true, height = 2
                         type="monotone"
                         dataKey="listings_count"
                         name="Aggregator listings"
-                        stroke="#9ca3af"
+                        stroke="var(--muted-foreground)"
                         strokeWidth={1.5}
                         strokeDasharray="4 4"
                         dot={false}
