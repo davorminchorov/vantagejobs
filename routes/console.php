@@ -88,6 +88,11 @@ foreach ([
 Schedule::command('bookmarks:warn-expiring')->dailyAt('06:00');
 Schedule::command('bookmarks:expire')->dailyAt('06:05');
 
+// Calendar reminder sweep (Phase 5): queues reminder emails for events whose
+// reminder lead-time has elapsed, across all tenants. Runs every minute so
+// reminder lead-times resolve to roughly the requested moment.
+Schedule::command('calendar:send-reminders')->everyMinute()->withoutOverlapping();
+
 // Roll the parser confidence stats forward 30 minutes before the artifact
 // purge — they share no rows but it keeps the nightly band readable.
 Schedule::command('parser:rollup-confidence')->dailyAt('02:30');

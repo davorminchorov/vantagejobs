@@ -17,6 +17,7 @@ const navItems: SettingsNavItem[] = [
     { title: 'Password', href: '/settings/password', routeName: 'settings.password' },
     { title: 'Two-factor authentication', href: '/settings/two-factor', routeName: 'settings.two-factor' },
     { title: 'Active sessions', href: '/settings/sessions', routeName: 'settings.sessions' },
+    { title: 'Calendar feed', href: '/settings/calendar', routeName: 'settings.calendar' },
 ];
 
 interface Props {

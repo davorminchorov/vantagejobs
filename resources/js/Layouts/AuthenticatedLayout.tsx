@@ -35,9 +35,13 @@ const NAV_ITEMS: ReadonlyArray<NavItem> = [
     { name: 'Companies', href: '/companies' },
     { name: 'Discover', href: '/discover' },
     { name: 'Insights', href: '/insights/hiring' },
+    { name: 'Pipeline', href: '/pipeline' },
+    { name: 'Contacts', href: '/contacts' },
+    { name: 'Follow-ups', href: '/follow-ups' },
+    { name: 'Templates', href: '/templates' },
+    { name: 'Calendar', href: '/calendar' },
     { name: 'Bookmarks', href: '/bookmarks' },
     { name: 'Runs', href: '/admin/runs' },
-    { name: 'Pipeline', href: null },
     { name: 'Settings', href: '/settings/profile' },
 ];
 

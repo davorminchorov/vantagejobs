@@ -21,7 +21,21 @@ use App\Http\Controllers\Companies\UpdateCompanyController;
 use App\Http\Controllers\Bookmarks\CreateBookmarkController;
 use App\Http\Controllers\Bookmarks\DeleteBookmarkController;
 use App\Http\Controllers\Bookmarks\IndexController as BookmarksIndexController;
+use App\Http\Controllers\Calendar\DestroyController as CalendarDestroyController;
+use App\Http\Controllers\Calendar\FeedController as CalendarFeedController;
+use App\Http\Controllers\Calendar\IndexController as CalendarIndexController;
+use App\Http\Controllers\Calendar\StoreController as CalendarStoreController;
+use App\Http\Controllers\Calendar\UpdateController as CalendarUpdateController;
+use App\Http\Controllers\Contacts\ComposeController as ContactsComposeController;
+use App\Http\Controllers\Contacts\DestroyController as ContactsDestroyController;
+use App\Http\Controllers\Contacts\IndexController as ContactsIndexController;
+use App\Http\Controllers\Contacts\Outreach\StoreController as ContactsOutreachStoreController;
+use App\Http\Controllers\Contacts\ShowController as ContactsShowController;
+use App\Http\Controllers\Contacts\StoreController as ContactsStoreController;
+use App\Http\Controllers\Contacts\UpdateController as ContactsUpdateController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\FollowUps\IndexController as FollowUpsIndexController;
+use App\Http\Controllers\FollowUps\QuickTouchController as FollowUpsQuickTouchController;
 use App\Http\Controllers\Discover\BookmarkListingController;
 use App\Http\Controllers\Discover\DismissListingController;
 use App\Http\Controllers\Discover\IndexController as DiscoverIndexController;
@@ -44,6 +58,15 @@ use App\Http\Controllers\Insights\ConfirmFundingCandidateController;
 use App\Http\Controllers\Insights\DismissFundingCandidateController;
 use App\Http\Controllers\Insights\FundingCandidatesController;
 use App\Http\Controllers\Insights\HiringInsightsController;
+use App\Http\Controllers\Pipeline\AddRoleController;
+use App\Http\Controllers\Pipeline\IndexController as PipelineIndexController;
+use App\Http\Controllers\Pipeline\Offers\ComparisonController as PipelineOffersComparisonController;
+use App\Http\Controllers\Pipeline\Offers\UpsertController as PipelineOffersUpsertController;
+use App\Http\Controllers\Pipeline\RemoveRoleController;
+use App\Http\Controllers\Pipeline\ShowRoleController;
+use App\Http\Controllers\Pipeline\StageNotes\StoreController as PipelineStageNotesStoreController;
+use App\Http\Controllers\Pipeline\UpdateApplicationController;
+use App\Http\Controllers\Pipeline\UpdateStatusController as PipelineUpdateStatusController;
 use App\Http\Controllers\SavedViews\DestroySavedViewController;
 use App\Http\Controllers\SavedViews\StoreSavedViewController;
 use App\Http\Controllers\SavedViews\UpdateSavedViewController;
@@ -52,14 +75,22 @@ use App\Http\Controllers\Tags\AttachTagController;
 use App\Http\Controllers\Tags\AutocompleteTagsController;
 use App\Http\Controllers\Tags\DetachTagController;
 use App\Http\Controllers\HealthController;
+use App\Http\Controllers\Settings\CalendarTokenController;
 use App\Http\Controllers\Settings\PasswordController;
 use App\Http\Controllers\Settings\ProfileController;
 use App\Http\Controllers\Settings\SessionsController;
 use App\Http\Controllers\Settings\TwoFactorController;
+use App\Http\Controllers\Templates\DestroyController as TemplatesDestroyController;
+use App\Http\Controllers\Templates\IndexController as TemplatesIndexController;
+use App\Http\Controllers\Templates\StoreController as TemplatesStoreController;
+use App\Http\Controllers\Templates\UpdateController as TemplatesUpdateController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
 Route::get('/', fn () => Inertia::render('Welcome'))->name('home');
+
+// Public, unauthenticated iCal subscription feed. Resolved by per-user token.
+Route::get('/calendar/{token}/feed.ics', CalendarFeedController::class)->name('calendar.feed');
 
 Route::middleware(['auth'])->group(function (): void {
     Route::get('/dashboard', DashboardController::class)->name('dashboard');
@@ -112,6 +143,69 @@ Route::middleware(['auth'])->group(function (): void {
 
     Route::get('/search', GlobalSearchController::class)->name('search');
 
+    Route::get('/pipeline', PipelineIndexController::class)->name('pipeline.index');
+    Route::post('/pipeline/status', PipelineUpdateStatusController::class)->name('pipeline.status.update');
+    Route::get('/pipeline/offers/comparison', PipelineOffersComparisonController::class)->name('pipeline.offers.comparison');
+    Route::post('/pipeline/roles/{role}/add', AddRoleController::class)
+        ->whereNumber('role')
+        ->name('pipeline.roles.add');
+    Route::delete('/pipeline/roles/{role}/remove', RemoveRoleController::class)
+        ->whereNumber('role')
+        ->name('pipeline.roles.remove');
+    Route::get('/pipeline/roles/{role}', ShowRoleController::class)
+        ->whereNumber('role')
+        ->name('pipeline.roles.show');
+    Route::put('/pipeline/roles/{role}/application', UpdateApplicationController::class)
+        ->whereNumber('role')
+        ->name('pipeline.roles.application.update');
+    Route::post('/pipeline/roles/{role}/stage-notes', PipelineStageNotesStoreController::class)
+        ->whereNumber('role')
+        ->name('pipeline.roles.stage-notes.store');
+    Route::post('/pipeline/roles/{role}/offer', PipelineOffersUpsertController::class)
+        ->whereNumber('role')
+        ->name('pipeline.roles.offer.upsert');
+
+    Route::get('/contacts', ContactsIndexController::class)->name('contacts.index');
+    Route::post('/contacts', ContactsStoreController::class)->name('contacts.store');
+    Route::get('/contacts/{contact}', ContactsShowController::class)
+        ->whereNumber('contact')
+        ->name('contacts.show');
+    Route::put('/contacts/{contact}', ContactsUpdateController::class)
+        ->whereNumber('contact')
+        ->name('contacts.update');
+    Route::delete('/contacts/{contact}', ContactsDestroyController::class)
+        ->whereNumber('contact')
+        ->name('contacts.destroy');
+    Route::post('/contacts/{contact}/compose', ContactsComposeController::class)
+        ->whereNumber('contact')
+        ->name('contacts.compose');
+    Route::post('/contacts/{contact}/outreach', ContactsOutreachStoreController::class)
+        ->whereNumber('contact')
+        ->name('contacts.outreach.store');
+
+    Route::get('/templates', TemplatesIndexController::class)->name('templates.index');
+    Route::post('/templates', TemplatesStoreController::class)->name('templates.store');
+    Route::put('/templates/{template}', TemplatesUpdateController::class)
+        ->whereNumber('template')
+        ->name('templates.update');
+    Route::delete('/templates/{template}', TemplatesDestroyController::class)
+        ->whereNumber('template')
+        ->name('templates.destroy');
+
+    Route::get('/follow-ups', FollowUpsIndexController::class)->name('follow-ups.index');
+    Route::post('/follow-ups/{contact}/touch', FollowUpsQuickTouchController::class)
+        ->whereNumber('contact')
+        ->name('follow-ups.touch');
+
+    Route::get('/calendar', CalendarIndexController::class)->name('calendar.index');
+    Route::post('/calendar', CalendarStoreController::class)->name('calendar.store');
+    Route::put('/calendar/{calendarEvent}', CalendarUpdateController::class)
+        ->whereNumber('calendarEvent')
+        ->name('calendar.update');
+    Route::delete('/calendar/{calendarEvent}', CalendarDestroyController::class)
+        ->whereNumber('calendarEvent')
+        ->name('calendar.destroy');
+
     Route::prefix('admin/parser')->name('admin.parser.')->group(function (): void {
         Route::get('/', AdminParserIndexController::class)->name('index');
         Route::post('/rollup', AdminParserRunRollupController::class)->name('rollup');
@@ -157,5 +251,8 @@ Route::middleware(['auth'])->group(function (): void {
 
         Route::get('/sessions', [SessionsController::class, 'index'])->name('sessions');
         Route::post('/sessions/sign-out-others', [SessionsController::class, 'destroyOthers'])->name('sessions.destroy-others');
+
+        Route::get('/calendar', [CalendarTokenController::class, 'index'])->name('calendar');
+        Route::post('/calendar/regenerate', [CalendarTokenController::class, 'regenerate'])->name('calendar.regenerate');
     });
 });
