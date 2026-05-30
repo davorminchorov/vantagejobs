@@ -65,6 +65,9 @@ final class RoleApplicationResource extends JsonResource
                 'tier' => $company->tier,
             ],
             'has_offer' => $role->offer !== null,
+            'offer' => $role->offer === null
+                ? null
+                : (new OfferResource($role->offer))->resolve(),
             'stage_notes' => $this->groupStageNotes($role),
         ];
     }

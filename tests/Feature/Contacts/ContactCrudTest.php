@@ -9,6 +9,7 @@ use App\Models\Company;
 use App\Models\Contact;
 use App\Models\OutreachLogEntry;
 use App\Models\Role;
+use App\Models\Template;
 use App\Models\User;
 use App\Tenancy\Tenant;
 use App\Tenancy\TenantContext;
@@ -128,6 +129,7 @@ final class ContactCrudTest extends TestCase
     {
         $contact = Contact::factory()->create(['name' => 'Detail Person']);
         OutreachLogEntry::factory()->count(2)->create(['contact_id' => $contact->id]);
+        Template::factory()->create(['name' => 'Cold intro']);
 
         $this->actingAs($this->user)
             ->get("/contacts/{$contact->id}")
@@ -135,7 +137,13 @@ final class ContactCrudTest extends TestCase
             ->assertInertia(fn ($page) => $page
                 ->component('Contacts/Show')
                 ->where('contact.name', 'Detail Person')
-                ->has('outreach', 2));
+                ->has('outreach', 2)
+                // Compose-from-template and outreach panels need these props wired
+                // through; assert them so the UI can't silently regress to a stub.
+                ->has('templates', 1)
+                ->where('templates.0.name', 'Cold intro')
+                ->has('channels', 4)
+                ->where('channels.0', 'email'));
     }
 
     #[Test]

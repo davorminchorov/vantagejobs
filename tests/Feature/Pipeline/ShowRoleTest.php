@@ -65,6 +65,21 @@ final class ShowRoleTest extends TestCase
                 ->where('role.company.name', 'Acme')
                 ->where('role.application.next_action', 'Email recruiter')
                 ->where('role.has_offer', true)
+                ->where('role.offer.role_id', $role->id)
+                ->has('role.offer.currency')
+            );
+    }
+
+    #[Test]
+    public function show_exposes_null_offer_when_none_recorded(): void
+    {
+        $role = Role::factory()->create();
+
+        $this->actingAs($this->user)
+            ->get("/pipeline/roles/{$role->id}")
+            ->assertInertia(fn ($page) => $page
+                ->where('role.has_offer', false)
+                ->where('role.offer', null)
             );
     }
 

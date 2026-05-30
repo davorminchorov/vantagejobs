@@ -7,6 +7,9 @@ import ApplicationMetadataForm, {
     type ContactOption,
 } from '@/components/pipeline/ApplicationMetadataForm';
 import InterviewPrepEditor from '@/components/pipeline/InterviewPrepEditor';
+import OfferComparison from '@/components/pipeline/OfferComparison';
+import OfferPanel, { type OfferSummary } from '@/components/pipeline/OfferPanel';
+import StageNotesPanel, { type PipelineStage, type StageNote as PanelStageNote } from '@/components/pipeline/StageNotesPanel';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -45,6 +48,7 @@ interface RoleDetail {
     referral_contact: ReferralContact | null;
     company: CompanySummary | null;
     has_offer: boolean;
+    offer: OfferSummary | null;
     stage_notes: Record<string, StageNote[]>;
 }
 
@@ -72,9 +76,20 @@ const STATUS_VARIANT: Record<string, 'default' | 'success' | 'warning' | 'destru
 };
 
 export default function ShowRolePage({ role, contacts, options }: Props) {
-    const [tab, setTab] = useState<'application' | 'prep' | 'notes'>('application');
+    const [tab, setTab] = useState<'application' | 'prep' | 'notes' | 'offer'>('application');
 
     const stageCount = Object.values(role.stage_notes).reduce((sum, notes) => sum + notes.length, 0);
+
+    const flatStageNotes: PanelStageNote[] = Object.entries(role.stage_notes).flatMap(([stage, notes]) =>
+        notes.map((note) => ({
+            id: note.id,
+            stage: stage as PipelineStage,
+            body: note.body,
+            created_at: note.created_at ?? '',
+        })),
+    );
+
+    const activeStage = (role.pipeline_status ?? 'researching') as PipelineStage;
 
     return (
         <AuthenticatedLayout>
@@ -127,6 +142,7 @@ export default function ShowRolePage({ role, contacts, options }: Props) {
                         <TabsTrigger value="application">Application</TabsTrigger>
                         <TabsTrigger value="prep">Interview prep</TabsTrigger>
                         <TabsTrigger value="notes">Stage notes ({stageCount})</TabsTrigger>
+                        <TabsTrigger value="offer">Offer</TabsTrigger>
                     </TabsList>
 
                     <TabsContent value="application">
@@ -166,7 +182,22 @@ export default function ShowRolePage({ role, contacts, options }: Props) {
                     </TabsContent>
 
                     <TabsContent value="notes">
-                        <StageNotes status={role.pipeline_status} grouped={role.stage_notes} />
+                        <Card className="rounded-2xl">
+                            <CardContent className="pt-6">
+                                <StageNotesPanel roleId={role.id} notes={flatStageNotes} activeStage={activeStage} />
+                            </CardContent>
+                        </Card>
+                    </TabsContent>
+
+                    <TabsContent value="offer">
+                        <div className="space-y-6">
+                            <OfferPanel
+                                roleId={role.id}
+                                offer={role.offer}
+                                action={`/pipeline/roles/${role.id}/offer`}
+                            />
+                            <OfferComparison endpoint="/pipeline/offers/comparison" />
+                        </div>
                     </TabsContent>
                 </Tabs>
             </div>
@@ -174,49 +205,3 @@ export default function ShowRolePage({ role, contacts, options }: Props) {
     );
 }
 
-function StageNotes({
-    status,
-    grouped,
-}: {
-    status: string | null;
-    grouped: Record<string, StageNote[]>;
-}) {
-    const stages = Object.keys(grouped);
-
-    if (stages.length === 0) {
-        return (
-            <Card className="rounded-2xl">
-                <CardContent className="px-6 py-12 text-center text-sm text-muted-foreground">
-                    No stage notes yet. They&rsquo;re captured as you move this role through the pipeline.
-                </CardContent>
-            </Card>
-        );
-    }
-
-    return (
-        <div className="space-y-4">
-            {stages.map((stage) => (
-                <Card key={stage} className="rounded-2xl">
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0">
-                        <CardTitle className="font-mono text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-                            {humanize(stage)}
-                        </CardTitle>
-                        {stage === status ? <Badge variant="secondary">Current stage</Badge> : null}
-                    </CardHeader>
-                    <CardContent className="p-0">
-                        <ol className="divide-y">
-                            {grouped[stage].map((note) => (
-                                <li key={note.id} className="flex flex-col gap-1 px-6 py-4">
-                                    <p className="whitespace-pre-wrap text-sm">{note.body}</p>
-                                    <span className="font-mono text-xs tabular-nums text-muted-foreground">
-                                        {note.created_at ? new Date(note.created_at).toLocaleString() : ''}
-                                    </span>
-                                </li>
-                            ))}
-                        </ol>
-                    </CardContent>
-                </Card>
-            ))}
-        </div>
-    );
-}

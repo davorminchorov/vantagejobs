@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Contacts;
 
+use App\Enums\OutreachChannel;
 use App\Http\Resources\Contacts\ContactResource;
 use App\Models\Contact;
 use App\Models\OutreachLogEntry;
+use App\Models\Template;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -30,12 +32,24 @@ final readonly class ShowController
             ])
             ->values();
 
+        $templates = Template::query()
+            ->orderBy('name')
+            ->get(['id', 'name', 'category'])
+            ->map(fn (Template $template) => [
+                'id' => $template->id,
+                'name' => $template->name,
+                'category' => $template->category->value,
+            ])
+            ->values();
+
         return Inertia::render('Contacts/Show', [
             'contact' => (new ContactResource($contact))->resolve(),
-            // Outreach log and compose-from-template panels are owned by sibling
-            // slices; this controller surfaces the raw log so those slices can
-            // hydrate their panels from a shared resource shape.
             'outreach' => $outreach,
+            'templates' => $templates,
+            'channels' => array_map(
+                fn (OutreachChannel $channel) => $channel->value,
+                OutreachChannel::cases(),
+            ),
         ]);
     }
 }

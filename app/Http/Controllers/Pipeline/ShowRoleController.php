@@ -16,7 +16,7 @@ final readonly class ShowRoleController
 {
     public function __invoke(Role $role): Response
     {
-        $role->load(['company', 'stageNotes', 'offer']);
+        $role->load(['company', 'stageNotes', 'offer.revisions']);
 
         $contacts = Contact::query()
             ->orderBy('name')

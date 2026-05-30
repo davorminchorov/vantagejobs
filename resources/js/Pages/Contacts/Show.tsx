@@ -2,7 +2,9 @@ import { Head, Link, router, usePage } from '@inertiajs/react';
 import { useState } from 'react';
 
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import ComposeFromTemplatePanel, { type TemplateOption } from '@/components/contacts/ComposeFromTemplatePanel';
 import ContactForm, { type ContactCompanyOption } from '@/components/contacts/ContactForm';
+import OutreachLogPanel, { type OutreachLogEntry } from '@/components/contacts/OutreachLogPanel';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -29,33 +31,18 @@ interface Contact {
     needs_followup: boolean;
 }
 
-interface OutreachEntry {
-    id: number;
-    channel: string;
-    subject: string | null;
-    body: string | null;
-    occurred_at: string | null;
-}
-
 interface Props {
     contact: Contact;
-    outreach: OutreachEntry[];
+    outreach: OutreachLogEntry[];
+    templates: TemplateOption[];
+    channels: string[];
 }
 
-const CHANNEL_LABELS: Record<string, string> = {
-    email: 'Email',
-    linkedin: 'LinkedIn',
-    phone: 'Phone',
-    other: 'Other',
-};
-
-export default function ContactShowPage({ contact, outreach }: Props) {
+export default function ContactShowPage({ contact, outreach, templates, channels }: Props) {
     const { props } = usePage<{ companies?: ContactCompanyOption[] }>();
     const [editOpen, setEditOpen] = useState(false);
     const [deleteOpen, setDeleteOpen] = useState(false);
 
-    // The compose-from-template panel is owned by a sibling slice; this page
-    // renders a placeholder that the template slice can replace once wired.
     const companies = props.companies ?? (contact.company_id && contact.company_name ? [{ id: contact.company_id, name: contact.company_name }] : []);
 
     function destroy() {
@@ -185,47 +172,11 @@ export default function ContactShowPage({ contact, outreach }: Props) {
                             </CardContent>
                         </Card>
 
-                        <Card className="rounded-2xl border-border">
-                            <CardHeader>
-                                <CardTitle className="text-sm font-medium">Outreach log</CardTitle>
-                            </CardHeader>
-                            <CardContent className="space-y-3">
-                                {outreach.length === 0 ? (
-                                    <p className="text-sm text-muted-foreground">
-                                        No outreach recorded yet. Logging a touch advances the last-touch date.
-                                    </p>
-                                ) : (
-                                    <ul className="space-y-3">
-                                        {outreach.map((entry) => (
-                                            <li key={entry.id} className="rounded-lg border border-border p-3">
-                                                <div className="flex items-center justify-between gap-2">
-                                                    <Badge variant="secondary">{CHANNEL_LABELS[entry.channel] ?? entry.channel}</Badge>
-                                                    <span className="font-mono text-xs tabular-nums text-muted-foreground">
-                                                        {entry.occurred_at ? new Date(entry.occurred_at).toLocaleString() : ''}
-                                                    </span>
-                                                </div>
-                                                {entry.subject ? <p className="mt-2 text-sm font-medium">{entry.subject}</p> : null}
-                                                {entry.body ? <p className="mt-1 whitespace-pre-wrap text-sm text-muted-foreground">{entry.body}</p> : null}
-                                            </li>
-                                        ))}
-                                    </ul>
-                                )}
-                            </CardContent>
-                        </Card>
+                        <OutreachLogPanel contactId={contact.id} entries={outreach} channels={channels} />
                     </div>
 
                     <aside>
-                        <Card className="rounded-2xl border-dashed border-border">
-                            <CardHeader>
-                                <CardTitle className="text-sm font-medium">Compose from template</CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <p className="text-sm text-muted-foreground">
-                                    Template-driven outreach drafting plugs in here. Variables like{' '}
-                                    <code className="font-mono text-xs">{'{{contact_first_name}}'}</code> resolve against this contact.
-                                </p>
-                            </CardContent>
-                        </Card>
+                        <ComposeFromTemplatePanel contactId={contact.id} templates={templates} />
                     </aside>
                 </div>
             </div>
