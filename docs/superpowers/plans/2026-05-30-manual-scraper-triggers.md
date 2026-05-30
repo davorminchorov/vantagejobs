@@ -798,13 +798,22 @@ Add these two methods to `tests/Feature/Admin/Runs/IndexTest.php` (the file alre
         Company::factory()->create(['ats_type' => null, 'ats_slug' => null]);
         AggregatorSource::factory()->ofType(\App\Enums\AggregatorSourceType::REMOTIVE)->create();
 
+        // Aggregator-kind running rows (company_id null) so ScrapeRunFactory's
+        // default `company_id => Company::factory()` does not spawn stray ATS
+        // companies that would skew the ATS type counts asserted below.
         ScrapeRun::factory()->create([
+            'company_id' => null,
+            'source_kind' => 'aggregator',
+            'source' => 'remotive',
             'status' => 'running',
             'started_at' => CarbonImmutable::now()->subMinutes(2),
             'finished_at' => null,
         ]);
         // Stale running row (older than 1h) must not be counted.
         ScrapeRun::factory()->create([
+            'company_id' => null,
+            'source_kind' => 'aggregator',
+            'source' => 'remotive',
             'status' => 'running',
             'started_at' => CarbonImmutable::now()->subHours(3),
             'finished_at' => null,
@@ -1005,9 +1014,14 @@ Immediately after `const [draft, setDraft] = useState<FilterState>(filters);`, a
 
     const flash = (usePage().props.flash ?? null) as { success?: string | null; error?: string | null } | null;
 
+    // Note: usePoll's reload-options arg is typed as ReloadOptions, which is
+    // `Omit<VisitOptions, 'preserveScroll' | 'preserveState'>` in @inertiajs/core
+    // — so neither preserveScroll nor preserveState is allowed here (both are
+    // implicit for a background poll). Only `only` is passed. The preserveScroll/
+    // preserveState in the router.post inside trigger() are fine (VisitOptions).
     const { start, stop } = usePoll(
         2500,
-        { only: ['runs', 'health', 'activeRunCount'], preserveScroll: true, preserveState: true },
+        { only: ['runs', 'health', 'activeRunCount'] },
         { autoStart: false },
     );
 
