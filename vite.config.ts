@@ -6,6 +6,21 @@ import { bunny } from 'laravel-vite-plugin/fonts';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 
+const certDir = path.resolve(__dirname, '.infrastructure/conf/traefik/dev/certificates');
+const keyPath = path.join(certDir, 'local-dev-key.pem');
+const certPath = path.join(certDir, 'local-dev.pem');
+
+// Dev-server TLS certs are only needed when serving (HMR over HTTPS), and only
+// when they actually exist. Skip during `vite build` and when certs are absent
+// (e.g. CI), so dev still starts over HTTP instead of crashing.
+const devHttps =
+    fs.existsSync(keyPath) && fs.existsSync(certPath)
+        ? {
+              key: fs.readFileSync(keyPath),
+              cert: fs.readFileSync(certPath),
+          }
+        : undefined;
+
 export default defineConfig(({ command }) => ({
     server: {
         host: '0.0.0.0',
@@ -13,15 +28,7 @@ export default defineConfig(({ command }) => ({
             host: 'vite.dev.test',
             clientPort: 443,
         },
-        // Dev-server TLS certs live inside the container and are only needed when
-        // serving (HMR over HTTPS). Skip reading them during `vite build`.
-        https:
-            command === 'serve'
-                ? {
-                      key: fs.readFileSync('/usr/src/app/.infrastructure/conf/traefik/dev/certificates/local-dev-key.pem'),
-                      cert: fs.readFileSync('/usr/src/app/.infrastructure/conf/traefik/dev/certificates/local-dev.pem'),
-                  }
-                : undefined,
+        https: command === 'serve' ? devHttps : undefined,
     },
     resolve: {
         alias: {
