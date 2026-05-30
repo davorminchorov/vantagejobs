@@ -1,3 +1,15 @@
+# OrbStack injects a broken HTTP(S)_PROXY (proxyproxy.orb.internal) into every
+# container, routing outbound HTTP through a proxy whose host fails DNS. Neutralise
+# it for every PHP service that makes outbound calls (web, scrapers/queued jobs,
+# scheduler) so scrapers can reach the internet.
+x-no-proxy: &no-proxy
+  HTTP_PROXY: ""
+  HTTPS_PROXY: ""
+  http_proxy: ""
+  https_proxy: ""
+  ALL_PROXY: ""
+  all_proxy: ""
+
 services:
   traefik:
     environment:
@@ -45,6 +57,7 @@ services:
     # for opt-in use via:
     #   spin exec -T php php artisan octane:start --watch --poll
     # When upstream stabilizes, restore --watch to the default command.
+    environment: *no-proxy
     volumes:
       - .:/var/www/html/
     networks:
@@ -97,6 +110,7 @@ services:
         USER_ID: ${SPIN_USER_ID}
         GROUP_ID: ${SPIN_GROUP_ID}
       dockerfile: Dockerfile.php
+    environment: *no-proxy
     volumes:
       - .:/var/www/html/
     networks:
@@ -132,6 +146,7 @@ services:
         USER_ID: ${SPIN_USER_ID}
         GROUP_ID: ${SPIN_GROUP_ID}
       dockerfile: Dockerfile.php
+    environment: *no-proxy
     volumes:
       - .:/var/www/html/
     networks:
