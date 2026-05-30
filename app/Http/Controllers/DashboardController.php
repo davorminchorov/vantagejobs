@@ -6,6 +6,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Company;
 use App\Scrapers\Aggregator\ActiveAutoDismissRulesQuery;
+use App\Sources\SourceHealthQuery;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -13,6 +14,7 @@ final readonly class DashboardController
 {
     public function __construct(
         private ActiveAutoDismissRulesQuery $autoDismissRules,
+        private SourceHealthQuery $sourceHealth,
     ) {}
 
     public function __invoke(): Response
@@ -26,6 +28,7 @@ final readonly class DashboardController
             'companies' => $companies,
             'companies_count' => $companies->count(),
             'active_auto_dismiss_rules' => $this->autoDismissRules->active(),
+            'source_health' => $this->sourceHealth->summary(),
         ]);
     }
 }

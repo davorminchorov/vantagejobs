@@ -12,12 +12,39 @@ interface SettingsNavItem {
     routeName: string;
 }
 
-const navItems: SettingsNavItem[] = [
-    { title: 'Profile', href: '/settings/profile', routeName: 'settings.profile' },
-    { title: 'Password', href: '/settings/password', routeName: 'settings.password' },
-    { title: 'Two-factor authentication', href: '/settings/two-factor', routeName: 'settings.two-factor' },
-    { title: 'Active sessions', href: '/settings/sessions', routeName: 'settings.sessions' },
-    { title: 'Calendar feed', href: '/settings/calendar', routeName: 'settings.calendar' },
+interface SettingsNavSection {
+    label: string;
+    items: SettingsNavItem[];
+}
+
+const navSections: SettingsNavSection[] = [
+    {
+        label: 'Profile',
+        items: [
+            { title: 'Profile', href: '/settings/profile', routeName: 'settings.profile' },
+            { title: 'Calendar feed', href: '/settings/calendar', routeName: 'settings.calendar' },
+        ],
+    },
+    {
+        label: 'Notifications',
+        items: [
+            { title: 'Notifications', href: '/settings/notifications', routeName: 'settings.notifications' },
+            { title: 'Triage', href: '/settings/triage', routeName: 'settings.triage' },
+            { title: 'Sources', href: '/discover/sources', routeName: 'discover.sources.index' },
+        ],
+    },
+    {
+        label: 'Account',
+        items: [
+            { title: 'Password', href: '/settings/password', routeName: 'settings.password' },
+            { title: 'Two-factor authentication', href: '/settings/two-factor', routeName: 'settings.two-factor' },
+            { title: 'Active sessions', href: '/settings/sessions', routeName: 'settings.sessions' },
+        ],
+    },
+    {
+        label: 'Data',
+        items: [{ title: 'Export & data', href: '/settings/data', routeName: 'settings.data' }],
+    },
 ];
 
 interface Props {
@@ -43,24 +70,32 @@ export default function SettingsLayout({ children, title, description }: Props) 
 
                 <div className="flex flex-col gap-8 md:flex-row">
                     <aside className="md:w-56">
-                        <nav className="flex flex-col gap-1" aria-label="Settings sections">
-                            {navItems.map((item) => {
-                                const active = url.startsWith(item.href);
-                                return (
-                                    <Link
-                                        key={item.href}
-                                        href={item.href}
-                                        className={cn(
-                                            'min-h-11 rounded-md px-3 py-2 text-sm font-medium transition-colors',
-                                            active
-                                                ? 'bg-primary text-primary-foreground'
-                                                : 'text-muted-foreground hover:bg-secondary/50 hover:text-foreground',
-                                        )}
-                                    >
-                                        {item.title}
-                                    </Link>
-                                );
-                            })}
+                        <nav className="flex flex-col gap-4" aria-label="Settings sections">
+                            {navSections.map((section) => (
+                                <div key={section.label} className="flex flex-col gap-1">
+                                    <p className="px-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                                        {section.label}
+                                    </p>
+                                    {section.items.map((item) => {
+                                        const active = url.startsWith(item.href);
+                                        return (
+                                            <Link
+                                                key={item.href}
+                                                href={item.href}
+                                                aria-current={active ? 'page' : undefined}
+                                                className={cn(
+                                                    'min-h-11 rounded-md px-3 py-2 text-sm font-medium transition-colors',
+                                                    active
+                                                        ? 'bg-primary text-primary-foreground'
+                                                        : 'text-muted-foreground hover:bg-secondary/50 hover:text-foreground',
+                                                )}
+                                            >
+                                                {item.title}
+                                            </Link>
+                                        );
+                                    })}
+                                </div>
+                            ))}
                         </nav>
                     </aside>
 

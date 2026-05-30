@@ -1,6 +1,7 @@
 import { Head, Link } from '@inertiajs/react';
 
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import SourceHealthTile, { type SourceHealthSummary } from '@/components/dashboard/SourceHealthTile';
 
 interface DashboardCompany {
     id: number;
@@ -22,6 +23,7 @@ interface Props {
     companies: DashboardCompany[];
     companies_count: number;
     active_auto_dismiss_rules: AutoDismissRule[];
+    source_health?: SourceHealthSummary;
 }
 
 const tierPill: Record<string, string> = {
@@ -35,6 +37,7 @@ export default function DashboardPage({
     companies = [],
     companies_count = 0,
     active_auto_dismiss_rules = [],
+    source_health,
 }: Props) {
     return (
         <AuthenticatedLayout>
@@ -56,6 +59,8 @@ export default function DashboardPage({
                             <span className="font-mono tabular-nums">{companies_count}</span> tracked
                         </span>
                     </header>
+
+                    {source_health && <SourceHealthTile summary={source_health} />}
 
                     {active_auto_dismiss_rules.length > 0 && (
                         <div className="mb-8 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-amber-200/70 bg-amber-50 px-5 py-4 text-sm text-amber-900 shadow-sm dark:border-amber-700/40 dark:bg-amber-900/25 dark:text-amber-100">

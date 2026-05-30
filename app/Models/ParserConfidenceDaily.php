@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace App\Models;
 
 use App\Tenancy\BelongsToTenant;
+use Database\Factories\ParserConfidenceDailyFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -22,7 +24,10 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 ])]
 final class ParserConfidenceDaily extends Model
 {
+    /** @use HasFactory<ParserConfidenceDailyFactory> */
     use BelongsToTenant;
+
+    use HasFactory;
 
     protected $table = 'parser_confidence_daily';
 

@@ -831,4 +831,35 @@ A growing list of "I forgot this once and lost an hour."
 
 ---
 
+## Database backups
+
+Off-platform Postgres backups run nightly via `pg_dump` (custom format) to an S3-compatible disk (B2/S3). Backups are whole-database — a single dump captures every tenant's rows — and are NOT tenant-scoped.
+
+### Commands
+
+| Command | Cadence | What it does |
+|---------|---------|--------------|
+| `backup:run` | nightly | `pg_dump --format=custom` → temp file → `Storage::disk(config('backup.disk'))` at `backups/daily/YYYY-MM-DD-His.dump`. Alerts + exits non-zero on failure. |
+| `backup:prune` | nightly (after `backup:run`) | Retention tiering: keep every daily inside the daily window, one backup per ISO week inside the weekly window, one backup per calendar month forever. |
+| `backup:verify` | monthly | Downloads the latest archive and runs `pg_restore --list`, asserting a non-empty table of contents. Alerts + exits non-zero on a failed or empty TOC. |
+
+Run them by hand inside the container, e.g. `spin exec -T php php artisan backup:run`. Each emits a single JSON line on stdout (grep-able in the scheduler log).
+
+### Configuration (`config/backup.php`)
+
+- `BACKUP_DISK` (default `s3`) — the filesystem disk archives are written to.
+- `BACKUP_PG_DUMP_PATH` / `BACKUP_PG_DUMP_OPTIONS` — pg_dump binary path and flags. Default options are `--format=custom --no-owner --no-privileges`; the manager appends `--host/--port/--username/--file/<database>` from the active `pgsql` connection and passes the password via `PGPASSWORD` so it never lands in argv.
+- `BACKUP_RETENTION_DAILY_DAYS` (30) / `BACKUP_RETENTION_WEEKLY_WEEKS` (26) — tiering windows. Monthly retention is indefinite.
+- `BACKUP_VERIFY_MONTHLY` (true) — set false to skip the monthly restore check.
+- `backup.pg_restore.path` — optional; the verify command falls back to `pg_restore` on `$PATH` when unset.
+
+### Gotchas
+
+- **`pg_dump` / `pg_restore` binaries must be on the container PATH.** If `backup:run` fails with "command not found," install `postgresql-client` in the image or set `BACKUP_PG_DUMP_PATH` to the absolute binary path.
+- **A failed `backup:verify` does not delete the bad archive.** It only alerts. Investigate by pulling the archive down and running `pg_restore --list` by hand, then re-run `backup:run`.
+- **Restore from a custom-format dump** with `pg_restore --clean --no-owner --no-privileges -d <db> <file.dump>` — plain `psql <` will not work on custom format.
+- **Retention buckets use ISO weeks (`o-W`) and calendar months (`Y-m`).** A backup straddling a year boundary is bucketed by its ISO week-year, not its calendar year.
+
+---
+
 **Last updated:** May 2026. Add to this doc whenever you debug something that took >10 minutes.

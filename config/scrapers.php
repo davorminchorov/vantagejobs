@@ -241,6 +241,30 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Source health thresholds (Phase 6)
+    |--------------------------------------------------------------------------
+    |
+    | Drives the dashboard source-health tile and the monitor:source-health
+    | alert sweep.
+    |
+    | consecutive_failure_alert : a source at or above this many consecutive
+    |   failed scheduled runs is RED and triggers a fix-me alert email.
+    | confidence_drop_wow_pct   : a week-over-week drop in a source's median
+    |   (p50) parse confidence larger than this percentage flips the source
+    |   to RED (drop > pct) or YELLOW (drop within half the pct).
+    | stale_run_hours           : a source whose last_run_at is older than this
+    |   (or never ran) while enabled is YELLOW (stale), independent of the
+    |   failure counter.
+    |
+    */
+    'source_health' => [
+        'consecutive_failure_alert' => (int) env('SCRAPER_SOURCE_HEALTH_FAILURE_ALERT', 3),
+        'confidence_drop_wow_pct' => (int) env('SCRAPER_SOURCE_HEALTH_CONFIDENCE_DROP_WOW_PCT', 20),
+        'stale_run_hours' => (int) env('SCRAPER_SOURCE_HEALTH_STALE_RUN_HOURS', 48),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | TrueUp layoffs scrape (Phase 4 fallback)
     |--------------------------------------------------------------------------
     |

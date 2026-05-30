@@ -202,3 +202,48 @@ Schedule::call(static function () use ($tenantSlug): void {
     }
     Artisan::call('signals:ats:redetect', ['--tenant' => $slug]);
 })->name('signals:ats:redetect')->hourly();
+
+/*
+|--------------------------------------------------------------------------
+| Phase 6: notifications, monitoring, exports & backups
+|--------------------------------------------------------------------------
+|
+| The notification sweeps below run tenant-agnostic (no --tenant) and the
+| commands self-gate per recipient: the daily digest fires hourly and only
+| sends to recipients whose local configured send hour matches; A-tier
+| alerts run every 15 minutes; the weekly summary follows the per-tenant
+| scheduler pattern and is day-gated inside the command.
+*/
+
+// Daily digest: hourly tick, gated inside the command on each recipient's
+// local configured send hour. withoutOverlapping() so a slow run never
+// double-fires.
+Schedule::command('digest:send-daily')->hourly()->withoutOverlapping();
+
+// A-tier instant alerts: high-signal new roles, swept every 15 minutes.
+Schedule::command('notifications:send-a-tier-alerts')->everyFifteenMinutes()->withoutOverlapping();
+
+// Weekly summary: per-tenant, day-gated inside the command. Run daily at the
+// configured morning send time so the configured day lands; the per-week gate
+// makes a daily-but-day-gated tick safe.
+Schedule::call(static function () use ($aggregatorTenantSlugs): void {
+    foreach ($aggregatorTenantSlugs() as $slug) {
+        Artisan::call('notifications:send-weekly-summary', ['--tenant' => $slug]);
+    }
+})->name('notifications:send-weekly-summary')
+    ->dailyAt((string) config('notifications.digest_send_time', '07:00'))
+    ->withoutOverlapping();
+
+// Source-health monitor: hourly sweep across all tenants.
+Schedule::command('monitor:source-health')->hourly()->withoutOverlapping();
+
+// Export-job retention: prune expired export archives. Tenant-agnostic — the
+// command sweeps the global export_jobs table.
+Schedule::command('exports:prune')->dailyAt('06:10');
+
+// Nightly database backups (whole-DB pg_dump, no --tenant).
+Schedule::command('backup:run')->dailyAt('01:30')->withoutOverlapping();
+// Reap older copies after the freshest dump is in place.
+Schedule::command('backup:prune')->dailyAt('02:00')->withoutOverlapping();
+// Monthly restore verification (honors config('backup.verify_monthly')).
+Schedule::command('backup:verify')->monthlyOn(1, '02:15');

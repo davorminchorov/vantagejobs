@@ -18,6 +18,8 @@ use App\Http\Controllers\Companies\RestoreCompanyController;
 use App\Http\Controllers\Companies\ShowCompanyController;
 use App\Http\Controllers\Companies\StoreCompanyController;
 use App\Http\Controllers\Companies\UpdateCompanyController;
+use App\Http\Controllers\Bulk\PerformBulkActionController;
+use App\Http\Controllers\Bulk\UndoBulkActionController;
 use App\Http\Controllers\Bookmarks\CreateBookmarkController;
 use App\Http\Controllers\Bookmarks\DeleteBookmarkController;
 use App\Http\Controllers\Bookmarks\IndexController as BookmarksIndexController;
@@ -76,10 +78,17 @@ use App\Http\Controllers\Tags\AutocompleteTagsController;
 use App\Http\Controllers\Tags\DetachTagController;
 use App\Http\Controllers\HealthController;
 use App\Http\Controllers\Settings\CalendarTokenController;
+use App\Http\Controllers\Settings\DataController;
+use App\Http\Controllers\Settings\DownloadExportController;
+use App\Http\Controllers\Settings\NotificationsController;
+use App\Http\Controllers\Settings\RequestExportController;
 use App\Http\Controllers\Settings\PasswordController;
 use App\Http\Controllers\Settings\ProfileController;
 use App\Http\Controllers\Settings\SessionsController;
+use App\Http\Controllers\Settings\TriageController;
 use App\Http\Controllers\Settings\TwoFactorController;
+use App\Http\Controllers\Settings\UpdateNotificationsController;
+use App\Http\Controllers\Settings\UpdateTriageController;
 use App\Http\Controllers\Templates\DestroyController as TemplatesDestroyController;
 use App\Http\Controllers\Templates\IndexController as TemplatesIndexController;
 use App\Http\Controllers\Templates\StoreController as TemplatesStoreController;
@@ -224,6 +233,11 @@ Route::middleware(['auth'])->group(function (): void {
     Route::post('/companies/{company}/tags', AttachTagController::class)->name('companies.tags.attach');
     Route::delete('/companies/{company}/tags/{tag}', DetachTagController::class)->name('companies.tags.detach');
 
+    Route::post('/bulk-actions', PerformBulkActionController::class)->name('bulk-actions.perform');
+    Route::post('/bulk-actions/{auditLog}/undo', UndoBulkActionController::class)
+        ->whereNumber('auditLog')
+        ->name('bulk-actions.undo');
+
     Route::get('/health', HealthController::class)->name('health');
 
     Route::prefix('admin')->name('admin.')->group(function (): void {
@@ -254,5 +268,17 @@ Route::middleware(['auth'])->group(function (): void {
 
         Route::get('/calendar', [CalendarTokenController::class, 'index'])->name('calendar');
         Route::post('/calendar/regenerate', [CalendarTokenController::class, 'regenerate'])->name('calendar.regenerate');
+
+        Route::get('/notifications', NotificationsController::class)->name('notifications');
+        Route::post('/notifications', UpdateNotificationsController::class)->name('notifications.update');
+
+        Route::get('/triage', TriageController::class)->name('triage');
+        Route::post('/triage', UpdateTriageController::class)->name('triage.update');
+
+        Route::get('/data', DataController::class)->name('data');
+        Route::post('/data/export', RequestExportController::class)->name('data.export');
+        Route::get('/data/{export}/download', DownloadExportController::class)
+            ->whereNumber('export')
+            ->name('data.download');
     });
 });

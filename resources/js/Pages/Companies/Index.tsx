@@ -2,6 +2,7 @@ import { Head, Link, router } from '@inertiajs/react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import BulkActionBar from '@/components/bulk/BulkActionBar';
 import SaveViewButton from '@/components/saved-views/SaveViewButton';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -142,12 +143,30 @@ function chipMatches(active: CompanyFilters, chip: QuickChip): boolean {
 
 export default function CompaniesIndexPage({ companies, filters, options }: Props) {
     const [local, setLocal] = useState<CompanyFilters>(filters);
+    const [selectedIds, setSelectedIds] = useState<number[]>([]);
     const isFirstRender = useRef(true);
 
     useEffect(() => {
         setLocal(filters);
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [JSON.stringify(filters)]);
+
+    // Drop any selection that points at rows no longer on the page.
+    useEffect(() => {
+        const pageIds = new Set(companies.data.map((c) => c.id));
+        setSelectedIds((prev) => prev.filter((id) => pageIds.has(id)));
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [companies.data.map((c) => c.id).join(',')]);
+
+    function toggleRow(id: number) {
+        setSelectedIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+    }
+
+    const allOnPageSelected = companies.data.length > 0 && companies.data.every((c) => selectedIds.includes(c.id));
+
+    function toggleAllOnPage() {
+        setSelectedIds(allOnPageSelected ? [] : companies.data.map((c) => c.id));
+    }
 
     useEffect(() => {
         if (isFirstRender.current) {
@@ -287,6 +306,15 @@ export default function CompaniesIndexPage({ companies, filters, options }: Prop
                                     <Table>
                                         <TableHeader>
                                             <TableRow>
+                                                <TableHead className="w-10">
+                                                    <input
+                                                        type="checkbox"
+                                                        className="size-4 rounded border-input"
+                                                        aria-label="Select all companies on this page"
+                                                        checked={allOnPageSelected}
+                                                        onChange={toggleAllOnPage}
+                                                    />
+                                                </TableHead>
                                                 <TableHead>Name</TableHead>
                                                 <TableHead>Tier</TableHead>
                                                 <TableHead>Status</TableHead>
@@ -298,7 +326,19 @@ export default function CompaniesIndexPage({ companies, filters, options }: Prop
                                         </TableHeader>
                                         <TableBody>
                                             {companies.data.map((company) => (
-                                                <TableRow key={company.id}>
+                                                <TableRow
+                                                    key={company.id}
+                                                    data-state={selectedIds.includes(company.id) ? 'selected' : undefined}
+                                                >
+                                                    <TableCell>
+                                                        <input
+                                                            type="checkbox"
+                                                            className="size-4 rounded border-input"
+                                                            aria-label={`Select ${company.name}`}
+                                                            checked={selectedIds.includes(company.id)}
+                                                            onChange={() => toggleRow(company.id)}
+                                                        />
+                                                    </TableCell>
                                                     <TableCell>
                                                         <div className="flex flex-col">
                                                             <Link
@@ -375,6 +415,13 @@ export default function CompaniesIndexPage({ companies, filters, options }: Prop
                         {companies.last_page > 1 ? <Pagination links={companies.links} /> : null}
                     </div>
                 </div>
+
+                <BulkActionBar
+                    entity="company"
+                    selectedIds={selectedIds}
+                    onClear={() => setSelectedIds([])}
+                    only={['companies', 'flash']}
+                />
             </div>
         </AuthenticatedLayout>
     );

@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import BulkActionBar from '@/components/bulk/BulkActionBar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -94,7 +95,19 @@ const PARSED_SLOT_FOR_FIELD: Record<EditableField, string> = {
 export default function DiscoverIndex({ listings, filters, options }: Props) {
     const [focusIndex, setFocusIndex] = useState<number>(-1);
     const [editing, setEditing] = useState<{ listingId: number; field: EditableField } | null>(null);
+    const [selectedIds, setSelectedIds] = useState<number[]>([]);
     const cardRefs = useRef<Array<HTMLDivElement | null>>([]);
+
+    // Drop any selection that points at listings no longer on the page.
+    useEffect(() => {
+        const pageIds = new Set(listings.data.map((l) => l.id));
+        setSelectedIds((prev) => prev.filter((id) => pageIds.has(id)));
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [listings.data.map((l) => l.id).join(',')]);
+
+    function toggleSelected(id: number) {
+        setSelectedIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+    }
 
     useEffect(() => {
         function onKey(e: KeyboardEvent) {
@@ -256,6 +269,8 @@ export default function DiscoverIndex({ listings, filters, options }: Props) {
                                     }}
                                     listing={listing}
                                     isFocused={idx === focusIndex}
+                                    isSelected={selectedIds.includes(listing.id)}
+                                    onToggleSelect={() => toggleSelected(listing.id)}
                                     editingField={editing?.listingId === listing.id ? editing.field : null}
                                     onFocus={() => setFocusIndex(idx)}
                                     onAction={(verb) => actOn(listing, verb)}
@@ -271,6 +286,13 @@ export default function DiscoverIndex({ listings, filters, options }: Props) {
                 )}
 
                 <Paginator paginator={listings} />
+
+                <BulkActionBar
+                    entity="aggregator_listing"
+                    selectedIds={selectedIds}
+                    onClear={() => setSelectedIds([])}
+                    only={['listings', 'flash']}
+                />
             </div>
         </AuthenticatedLayout>
     );
@@ -350,6 +372,8 @@ function FilterBar({
 interface ListingCardProps {
     listing: Listing;
     isFocused: boolean;
+    isSelected: boolean;
+    onToggleSelect: () => void;
     editingField: EditableField | null;
     onFocus: () => void;
     onAction: (verb: 'keep' | 'dismiss' | 'snooze' | 'bookmark') => void;
@@ -364,6 +388,8 @@ interface ListingCardProps {
 function ListingCard({
     listing,
     isFocused,
+    isSelected,
+    onToggleSelect,
     editingField,
     onFocus,
     onAction,
@@ -382,11 +408,24 @@ function ListingCard({
             onClick={onFocus}
             className={
                 'rounded-2xl transition-all hover:-translate-y-0.5 hover:shadow-md ' +
+                (isSelected ? 'border-primary ring-1 ring-primary/40 ' : '') +
                 (isFocused ? 'border-primary ring-1 ring-ring/30' : '')
             }
         >
             <CardContent className="space-y-2 p-4">
                 <div className="flex items-baseline justify-between gap-4">
+                    <div className="flex min-w-0 items-start gap-3">
+                        <input
+                            type="checkbox"
+                            className="mt-1 size-4 shrink-0 rounded border-input"
+                            aria-label={`Select ${listing.parsed_role_title ?? 'listing'}`}
+                            checked={isSelected}
+                            onClick={(e) => e.stopPropagation()}
+                            onChange={(e) => {
+                                e.stopPropagation();
+                                onToggleSelect();
+                            }}
+                        />
                     <div className="min-w-0 space-y-1">
                         <div className="flex flex-wrap items-baseline gap-2">
                             <h3 className="text-base font-semibold">
@@ -494,6 +533,7 @@ function ListingCard({
                                 parsed by v<span className="tabular-nums">{listing.parser_version}</span>
                             </p>
                         )}
+                    </div>
                     </div>
                     <div className="flex shrink-0 gap-1">
                         {listing.url && (
