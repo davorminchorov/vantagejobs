@@ -48,7 +48,10 @@ export default function FundingCandidatesPage({ candidates }: Props) {
                 ) : (
                     <div className="space-y-3">
                         {candidates.map((c) => (
-                            <Card key={c.id}>
+                            <Card
+                                key={c.id}
+                                className="transition-all hover:-translate-y-0.5 hover:shadow-md"
+                            >
                                 <CardHeader className="flex flex-row items-start justify-between space-y-0 gap-4">
                                     <div className="space-y-1">
                                         <CardTitle className="text-base font-semibold leading-snug">
@@ -56,7 +59,7 @@ export default function FundingCandidatesPage({ candidates }: Props) {
                                                 href={c.url}
                                                 target="_blank"
                                                 rel="noopener noreferrer"
-                                                className="hover:underline"
+                                                className="hover:text-teal-700 hover:underline"
                                             >
                                                 {c.title}
                                             </a>
@@ -64,12 +67,17 @@ export default function FundingCandidatesPage({ candidates }: Props) {
                                         <div className="text-sm text-muted-foreground">
                                             <Link
                                                 href={`/companies/${c.company.id}`}
-                                                className="hover:underline"
+                                                className="hover:text-teal-700 hover:underline"
                                             >
                                                 {c.company.name}
                                             </Link>
                                             {c.published_at ? (
-                                                <span> · {new Date(c.published_at).toLocaleDateString()}</span>
+                                                <span>
+                                                    {' · '}
+                                                    <span className="font-mono tabular-nums">
+                                                        {new Date(c.published_at).toLocaleDateString()}
+                                                    </span>
+                                                </span>
                                             ) : null}
                                         </div>
                                     </div>

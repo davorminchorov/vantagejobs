@@ -68,11 +68,11 @@ function BucketTable({ rows }: { rows: BucketRow[] }) {
             <TableBody>
                 {rows.map((r) => (
                     <TableRow key={r.label}>
-                        <TableCell className="font-medium">{r.label}</TableCell>
-                        <TableCell className="text-right tabular-nums">{r.sample_count}</TableCell>
-                        <TableCell className="text-right tabular-nums">{fmtUsd(r.p25)}</TableCell>
-                        <TableCell className="text-right tabular-nums">{fmtUsd(r.median)}</TableCell>
-                        <TableCell className="text-right tabular-nums">{fmtUsd(r.p75)}</TableCell>
+                        <TableCell className="font-medium text-foreground">{r.label}</TableCell>
+                        <TableCell className="text-right font-mono tabular-nums">{r.sample_count}</TableCell>
+                        <TableCell className="text-right font-mono tabular-nums">{fmtUsd(r.p25)}</TableCell>
+                        <TableCell className="text-right font-mono tabular-nums">{fmtUsd(r.median)}</TableCell>
+                        <TableCell className="text-right font-mono tabular-nums">{fmtUsd(r.p75)}</TableCell>
                     </TableRow>
                 ))}
             </TableBody>
@@ -86,7 +86,7 @@ export default function CompInsightsPage({ byRoleFamily, byGeography, byCompany 
             <Head title="Compensation insights" />
             <div className="space-y-6">
                 <header>
-                    <h1 className="text-2xl font-semibold tracking-tight">Compensation insights</h1>
+                    <h1 className="text-2xl font-semibold tracking-tight text-foreground">Compensation insights</h1>
                     <p className="text-sm text-muted-foreground">
                         Aggregated midpoint USD compensation across parsed listings. Excludes
                         dismissed, duplicate, and auto-dismissed listings.
@@ -95,7 +95,7 @@ export default function CompInsightsPage({ byRoleFamily, byGeography, byCompany 
 
                 <Card>
                     <CardHeader>
-                        <CardTitle className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+                        <CardTitle className="font-mono text-sm font-semibold uppercase tracking-wide text-muted-foreground">
                             By role family
                         </CardTitle>
                     </CardHeader>
@@ -106,7 +106,7 @@ export default function CompInsightsPage({ byRoleFamily, byGeography, byCompany 
 
                 <Card>
                     <CardHeader>
-                        <CardTitle className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+                        <CardTitle className="font-mono text-sm font-semibold uppercase tracking-wide text-muted-foreground">
                             By geography
                         </CardTitle>
                     </CardHeader>
@@ -117,7 +117,7 @@ export default function CompInsightsPage({ byRoleFamily, byGeography, byCompany 
 
                 <Card>
                     <CardHeader>
-                        <CardTitle className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+                        <CardTitle className="font-mono text-sm font-semibold uppercase tracking-wide text-muted-foreground">
                             By company (≥ 3 samples)
                         </CardTitle>
                     </CardHeader>
@@ -138,18 +138,18 @@ export default function CompInsightsPage({ byRoleFamily, byGeography, byCompany 
                                 <TableBody>
                                     {byCompany.map((r) => (
                                         <TableRow key={r.company_id}>
-                                            <TableCell className="font-medium">
+                                            <TableCell className="font-medium text-foreground">
                                                 <Link
                                                     href={`/companies/${r.company_id}`}
-                                                    className="hover:underline"
+                                                    className="text-teal-700 hover:underline dark:text-teal-300"
                                                 >
                                                     {r.company_name}
                                                 </Link>
                                             </TableCell>
-                                            <TableCell className="text-right tabular-nums">{r.sample_count}</TableCell>
-                                            <TableCell className="text-right tabular-nums">{fmtUsd(r.p25)}</TableCell>
-                                            <TableCell className="text-right tabular-nums">{fmtUsd(r.median)}</TableCell>
-                                            <TableCell className="text-right tabular-nums">{fmtUsd(r.p75)}</TableCell>
+                                            <TableCell className="text-right font-mono tabular-nums">{r.sample_count}</TableCell>
+                                            <TableCell className="text-right font-mono tabular-nums">{fmtUsd(r.p25)}</TableCell>
+                                            <TableCell className="text-right font-mono tabular-nums">{fmtUsd(r.median)}</TableCell>
+                                            <TableCell className="text-right font-mono tabular-nums">{fmtUsd(r.p75)}</TableCell>
                                         </TableRow>
                                     ))}
                                 </TableBody>

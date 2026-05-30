@@ -90,19 +90,19 @@ function ErrorRow({ entry, index }: { entry: ErrorEntry; index: number }) {
     const ctxShown = ctxTruncated && ! open ? ctx.slice(0, 1024) + '\n…' : ctx;
 
     return (
-        <li className="border-t px-6 py-3">
+        <li className="border-border border-t px-6 py-3">
             <div className="flex items-start gap-3">
-                <span className="text-muted-foreground text-xs font-mono">#{index + 1}</span>
+                <span className="text-muted-foreground font-mono text-xs tabular-nums">#{index + 1}</span>
                 <div className="flex-1 space-y-2">
                     <p className="text-sm">{entry.message}</p>
                     {ctx !== null && (
-                        <pre className="bg-muted/50 overflow-x-auto rounded p-2 font-mono text-xs">{ctxShown}</pre>
+                        <pre className="bg-muted/50 overflow-x-auto rounded-md p-2 font-mono text-xs">{ctxShown}</pre>
                     )}
                     {ctxTruncated && (
                         <button
                             type="button"
                             onClick={() => setOpen(! open)}
-                            className="text-primary text-xs hover:underline"
+                            className="text-sm text-teal-700 hover:underline dark:text-teal-300"
                         >
                             {open ? 'Collapse' : 'Show full context'}
                         </button>
@@ -119,22 +119,24 @@ export default function RunsShow({ run, errors, artifacts }: Props) {
             <Head title={`Run #${run.id}`} />
             <div className="mx-auto max-w-7xl space-y-6 px-4 py-8 sm:px-6 lg:px-8">
                 <header className="flex flex-col gap-2">
-                    <Link href="/admin/runs" className="text-muted-foreground text-xs hover:underline">
+                    <Link href="/admin/runs" className="text-sm text-teal-700 hover:underline dark:text-teal-300">
                         ← All runs
                     </Link>
                     <div className="flex flex-wrap items-center gap-3">
-                        <h1 className="text-2xl font-semibold tracking-tight">Run #{run.id}</h1>
-                        <span className={'rounded px-2 py-0.5 text-xs uppercase ' + statusBadge(run.status)}>
+                        <h1 className="text-2xl font-semibold tracking-tight text-foreground">
+                            Run #<span className="font-mono tabular-nums">{run.id}</span>
+                        </h1>
+                        <span className={'rounded-full px-2.5 py-0.5 font-mono text-xs uppercase tracking-wide ' + statusBadge(run.status)}>
                             {run.status}
                         </span>
-                        <Badge variant="outline" className="text-xs uppercase">
+                        <Badge variant="outline" className="font-mono text-xs uppercase tracking-wide">
                             {run.source_kind}
                         </Badge>
-                        <span className="text-sm">{run.source_label}</span>
+                        <span className="text-sm text-muted-foreground">{run.source_label}</span>
                     </div>
                 </header>
 
-                <Card>
+                <Card className="rounded-2xl border-border bg-card shadow-sm">
                     <CardHeader>
                         <CardTitle className="text-sm">Summary</CardTitle>
                     </CardHeader>
@@ -142,35 +144,35 @@ export default function RunsShow({ run, errors, artifacts }: Props) {
                         <dl className="grid grid-cols-2 gap-4 text-sm sm:grid-cols-4">
                             <div>
                                 <dt className="text-muted-foreground text-xs">Started</dt>
-                                <dd>{run.started_at ? new Date(run.started_at).toLocaleString() : '—'}</dd>
+                                <dd className="font-mono tabular-nums">{run.started_at ? new Date(run.started_at).toLocaleString() : '—'}</dd>
                             </div>
                             <div>
                                 <dt className="text-muted-foreground text-xs">Finished</dt>
-                                <dd>{run.finished_at ? new Date(run.finished_at).toLocaleString() : '—'}</dd>
+                                <dd className="font-mono tabular-nums">{run.finished_at ? new Date(run.finished_at).toLocaleString() : '—'}</dd>
                             </div>
                             <div>
                                 <dt className="text-muted-foreground text-xs">Duration</dt>
-                                <dd>{formatDuration(run.duration_seconds)}</dd>
+                                <dd className="font-mono tabular-nums">{formatDuration(run.duration_seconds)}</dd>
                             </div>
                             <div>
                                 <dt className="text-muted-foreground text-xs">Source</dt>
-                                <dd>{run.source}</dd>
+                                <dd className="font-mono">{run.source}</dd>
                             </div>
                             <div>
                                 <dt className="text-muted-foreground text-xs">Fetched</dt>
-                                <dd className="tabular-nums">{run.fetched}</dd>
+                                <dd className="font-mono tabular-nums">{run.fetched}</dd>
                             </div>
                             <div>
                                 <dt className="text-muted-foreground text-xs">New</dt>
-                                <dd className="tabular-nums">{run.new_count}</dd>
+                                <dd className="font-mono tabular-nums">{run.new_count}</dd>
                             </div>
                             <div>
                                 <dt className="text-muted-foreground text-xs">Closed</dt>
-                                <dd className="tabular-nums">{run.closed_count}</dd>
+                                <dd className="font-mono tabular-nums">{run.closed_count}</dd>
                             </div>
                             <div>
                                 <dt className="text-muted-foreground text-xs">Errors</dt>
-                                <dd className={'tabular-nums ' + (run.error_count > 0 ? 'text-red-600 dark:text-red-400' : '')}>
+                                <dd className={'font-mono tabular-nums ' + (run.error_count > 0 ? 'text-red-700 dark:text-red-300' : '')}>
                                     {run.error_count}
                                 </dd>
                             </div>
@@ -178,15 +180,17 @@ export default function RunsShow({ run, errors, artifacts }: Props) {
                     </CardContent>
                 </Card>
 
-                <Card>
+                <Card className="rounded-2xl border-border bg-card shadow-sm">
                     <CardHeader>
-                        <CardTitle className="text-sm">Errors ({errors.length})</CardTitle>
+                        <CardTitle className="text-sm">
+                            Errors (<span className="font-mono tabular-nums">{errors.length}</span>)
+                        </CardTitle>
                     </CardHeader>
                     <CardContent className="p-0">
                         {errors.length === 0 ? (
                             <p className="px-6 py-4 text-sm text-muted-foreground">No errors recorded for this run.</p>
                         ) : (
-                            <ul className="divide-y">
+                            <ul className="divide-border divide-y">
                                 {errors.map((entry, idx) => (
                                     <ErrorRow key={idx} entry={entry} index={idx} />
                                 ))}
@@ -195,19 +199,21 @@ export default function RunsShow({ run, errors, artifacts }: Props) {
                     </CardContent>
                 </Card>
 
-                <Card>
+                <Card className="rounded-2xl border-border bg-card shadow-sm">
                     <CardHeader>
-                        <CardTitle className="text-sm">Artifacts ({artifacts.length})</CardTitle>
+                        <CardTitle className="text-sm">
+                            Artifacts (<span className="font-mono tabular-nums">{artifacts.length}</span>)
+                        </CardTitle>
                     </CardHeader>
                     <CardContent className="p-0">
                         {artifacts.length === 0 ? (
                             <p className="px-6 py-4 text-sm text-muted-foreground">
-                                No artifacts captured for this run. (Phase 1 ATS scrapes don't write artifacts, and aggregator runs that finished before step 7 won't have any.)
+                                No artifacts captured for this run. (Phase 1 ATS scrapes don&apos;t write artifacts, and aggregator runs that finished before step 7 won&apos;t have any.)
                             </p>
                         ) : (
                             <div className="overflow-x-auto">
                                 <table className="w-full text-sm">
-                                    <thead className="bg-muted/50 text-xs uppercase tracking-wide">
+                                    <thead className="bg-muted/50 font-mono text-xs uppercase tracking-wide text-muted-foreground">
                                         <tr>
                                             <th className="px-4 py-2 text-left">Fetched</th>
                                             <th className="px-4 py-2 text-left">Connector</th>
@@ -218,19 +224,19 @@ export default function RunsShow({ run, errors, artifacts }: Props) {
                                             <th className="px-4 py-2 text-right"></th>
                                         </tr>
                                     </thead>
-                                    <tbody className="divide-y">
+                                    <tbody className="divide-border divide-y">
                                         {artifacts.map((artifact) => (
                                             <tr key={artifact.id} className={artifact.expired ? 'opacity-50' : ''}>
-                                                <td className="px-4 py-2 whitespace-nowrap">
+                                                <td className="px-4 py-2 whitespace-nowrap font-mono text-xs tabular-nums">
                                                     {artifact.fetched_at ? new Date(artifact.fetched_at).toLocaleString() : '—'}
                                                 </td>
                                                 <td className="px-4 py-2 font-mono text-xs">{artifact.connector}</td>
                                                 <td className="px-4 py-2 font-mono text-xs" title={artifact.request_endpoint}>
                                                     {truncate(artifact.request_endpoint, 80)}
                                                 </td>
-                                                <td className="px-4 py-2 text-right tabular-nums">{artifact.http_status ?? '—'}</td>
-                                                <td className="px-4 py-2 text-right tabular-nums">{formatBytes(artifact.size_bytes)}</td>
-                                                <td className="px-4 py-2 whitespace-nowrap text-xs">
+                                                <td className="px-4 py-2 text-right font-mono tabular-nums">{artifact.http_status ?? '—'}</td>
+                                                <td className="px-4 py-2 text-right font-mono tabular-nums">{formatBytes(artifact.size_bytes)}</td>
+                                                <td className="px-4 py-2 whitespace-nowrap font-mono text-xs tabular-nums">
                                                     {artifact.retained_until ? new Date(artifact.retained_until).toLocaleString() : '—'}
                                                 </td>
                                                 <td className="px-4 py-2 text-right">
@@ -241,7 +247,7 @@ export default function RunsShow({ run, errors, artifacts }: Props) {
                                                     ) : artifact.download_url ? (
                                                         <a
                                                             href={artifact.download_url}
-                                                            className="text-primary text-xs hover:underline"
+                                                            className="text-sm text-teal-700 hover:underline dark:text-teal-300"
                                                         >
                                                             Download
                                                         </a>

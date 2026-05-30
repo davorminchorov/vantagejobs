@@ -27,15 +27,17 @@ export default function HiringInsightsPage({ global, companies }: Props) {
             <Head title="Hiring trends" />
             <div className="space-y-6">
                 <header>
-                    <h1 className="text-2xl font-semibold tracking-tight">Hiring trends (A-tier)</h1>
+                    <h1 className="text-2xl font-semibold tracking-tight text-foreground">
+                        Hiring trends (A-tier)
+                    </h1>
                     <p className="text-sm text-muted-foreground">
                         Daily snapshots across active A-tier companies, last 90 days.
                     </p>
                 </header>
 
-                <Card>
+                <Card className="rounded-2xl border border-border bg-card shadow-sm">
                     <CardHeader>
-                        <CardTitle className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+                        <CardTitle className="font-mono text-sm font-medium uppercase tracking-wide text-muted-foreground">
                             Global volume
                         </CardTitle>
                     </CardHeader>
@@ -46,10 +48,16 @@ export default function HiringInsightsPage({ global, companies }: Props) {
 
                 <div className="grid gap-4 lg:grid-cols-2">
                     {companies.map((c) => (
-                        <Card key={c.id}>
+                        <Card
+                            key={c.id}
+                            className="rounded-2xl border border-border bg-card shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md"
+                        >
                             <CardHeader className="flex flex-row items-center justify-between space-y-0">
-                                <CardTitle className="text-sm font-semibold">
-                                    <Link href={`/companies/${c.id}`} className="hover:underline">
+                                <CardTitle className="text-sm font-medium">
+                                    <Link
+                                        href={`/companies/${c.id}`}
+                                        className="text-teal-700 hover:underline dark:text-teal-400"
+                                    >
                                         {c.name}
                                     </Link>
                                 </CardTitle>

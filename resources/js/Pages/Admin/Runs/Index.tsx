@@ -160,7 +160,7 @@ export default function RunsIndex({ runs, filters, options, health }: Props) {
                 </header>
 
                 {health.length > 0 && (
-                    <Card className="border-amber-500/50">
+                    <Card className="rounded-2xl border-amber-500/50">
                         <CardHeader>
                             <CardTitle className="text-sm">Source health — {health.length} {health.length === 1 ? 'source needs attention' : 'sources need attention'}</CardTitle>
                         </CardHeader>
@@ -172,7 +172,7 @@ export default function RunsIndex({ runs, filters, options, health }: Props) {
                                         key={`${h.kind}-${h.value}`}
                                         onClick={() => filterToSource(h.value)}
                                         title={h.reason}
-                                        className="rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-1.5 text-left text-xs font-medium text-amber-800 hover:bg-amber-500/20 dark:text-amber-200"
+                                        className="rounded-full border border-amber-500/40 bg-amber-500/10 px-3 py-1.5 text-left text-xs font-medium text-amber-700 hover:bg-amber-500/20 dark:text-amber-300"
                                     >
                                         <span className="block font-semibold">{h.label}</span>
                                         <span className="text-amber-700/80 dark:text-amber-300/80">{h.reason}</span>
@@ -183,7 +183,7 @@ export default function RunsIndex({ runs, filters, options, health }: Props) {
                     </Card>
                 )}
 
-                <Card>
+                <Card className="rounded-2xl">
                     <CardHeader>
                         <CardTitle className="text-sm">Filters</CardTitle>
                     </CardHeader>
@@ -270,7 +270,7 @@ export default function RunsIndex({ runs, filters, options, health }: Props) {
                                                 type="button"
                                                 onClick={() => toggleSource(opt.value)}
                                                 className={
-                                                    'rounded-md border px-2.5 py-1 text-xs ' +
+                                                    'rounded-full border px-2.5 py-1 text-xs ' +
                                                     (active
                                                         ? 'border-primary bg-primary text-primary-foreground'
                                                         : 'border-input bg-background hover:bg-accent')
@@ -286,10 +286,11 @@ export default function RunsIndex({ runs, filters, options, health }: Props) {
                     </CardContent>
                 </Card>
 
-                <Card>
+                <Card className="rounded-2xl">
                     <CardHeader>
                         <CardTitle className="text-sm">
-                            {runs.meta.total} {runs.meta.total === 1 ? 'run' : 'runs'}
+                            <span className="font-mono tabular-nums">{runs.meta.total}</span>{' '}
+                            {runs.meta.total === 1 ? 'run' : 'runs'}
                         </CardTitle>
                     </CardHeader>
                     <CardContent className="p-0">
@@ -298,7 +299,7 @@ export default function RunsIndex({ runs, filters, options, health }: Props) {
                         ) : (
                             <div className="overflow-x-auto">
                                 <table className="w-full text-sm">
-                                    <thead className="bg-muted/50 text-xs uppercase tracking-wide">
+                                    <thead className="bg-muted/50 font-mono text-xs uppercase tracking-wide">
                                         <tr>
                                             <th className="px-4 py-2 text-left">Started</th>
                                             <th className="px-4 py-2 text-left">Duration</th>
@@ -314,24 +315,24 @@ export default function RunsIndex({ runs, filters, options, health }: Props) {
                                     <tbody className="divide-y">
                                         {runs.data.map((run) => (
                                             <tr key={run.id} className="hover:bg-accent/40">
-                                                <td className="px-4 py-2 whitespace-nowrap">
+                                                <td className="px-4 py-2 font-mono tabular-nums whitespace-nowrap">
                                                     {run.started_at ? new Date(run.started_at).toLocaleString() : '—'}
                                                 </td>
-                                                <td className="px-4 py-2">{formatDuration(run.duration_seconds)}</td>
+                                                <td className="px-4 py-2 font-mono tabular-nums">{formatDuration(run.duration_seconds)}</td>
                                                 <td className="px-4 py-2">
-                                                    <Badge variant="outline" className="text-xs uppercase">
+                                                    <Badge variant="outline" className="font-mono text-xs uppercase">
                                                         {run.source_kind}
                                                     </Badge>
                                                 </td>
                                                 <td className="px-4 py-2">{run.source_label}</td>
                                                 <td className="px-4 py-2">
-                                                    <span className={'rounded px-2 py-0.5 text-xs uppercase ' + statusBadge(run.status)}>
+                                                    <span className={'rounded-full px-2 py-0.5 font-mono text-xs uppercase ' + statusBadge(run.status)}>
                                                         {run.status}
                                                     </span>
                                                 </td>
-                                                <td className="px-4 py-2 text-right tabular-nums">{run.fetched}</td>
-                                                <td className="px-4 py-2 text-right tabular-nums">{run.new_count}</td>
-                                                <td className={'px-4 py-2 text-right tabular-nums ' + (run.error_count > 0 ? 'text-red-600 dark:text-red-400' : '')}>
+                                                <td className="px-4 py-2 text-right font-mono tabular-nums">{run.fetched}</td>
+                                                <td className="px-4 py-2 text-right font-mono tabular-nums">{run.new_count}</td>
+                                                <td className={'px-4 py-2 text-right font-mono tabular-nums ' + (run.error_count > 0 ? 'text-red-600 dark:text-red-400' : '')}>
                                                     {run.error_count}
                                                 </td>
                                                 <td className="px-4 py-2 text-right">
@@ -349,7 +350,8 @@ export default function RunsIndex({ runs, filters, options, health }: Props) {
                         {runs.meta.last_page > 1 && (
                             <div className="flex items-center justify-between border-t px-6 py-3 text-xs">
                                 <span className="text-muted-foreground">
-                                    Page {runs.meta.current_page} of {runs.meta.last_page}
+                                    Page <span className="font-mono tabular-nums">{runs.meta.current_page}</span> of{' '}
+                                    <span className="font-mono tabular-nums">{runs.meta.last_page}</span>
                                 </span>
                                 <div className="flex gap-2">
                                     {runs.links.prev && (

@@ -43,9 +43,9 @@ export default function ImportMapPage({ headers, mapping, preview, row_count, or
             <div className="space-y-6">
                 <header className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
                     <div>
-                        <h1 className="text-2xl font-semibold tracking-tight">Step 2 — Map columns</h1>
+                        <h1 className="text-2xl font-semibold tracking-tight text-foreground">Step 2 — Map columns</h1>
                         <p className="text-sm text-muted-foreground">
-                            {row_count.toLocaleString()} rows
+                            <span className="font-mono tabular-nums">{row_count.toLocaleString()}</span> rows
                             {original_name ? ` from ${original_name}` : ''}. Tell us which CSV column feeds each field.
                         </p>
                     </div>
@@ -55,7 +55,7 @@ export default function ImportMapPage({ headers, mapping, preview, row_count, or
                 </header>
 
                 <form onSubmit={submit} className="space-y-6">
-                    <Card>
+                    <Card className="rounded-2xl border-border bg-card shadow-sm">
                         <CardHeader>
                             <CardTitle>Column mapping</CardTitle>
                             <CardDescription>
@@ -96,7 +96,7 @@ export default function ImportMapPage({ headers, mapping, preview, row_count, or
                                                 ))}
                                             </select>
                                             {form.errors[`mapping.${field}` as keyof typeof form.errors] ? (
-                                                <span className="text-xs text-destructive">
+                                                <span className="text-sm text-destructive">
                                                     {form.errors[`mapping.${field}` as keyof typeof form.errors] as string}
                                                 </span>
                                             ) : null}
@@ -107,10 +107,12 @@ export default function ImportMapPage({ headers, mapping, preview, row_count, or
                         </CardContent>
                     </Card>
 
-                    <Card>
+                    <Card className="rounded-2xl border-border bg-card shadow-sm">
                         <CardHeader>
                             <CardTitle>Preview</CardTitle>
-                            <CardDescription>First {preview.length} mapped rows.</CardDescription>
+                            <CardDescription>
+                                First <span className="font-mono tabular-nums">{preview.length}</span> mapped rows.
+                            </CardDescription>
                         </CardHeader>
                         <CardContent className="p-0">
                             <Table>
@@ -127,9 +129,9 @@ export default function ImportMapPage({ headers, mapping, preview, row_count, or
                                             {fields.map((field) => (
                                                 <TableCell key={field}>
                                                     {row[field] ? (
-                                                        <span className="text-sm">{row[field]}</span>
+                                                        <span className="font-mono text-sm">{row[field]}</span>
                                                     ) : (
-                                                        <span className="text-xs text-muted-foreground">—</span>
+                                                        <span className="font-mono text-xs text-muted-foreground">—</span>
                                                     )}
                                                 </TableCell>
                                             ))}
@@ -142,14 +144,20 @@ export default function ImportMapPage({ headers, mapping, preview, row_count, or
 
                     <div className="flex items-center gap-3">
                         <Button type="submit" disabled={form.processing || missingRequired.length > 0}>
-                            {form.processing ? 'Importing…' : `Import ${row_count.toLocaleString()} rows`}
+                            {form.processing ? (
+                                'Importing…'
+                            ) : (
+                                <>
+                                    Import <span className="font-mono tabular-nums">{row_count.toLocaleString()}</span> rows
+                                </>
+                            )}
                         </Button>
                         {missingRequired.length > 0 ? (
-                            <span className="text-xs text-destructive">
+                            <span className="text-sm text-destructive">
                                 Map {missingRequired.map(humanize).join(', ')} to continue.
                             </span>
                         ) : (
-                            <span className="text-xs text-muted-foreground">
+                            <span className="text-sm text-muted-foreground">
                                 Duplicates by domain will be skipped. The action is reversible row-by-row from Companies.
                             </span>
                         )}

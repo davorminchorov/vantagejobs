@@ -80,12 +80,12 @@ function classifyConfidence(p50: number | null, thresholds: Thresholds): string 
         return 'bg-muted text-muted-foreground';
     }
     if (p50 < thresholds.red_below) {
-        return 'bg-red-100 text-red-900 dark:bg-red-950/60 dark:text-red-200';
+        return 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-200';
     }
     if (p50 < thresholds.green_at_or_above) {
-        return 'bg-amber-100 text-amber-900 dark:bg-amber-950/60 dark:text-amber-200';
+        return 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-200';
     }
-    return 'bg-emerald-100 text-emerald-900 dark:bg-emerald-950/60 dark:text-emerald-200';
+    return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-200';
 }
 
 function summarizeValue(value: unknown): string {
@@ -161,7 +161,9 @@ export default function AdminParserIndex({
                     <div>
                         <h1 className="text-2xl font-semibold tracking-tight">Parser stats</h1>
                         <p className="text-sm text-muted-foreground">
-                            Per-source confidence + corrections, last {window_days} days. Reads roll-up
+                            Per-source confidence + corrections, last{' '}
+                            <span className="font-mono tabular-nums">{window_days}</span> days. Reads
+                            roll-up
                             tables only — refresh once the daily 02:30 UTC job has run.
                         </p>
                     </div>
@@ -176,13 +178,14 @@ export default function AdminParserIndex({
                 </header>
 
                 {!has_rollup_data && (
-                    <Card>
+                    <Card className="rounded-2xl">
                         <CardHeader>
                             <CardTitle>No roll-up data yet</CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-3">
                             <p className="text-sm text-muted-foreground">
-                                Roll-up rows are missing for the last {window_days} days. This is
+                                Roll-up rows are missing for the last{' '}
+                                <span className="font-mono tabular-nums">{window_days}</span> days. This is
                                 normal on a fresh install — the scheduled job runs at 02:30 UTC.
                             </p>
                             <Button onClick={runRollup}>Run rollup now</Button>
@@ -192,7 +195,7 @@ export default function AdminParserIndex({
 
                 {has_rollup_data && (
                     <>
-                        <Card>
+                        <Card className="rounded-2xl">
                             <CardHeader>
                                 <CardTitle>Median confidence by source × field</CardTitle>
                             </CardHeader>
@@ -226,7 +229,7 @@ export default function AdminParserIndex({
                                                         <td key={field} className="px-1 py-1 text-center">
                                                             <a
                                                                 href={discoverLinkFor(source.type)}
-                                                                className={`block rounded-md px-2 py-2 text-xs hover:ring-2 hover:ring-offset-1 ${klass}`}
+                                                                className={`block rounded-md px-2 py-2 font-mono text-xs tabular-nums hover:ring-2 hover:ring-ring hover:ring-offset-1 ${klass}`}
                                                                 title={
                                                                     cell
                                                                         ? `n=${cell.n}  p50=${p50?.toFixed(2) ?? '—'}  corrections=${cell.n_corrections}`
@@ -246,7 +249,7 @@ export default function AdminParserIndex({
                         </Card>
 
                         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-                            <Card>
+                            <Card className="rounded-2xl">
                                 <CardHeader>
                                     <CardTitle>Top 10 lowest-confidence (weighted)</CardTitle>
                                 </CardHeader>
@@ -265,7 +268,7 @@ export default function AdminParserIndex({
                                                     <div>
                                                         <a
                                                             href={discoverLinkFor(row.source_type)}
-                                                            className="font-medium hover:underline"
+                                                            className="font-medium text-teal-700 hover:underline dark:text-teal-300"
                                                         >
                                                             {row.source_type}
                                                         </a>
@@ -273,7 +276,12 @@ export default function AdminParserIndex({
                                                         <span>{row.field}</span>
                                                     </div>
                                                     <div className="text-right text-xs text-muted-foreground">
-                                                        p50 {row.p50.toFixed(2)} · n {row.n}
+                                                        p50{' '}
+                                                        <span className="font-mono tabular-nums">
+                                                            {row.p50.toFixed(2)}
+                                                        </span>{' '}
+                                                        · n{' '}
+                                                        <span className="font-mono tabular-nums">{row.n}</span>
                                                     </div>
                                                 </li>
                                             ))}
@@ -282,7 +290,7 @@ export default function AdminParserIndex({
                                 </CardContent>
                             </Card>
 
-                            <Card>
+                            <Card className="rounded-2xl">
                                 <CardHeader>
                                     <CardTitle>Corrections by source × field</CardTitle>
                                 </CardHeader>
@@ -301,14 +309,14 @@ export default function AdminParserIndex({
                                                     <div>
                                                         <a
                                                             href={discoverLinkFor(row.source_type)}
-                                                            className="font-medium hover:underline"
+                                                            className="font-medium text-teal-700 hover:underline dark:text-teal-300"
                                                         >
                                                             {row.source_type}
                                                         </a>
                                                         <span className="text-muted-foreground"> · </span>
                                                         <span>{row.field}</span>
                                                     </div>
-                                                    <div className="text-right text-xs">
+                                                    <div className="text-right font-mono text-xs tabular-nums">
                                                         {row.n_corrections}
                                                     </div>
                                                 </li>
@@ -319,7 +327,7 @@ export default function AdminParserIndex({
                             </Card>
                         </div>
 
-                        <Card>
+                        <Card className="rounded-2xl">
                             <CardHeader>
                                 <CardTitle>Recent corrections</CardTitle>
                             </CardHeader>
@@ -352,27 +360,33 @@ export default function AdminParserIndex({
                                         <tbody>
                                             {recent_corrections.map((c) => (
                                                 <tr key={c.id} className="border-t">
-                                                    <td className="whitespace-nowrap px-4 py-2 text-xs text-muted-foreground">
+                                                    <td className="whitespace-nowrap px-4 py-2 font-mono text-xs tabular-nums text-muted-foreground">
                                                         {c.created_at}
                                                     </td>
                                                     <td className="px-4 py-2">{c.source_type}</td>
                                                     <td className="px-4 py-2">
                                                         <a
                                                             href={discoverLinkFor(c.source_type)}
-                                                            className="hover:underline"
+                                                            className="text-teal-700 hover:underline dark:text-teal-300"
                                                         >
-                                                            {c.listing_role_title ?? `#${c.listing_id}`}
+                                                            {c.listing_role_title ?? (
+                                                                <span className="font-mono tabular-nums">
+                                                                    {`#${c.listing_id}`}
+                                                                </span>
+                                                            )}
                                                         </a>
                                                     </td>
                                                     <td className="px-4 py-2">{c.field}</td>
                                                     <td className="px-4 py-2 text-xs">
-                                                        <span className="text-muted-foreground">
+                                                        <span className="font-mono text-muted-foreground">
                                                             {summarizeValue(c.old_value)}
                                                         </span>
                                                         <span className="px-1 text-muted-foreground">
                                                             →
                                                         </span>
-                                                        <span>{summarizeValue(c.new_value)}</span>
+                                                        <span className="font-mono">
+                                                            {summarizeValue(c.new_value)}
+                                                        </span>
                                                     </td>
                                                 </tr>
                                             ))}
@@ -391,7 +405,7 @@ export default function AdminParserIndex({
                         <DialogTitle>Re-parse every listing?</DialogTitle>
                         <DialogDescription>
                             This re-runs the parser against every aggregator listing for this tenant.
-                            Type <code className="rounded bg-muted px-1">YES</code> below to confirm.
+                            Type <code className="rounded bg-muted px-1 font-mono">YES</code> below to confirm.
                         </DialogDescription>
                     </DialogHeader>
                     <div className="space-y-2">
