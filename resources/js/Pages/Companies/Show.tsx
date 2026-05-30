@@ -149,7 +149,7 @@ export default function ShowCompanyPage({
                 <header className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
                     <div className="space-y-1">
                         <div className="flex items-center gap-2">
-                            <Link href="/companies" className="text-xs text-muted-foreground hover:text-foreground">
+                            <Link href="/companies" className="text-sm text-teal-700 hover:text-teal-800">
                                 ← Companies
                             </Link>
                         </div>
@@ -162,7 +162,9 @@ export default function ShowCompanyPage({
                             {company.ats_type ? (
                                 <span className="text-xs text-muted-foreground">
                                     {humanize(company.ats_type)}
-                                    {company.ats_slug ? ` · ${company.ats_slug}` : ''}
+                                    {company.ats_slug ? (
+                                        <span className="font-mono"> · {company.ats_slug}</span>
+                                    ) : ''}
                                 </span>
                             ) : null}
                         </div>
@@ -190,9 +192,9 @@ export default function ShowCompanyPage({
 
                     <TabsContent value="overview">
                         {quality ? <QualityCard quality={quality} /> : null}
-                        <Card className="mb-4">
+                        <Card className="mb-4 rounded-2xl">
                             <CardHeader>
-                                <CardTitle className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+                                <CardTitle className="font-mono text-sm font-semibold uppercase tracking-wide text-muted-foreground">
                                     Hiring volume (90 days)
                                 </CardTitle>
                             </CardHeader>
@@ -219,9 +221,9 @@ export default function ShowCompanyPage({
 function Overview({ company, counts, tags }: { company: CompanyDetail; counts: Counts; tags: TagSummary[] }) {
     return (
         <div className="grid gap-4 lg:grid-cols-2">
-            <Card className="lg:col-span-2">
+            <Card className="rounded-2xl lg:col-span-2">
                 <CardHeader>
-                    <CardTitle className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+                    <CardTitle className="font-mono text-sm font-semibold uppercase tracking-wide text-muted-foreground">
                         Tags
                     </CardTitle>
                 </CardHeader>
@@ -230,9 +232,9 @@ function Overview({ company, counts, tags }: { company: CompanyDetail; counts: C
                 </CardContent>
             </Card>
 
-            <Card>
+            <Card className="rounded-2xl">
                 <CardHeader>
-                    <CardTitle className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+                    <CardTitle className="font-mono text-sm font-semibold uppercase tracking-wide text-muted-foreground">
                         Identity
                     </CardTitle>
                 </CardHeader>
@@ -244,23 +246,23 @@ function Overview({ company, counts, tags }: { company: CompanyDetail; counts: C
                 </CardContent>
             </Card>
 
-            <Card>
+            <Card className="rounded-2xl">
                 <CardHeader>
-                    <CardTitle className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+                    <CardTitle className="font-mono text-sm font-semibold uppercase tracking-wide text-muted-foreground">
                         ATS
                     </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-2 text-sm">
                     <DefinitionRow label="Type" value={company.ats_type ? humanize(company.ats_type) : null} />
                     <DefinitionRow label="Slug" value={company.ats_slug} />
-                    <DefinitionRow label="ETag" value={company.etag} />
-                    <DefinitionRow label="Last-Modified" value={company.last_modified} />
+                    <DefinitionRow label="ETag" value={company.etag} mono />
+                    <DefinitionRow label="Last-Modified" value={company.last_modified} mono />
                 </CardContent>
             </Card>
 
-            <Card>
+            <Card className="rounded-2xl">
                 <CardHeader>
-                    <CardTitle className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+                    <CardTitle className="font-mono text-sm font-semibold uppercase tracking-wide text-muted-foreground">
                         Operational
                     </CardTitle>
                 </CardHeader>
@@ -268,46 +270,58 @@ function Overview({ company, counts, tags }: { company: CompanyDetail; counts: C
                     <DefinitionRow
                         label="Last checked"
                         value={company.last_checked_at ? new Date(company.last_checked_at).toLocaleString() : 'Never'}
+                        mono
                     />
                     <DefinitionRow
                         label="Added"
                         value={company.created_at ? new Date(company.created_at).toLocaleDateString() : null}
+                        mono
                     />
                 </CardContent>
             </Card>
 
-            <Card>
+            <Card className="rounded-2xl">
                 <CardHeader>
-                    <CardTitle className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+                    <CardTitle className="font-mono text-sm font-semibold uppercase tracking-wide text-muted-foreground">
                         Counts
                     </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-2 text-sm">
-                    <DefinitionRow label="Open roles" value={String(counts.open_roles)} />
-                    <DefinitionRow label="Total roles tracked" value={String(counts.total_roles)} />
+                    <DefinitionRow label="Open roles" value={String(counts.open_roles)} mono />
+                    <DefinitionRow label="Total roles tracked" value={String(counts.total_roles)} mono />
                 </CardContent>
             </Card>
         </div>
     );
 }
 
-function DefinitionRow({ label, value, link }: { label: string; value: string | null; link?: boolean }) {
+function DefinitionRow({
+    label,
+    value,
+    link,
+    mono,
+}: {
+    label: string;
+    value: string | null;
+    link?: boolean;
+    mono?: boolean;
+}) {
     return (
         <div className="flex flex-col gap-0.5 sm:flex-row sm:items-baseline sm:justify-between">
-            <span className="text-xs uppercase tracking-wide text-muted-foreground">{label}</span>
+            <span className="font-mono text-xs uppercase tracking-wide text-muted-foreground">{label}</span>
             {value === null || value === '' ? (
-                <span className="text-xs text-muted-foreground">—</span>
+                <span className="text-sm text-muted-foreground">—</span>
             ) : link ? (
                 <a
                     href={value}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="break-all text-sm text-foreground hover:underline"
+                    className="break-all text-sm text-teal-700 hover:text-teal-800 hover:underline"
                 >
                     {value}
                 </a>
             ) : (
-                <span className="break-all text-sm">{value}</span>
+                <span className={`break-all text-sm${mono ? ' font-mono tabular-nums' : ''}`}>{value}</span>
             )}
         </div>
     );
@@ -316,16 +330,16 @@ function DefinitionRow({ label, value, link }: { label: string; value: string | 
 function RolesTable({ roles }: { roles: PaginatedRoles }) {
     if (roles.data.length === 0) {
         return (
-            <Card>
+            <Card className="rounded-2xl">
                 <CardContent className="px-6 py-12 text-center text-sm text-muted-foreground">
-                    No roles tracked yet. Run <code className="rounded bg-muted px-1 py-0.5">scrape:company</code> to fetch.
+                    No roles tracked yet. Run <code className="rounded bg-muted px-1 py-0.5 font-mono">scrape:company</code> to fetch.
                 </CardContent>
             </Card>
         );
     }
 
     return (
-        <Card>
+        <Card className="rounded-2xl">
             <CardContent className="p-0">
                 <Table>
                     <TableHeader>
@@ -350,7 +364,7 @@ function RolesTable({ roles }: { roles: PaginatedRoles }) {
                                                     href={role.url}
                                                     target="_blank"
                                                     rel="noopener noreferrer"
-                                                    className="font-medium hover:underline"
+                                                    className="font-medium text-teal-700 hover:text-teal-800 hover:underline"
                                                 >
                                                     {role.title}
                                                 </a>
@@ -375,13 +389,13 @@ function RolesTable({ roles }: { roles: PaginatedRoles }) {
                                         </div>
                                     </TableCell>
                                     <TableCell>
-                                        {comp ? <span className="text-sm">{comp}</span> : <span className="text-xs text-muted-foreground">—</span>}
+                                        {comp ? <span className="font-mono text-sm tabular-nums">{comp}</span> : <span className="text-sm text-muted-foreground">—</span>}
                                     </TableCell>
                                     <TableCell>
-                                        <span className="text-xs text-muted-foreground">{role.source}</span>
+                                        <span className="font-mono text-xs text-muted-foreground">{role.source}</span>
                                     </TableCell>
                                     <TableCell>
-                                        <span className="text-xs text-muted-foreground">
+                                        <span className="font-mono text-xs tabular-nums text-muted-foreground">
                                             {role.last_seen_at ? new Date(role.last_seen_at).toLocaleDateString() : '—'}
                                         </span>
                                     </TableCell>
@@ -405,7 +419,7 @@ function RolesTable({ roles }: { roles: PaginatedRoles }) {
 function Timeline({ items }: { items: TimelineItem[] }) {
     if (items.length === 0) {
         return (
-            <Card>
+            <Card className="rounded-2xl">
                 <CardContent className="px-6 py-12 text-center text-sm text-muted-foreground">
                     Nothing has happened here yet.
                 </CardContent>
@@ -414,7 +428,7 @@ function Timeline({ items }: { items: TimelineItem[] }) {
     }
 
     return (
-        <Card>
+        <Card className="rounded-2xl">
             <CardContent className="p-0">
                 <ol className="divide-y">
                     {items.map((item) => (
@@ -426,7 +440,7 @@ function Timeline({ items }: { items: TimelineItem[] }) {
                                 </div>
                                 {item.body ? <p className="text-xs text-muted-foreground">{item.body}</p> : null}
                             </div>
-                            <span className="text-xs text-muted-foreground">
+                            <span className="font-mono text-xs tabular-nums text-muted-foreground">
                                 {item.at ? new Date(item.at).toLocaleString() : ''}
                             </span>
                         </li>
@@ -439,12 +453,12 @@ function Timeline({ items }: { items: TimelineItem[] }) {
 
 function GraveyardBanner({ info }: { info: GraveyardInfo }) {
     return (
-        <Card className="border-destructive/40 bg-destructive/5">
+        <Card className="rounded-2xl border-destructive/40 bg-destructive/5">
             <CardContent className="space-y-2 py-4 text-sm">
                 <div className="flex flex-wrap items-center gap-2">
                     <Badge variant="destructive">Graveyard</Badge>
                     <span className="text-xs text-muted-foreground">
-                        Demoted {info.demoted_at ? new Date(info.demoted_at).toLocaleString() : ''}
+                        Demoted <span className="font-mono tabular-nums">{info.demoted_at ? new Date(info.demoted_at).toLocaleString() : ''}</span>
                     </span>
                     {info.tags.map((tag) => (
                         <Badge key={tag} variant="outline">
@@ -492,11 +506,11 @@ function GraveyardControls({
             </Button>
             {open ? (
                 <div className="absolute right-0 z-10 mt-2 w-80 space-y-3 rounded-md border bg-background p-3 shadow-md">
-                    <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    <p className="font-mono text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                         Reason
                     </p>
                     <textarea
-                        className="min-h-20 w-full rounded border bg-background p-2 text-sm"
+                        className="min-h-20 w-full rounded-md border bg-background p-2 text-sm"
                         placeholder="Why are you graveyarding this company?"
                         value={demote.data.reason}
                         onChange={(e) => demote.setData('reason', e.target.value)}
@@ -508,10 +522,10 @@ function GraveyardControls({
                                 <button
                                     key={tag}
                                     type="button"
-                                    className={`rounded border px-2 py-1 text-xs ${
+                                    className={`rounded-full border px-2.5 py-1 text-xs ${
                                         active
-                                            ? 'border-foreground bg-foreground text-background'
-                                            : 'border-muted text-muted-foreground hover:text-foreground'
+                                            ? 'border-primary bg-primary text-primary-foreground'
+                                            : 'border-border text-muted-foreground hover:text-foreground'
                                     }`}
                                     onClick={() =>
                                         demote.setData(
@@ -567,22 +581,22 @@ function QualityCard({ quality }: { quality: QualityInfo }) {
         score >= 80 ? 'text-emerald-600' : score >= 60 ? 'text-amber-600' : 'text-red-600';
 
     return (
-        <Card className="mb-4">
+        <Card className="mb-4 rounded-2xl">
             <CardHeader className="flex flex-row items-baseline justify-between space-y-0">
-                <CardTitle className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+                <CardTitle className="font-mono text-sm font-semibold uppercase tracking-wide text-muted-foreground">
                     Quality score
                 </CardTitle>
                 <span className="text-xs text-muted-foreground">
-                    as of {quality.snapshot_date ?? '—'}
+                    as of <span className="font-mono tabular-nums">{quality.snapshot_date ?? '—'}</span>
                 </span>
             </CardHeader>
             <CardContent className="space-y-3">
                 <div className="flex items-baseline gap-2">
-                    <span className={`text-4xl font-bold tabular-nums ${tone}`}>{score}</span>
-                    <span className="text-sm text-muted-foreground">/ 100</span>
+                    <span className={`font-mono text-4xl font-semibold tabular-nums ${tone}`}>{score}</span>
+                    <span className="font-mono text-sm tabular-nums text-muted-foreground">/ 100</span>
                 </div>
                 <table className="w-full text-sm">
-                    <thead className="text-xs uppercase tracking-wide text-muted-foreground">
+                    <thead className="font-mono text-xs uppercase tracking-wide text-muted-foreground">
                         <tr>
                             <th className="text-left font-semibold">Factor</th>
                             <th className="text-right font-semibold">Weight</th>
@@ -593,12 +607,12 @@ function QualityCard({ quality }: { quality: QualityInfo }) {
                         {Object.entries(quality.breakdown).map(([key, factor]) => (
                             <tr key={key} className="border-t">
                                 <td className="py-1.5">{FACTOR_LABEL[key] ?? key}</td>
-                                <td className="text-right tabular-nums text-muted-foreground">
+                                <td className="text-right font-mono tabular-nums text-muted-foreground">
                                     {factor.weight > 0 ? '+' : ''}
                                     {factor.weight}
                                 </td>
                                 <td
-                                    className={`text-right tabular-nums font-semibold ${
+                                    className={`text-right font-mono font-semibold tabular-nums ${
                                         factor.contribution > 0
                                             ? 'text-emerald-600'
                                             : factor.contribution < 0
@@ -613,7 +627,7 @@ function QualityCard({ quality }: { quality: QualityInfo }) {
                         ))}
                     </tbody>
                 </table>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-sm text-muted-foreground">
                     Score starts at the baseline and is adjusted by each factor. Positive
                     factors max at their weight; penalties subtract up to their weight.
                 </p>

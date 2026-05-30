@@ -69,40 +69,40 @@ export default function SourcesIndex({ sources, rules }: Props) {
                     </p>
                 </header>
 
-                <Card>
+                <Card className="rounded-2xl border border-border bg-card shadow-sm">
                     <CardHeader>
                         <CardTitle>Aggregator sources</CardTitle>
                     </CardHeader>
                     <CardContent className="p-0">
-                        <ul className="divide-y">
+                        <ul className="divide-y divide-border">
                             {sources.map((source) => (
                                 <li key={source.id} className="flex flex-col gap-3 px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
                                     <div className="space-y-1">
                                         <div className="flex items-center gap-2">
-                                            <span className="font-medium">{source.name}</span>
+                                            <span className="font-medium text-foreground">{source.name}</span>
                                             <span
                                                 className={
-                                                    'rounded px-2 py-0.5 text-xs uppercase ' +
+                                                    'rounded-full px-2.5 py-0.5 font-mono text-xs uppercase tracking-wide ' +
                                                     (source.enabled
-                                                        ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300'
+                                                        ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-200'
                                                         : 'bg-muted text-muted-foreground')
                                                 }
                                             >
                                                 {source.enabled ? 'Enabled' : 'Disabled'}
                                             </span>
                                             {source.consecutive_failures > 0 && (
-                                                <span className="rounded bg-amber-500/15 px-2 py-0.5 text-xs text-amber-700 dark:text-amber-300">
-                                                    {source.consecutive_failures} consecutive failures
+                                                <span className="rounded-full bg-amber-100 px-2.5 py-0.5 text-xs text-amber-700 dark:bg-amber-900/40 dark:text-amber-200">
+                                                    <span className="font-mono tabular-nums">{source.consecutive_failures}</span> consecutive failures
                                                 </span>
                                             )}
                                         </div>
-                                        <p className="text-xs text-muted-foreground">
-                                            Cadence: every {Math.round(source.cadence_minutes / 60)}h ·
-                                            Last run: {source.last_run_at ? new Date(source.last_run_at).toLocaleString() : 'never'} ·
-                                            Next: {source.next_run_at ? new Date(source.next_run_at).toLocaleString() : '—'}
+                                        <p className="text-sm text-muted-foreground">
+                                            Cadence: every <span className="font-mono tabular-nums">{Math.round(source.cadence_minutes / 60)}</span>h ·
+                                            Last run: <span className="font-mono tabular-nums">{source.last_run_at ? new Date(source.last_run_at).toLocaleString() : 'never'}</span> ·
+                                            Next: <span className="font-mono tabular-nums">{source.next_run_at ? new Date(source.next_run_at).toLocaleString() : '—'}</span>
                                         </p>
                                         {source.last_error && (
-                                            <p className="text-xs text-amber-700 dark:text-amber-300">{source.last_error}</p>
+                                            <p className="text-sm text-amber-700 dark:text-amber-300">{source.last_error}</p>
                                         )}
                                     </div>
                                     <div className="flex shrink-0 gap-2">
@@ -119,7 +119,7 @@ export default function SourcesIndex({ sources, rules }: Props) {
                     </CardContent>
                 </Card>
 
-                <Card>
+                <Card className="rounded-2xl border border-border bg-card shadow-sm">
                     <CardHeader>
                         <CardTitle>Auto-dismiss rules</CardTitle>
                     </CardHeader>
@@ -129,15 +129,18 @@ export default function SourcesIndex({ sources, rules }: Props) {
                                 No employers are auto-dismissed right now. Rules arm after 3 manual dismissals of the same employer.
                             </p>
                         ) : (
-                            <ul className="divide-y">
+                            <ul className="divide-y divide-border">
                                 {activeRules.map((rule) => (
                                     <li key={rule.id} className="flex items-center justify-between px-6 py-3 text-sm">
                                         <div>
-                                            <span className="font-medium">{rule.display_name}</span>
-                                            <span className="ml-2 text-xs text-muted-foreground">
-                                                {rule.dismiss_count} dismissals
+                                            <span className="font-medium text-foreground">{rule.display_name}</span>
+                                            <span className="ml-2 text-sm text-muted-foreground">
+                                                <span className="font-mono tabular-nums">{rule.dismiss_count}</span> dismissals
                                                 {rule.last_dismissed_at &&
-                                                    ` · last ${new Date(rule.last_dismissed_at).toLocaleDateString()}`}
+                                                    ` · last `}
+                                                {rule.last_dismissed_at && (
+                                                    <span className="font-mono tabular-nums">{new Date(rule.last_dismissed_at).toLocaleDateString()}</span>
+                                                )}
                                             </span>
                                         </div>
                                         <Button size="sm" variant="ghost" onClick={() => revoke(rule.id)}>
@@ -148,8 +151,8 @@ export default function SourcesIndex({ sources, rules }: Props) {
                             </ul>
                         )}
                         {inactiveRules.length > 0 && (
-                            <p className="border-t px-6 py-3 text-xs text-muted-foreground">
-                                {inactiveRules.length} {inactiveRules.length === 1 ? 'employer has' : 'employers have'} dismissals on file but
+                            <p className="border-t border-border px-6 py-3 text-sm text-muted-foreground">
+                                <span className="font-mono tabular-nums">{inactiveRules.length}</span> {inactiveRules.length === 1 ? 'employer has' : 'employers have'} dismissals on file but
                                 no active rule yet.
                             </p>
                         )}

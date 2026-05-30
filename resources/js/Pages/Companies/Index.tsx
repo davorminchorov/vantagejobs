@@ -249,6 +249,7 @@ export default function CompaniesIndexPage({ companies, filters, options }: Prop
                                 disabled={isPlaceholder}
                                 onClick={() => applyChip(chip)}
                                 title={isPlaceholder ? 'Deferred to Phase 4' : undefined}
+                                className="rounded-full"
                             >
                                 {chip.label}
                             </Button>
@@ -276,7 +277,7 @@ export default function CompaniesIndexPage({ companies, filters, options }: Prop
                             </Sheet>
                         </div>
 
-                        <Card>
+                        <Card className="rounded-2xl border-border">
                             <CardContent className="p-0">
                                 {companies.data.length === 0 ? (
                                     <div className="px-6 py-12 text-center text-sm text-muted-foreground">
@@ -307,7 +308,7 @@ export default function CompaniesIndexPage({ companies, filters, options }: Prop
                                                                 {company.name}
                                                             </Link>
                                                             {company.domain ? (
-                                                                <span className="text-xs text-muted-foreground">
+                                                                <span className="font-mono text-xs text-muted-foreground">
                                                                     {company.domain}
                                                                 </span>
                                                             ) : null}
@@ -328,7 +329,7 @@ export default function CompaniesIndexPage({ companies, filters, options }: Prop
                                                             <div className="flex flex-col">
                                                                 <span className="text-sm">{humanize(company.ats_type)}</span>
                                                                 {company.ats_slug ? (
-                                                                    <span className="text-xs text-muted-foreground">
+                                                                    <span className="font-mono text-xs text-muted-foreground">
                                                                         {company.ats_slug}
                                                                     </span>
                                                                 ) : null}
@@ -339,13 +340,17 @@ export default function CompaniesIndexPage({ companies, filters, options }: Prop
                                                     </TableCell>
                                                     <TableCell>
                                                         {company.open_roles_count > 0 ? (
-                                                            <Badge variant="success">{company.open_roles_count}</Badge>
+                                                            <Badge variant="success" className="font-mono tabular-nums">
+                                                                {company.open_roles_count}
+                                                            </Badge>
                                                         ) : (
-                                                            <span className="text-xs text-muted-foreground">0</span>
+                                                            <span className="font-mono text-xs tabular-nums text-muted-foreground">
+                                                                0
+                                                            </span>
                                                         )}
                                                     </TableCell>
                                                     <TableCell>
-                                                        <span className="text-xs text-muted-foreground">
+                                                        <span className="font-mono text-xs tabular-nums text-muted-foreground">
                                                             {company.last_checked_at
                                                                 ? new Date(company.last_checked_at).toLocaleString()
                                                                 : 'Never'}
@@ -389,7 +394,7 @@ interface FilterPanelProps {
 
 function FilterPanel({ local, options, patchFilters, onClear, hasAny }: FilterPanelProps) {
     return (
-        <Card>
+        <Card className="rounded-2xl border-border">
             <CardHeader className="space-y-4">
                 <div className="flex items-center justify-between">
                     <CardTitle className="text-sm font-medium">Filters</CardTitle>
@@ -452,7 +457,7 @@ function FilterPanel({ local, options, patchFilters, onClear, hasAny }: FilterPa
                     ]}
                 />
                 <div className="space-y-1.5">
-                    <label className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                    <label className="font-mono text-xs font-medium uppercase tracking-wide text-muted-foreground">
                         Domain contains
                     </label>
                     <Input
@@ -463,7 +468,9 @@ function FilterPanel({ local, options, patchFilters, onClear, hasAny }: FilterPa
                     />
                 </div>
                 <div className="space-y-1.5">
-                    <label className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Search</label>
+                    <label className="font-mono text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                        Search
+                    </label>
                     <Input
                         type="search"
                         placeholder="Name, domain, slug…"
@@ -473,7 +480,7 @@ function FilterPanel({ local, options, patchFilters, onClear, hasAny }: FilterPa
                 </div>
 
                 <div className="space-y-2 border-t pt-3">
-                    <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                    <p className="font-mono text-xs font-medium uppercase tracking-wide text-muted-foreground">
                         Coming in Phase 5+
                     </p>
                     <DeferredRow label="Size" title="Headcount not yet tracked" />
@@ -496,7 +503,7 @@ interface MultiCheckboxGroupProps {
 function MultiCheckboxGroup({ label, selected, onChange, options }: MultiCheckboxGroupProps) {
     return (
         <fieldset className="space-y-1.5">
-            <legend className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</legend>
+            <legend className="font-mono text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</legend>
             <div className="flex flex-col gap-1">
                 {options.map((option) => {
                     const checked = selected.includes(option.value);
@@ -527,7 +534,7 @@ interface SingleSelectProps {
 function SingleSelect({ label, value, onChange, options }: SingleSelectProps) {
     return (
         <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</label>
+            <label className="font-mono text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</label>
             <select
                 value={value ?? ''}
                 onChange={(e) => onChange(e.target.value === '' ? null : e.target.value)}
@@ -572,7 +579,7 @@ function Pagination({ links }: PaginationProps) {
                     return (
                         <span
                             key={`${label}-${index}`}
-                            className="px-2 py-1 text-sm text-muted-foreground"
+                            className="px-2 py-1 font-mono text-sm tabular-nums text-muted-foreground"
                             dangerouslySetInnerHTML={{ __html: label }}
                         />
                     );
@@ -584,10 +591,10 @@ function Pagination({ links }: PaginationProps) {
                         preserveScroll
                         preserveState
                         className={cn(
-                            'rounded-md border px-3 py-1 text-sm transition',
+                            'rounded-md border px-3 py-1 font-mono text-sm tabular-nums transition',
                             link.active
                                 ? 'border-primary bg-primary text-primary-foreground'
-                                : 'hover:bg-accent hover:text-accent-foreground',
+                                : 'border-border hover:bg-accent hover:text-accent-foreground',
                         )}
                         dangerouslySetInnerHTML={{ __html: label }}
                     />

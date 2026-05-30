@@ -20,12 +20,12 @@ export default function EditCompanyPage({ company, options }: Props) {
             <Head title={`Edit ${company.name}`} />
             <div className="mx-auto max-w-2xl space-y-6">
                 <header>
-                    <h1 className="text-2xl font-semibold tracking-tight">Edit {company.name}</h1>
+                    <h1 className="text-2xl font-semibold tracking-tight text-foreground">Edit {company.name}</h1>
                     <p className="text-sm text-muted-foreground">
                         Changing the ATS slug will redirect future scrapes. Existing roles stay linked.
                     </p>
                 </header>
-                <Card>
+                <Card className="rounded-2xl border-border shadow-sm">
                     <CardHeader>
                         <CardTitle>Details</CardTitle>
                     </CardHeader>

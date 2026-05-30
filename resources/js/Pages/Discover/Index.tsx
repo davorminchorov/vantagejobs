@@ -224,9 +224,9 @@ export default function DiscoverIndex({ listings, filters, options }: Props) {
             <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
                 <header className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
                     <div>
-                        <h1 className="text-2xl font-semibold tracking-tight">Discover</h1>
+                        <h1 className="text-2xl font-semibold tracking-tight text-foreground">Discover</h1>
                         <p className="text-sm text-muted-foreground">
-                            {listings.total} {listings.total === 1 ? 'listing' : 'listings'} · J/↓ next · ↑ prev · K keep · X dismiss · S snooze · B bookmark
+                            <span className="font-mono tabular-nums">{listings.total}</span> {listings.total === 1 ? 'listing' : 'listings'} · J/↓ next · ↑ prev · K keep · X dismiss · S snooze · B bookmark
                         </p>
                     </div>
                     <form onSubmit={onSearchSubmit} className="flex gap-2">
@@ -278,7 +278,7 @@ export default function DiscoverIndex({ listings, filters, options }: Props) {
 
 function StatusTabs({ current, onChange }: { current: string; onChange: (s: string) => void }) {
     return (
-        <div className="mb-4 flex flex-wrap gap-1 border-b">
+        <div className="mb-4 flex flex-wrap gap-1 border-b border-border">
             {STATUS_TABS.map((status) => {
                 const active = current === status;
                 return (
@@ -289,7 +289,7 @@ function StatusTabs({ current, onChange }: { current: string; onChange: (s: stri
                         className={
                             'px-3 py-2 text-sm capitalize transition-colors ' +
                             (active
-                                ? 'border-b-2 border-foreground text-foreground'
+                                ? 'border-b-2 border-primary text-foreground'
                                 : 'text-muted-foreground hover:text-foreground')
                         }
                     >
@@ -317,7 +317,7 @@ function FilterBar({
                 <select
                     value={filters.source ?? ''}
                     onChange={(e) => onChange({ source: e.currentTarget.value || null })}
-                    className="rounded border bg-background px-2 py-1"
+                    className="rounded-md border border-border bg-background px-2 py-1"
                 >
                     <option value="">All</option>
                     {options.sources.map((s) => (
@@ -380,7 +380,10 @@ function ListingCard({
             ref={ref}
             tabIndex={0}
             onClick={onFocus}
-            className={isFocused ? 'border-foreground ring-1 ring-foreground/20' : ''}
+            className={
+                'rounded-2xl transition-all hover:-translate-y-0.5 hover:shadow-md ' +
+                (isFocused ? 'border-primary ring-1 ring-ring/30' : '')
+            }
         >
             <CardContent className="space-y-2 p-4">
                 <div className="flex items-baseline justify-between gap-4">
@@ -430,7 +433,7 @@ function ListingCard({
                                 />
                             </span>
                             {listing.source && (
-                                <span className="rounded bg-secondary px-2 py-0.5 text-xs uppercase">
+                                <span className="rounded-full bg-secondary px-2 py-0.5 font-mono text-xs uppercase tracking-wide text-secondary-foreground">
                                     {listing.source.type}
                                 </span>
                             )}
@@ -478,7 +481,7 @@ function ListingCard({
                                 {listing.stack_tags.slice(0, 8).map((tag) => (
                                     <span
                                         key={tag}
-                                        className="rounded bg-muted px-1.5 py-0.5 text-xs text-muted-foreground"
+                                        className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground"
                                     >
                                         {tag}
                                     </span>
@@ -487,8 +490,8 @@ function ListingCard({
                             </div>
                         )}
                         {listing.parser_version != null && (
-                            <p className="pt-1 text-[10px] uppercase tracking-wide text-muted-foreground/60">
-                                parsed by v{listing.parser_version}
+                            <p className="pt-1 font-mono text-[10px] uppercase tracking-wide text-muted-foreground/60">
+                                parsed by v<span className="tabular-nums">{listing.parser_version}</span>
                             </p>
                         )}
                     </div>
@@ -578,7 +581,7 @@ function ListingCard({
                             e.stopPropagation();
                             onSaveFixture();
                         }}
-                        className="text-[10px] uppercase tracking-wide text-muted-foreground/60 hover:text-foreground"
+                        className="font-mono text-[10px] uppercase tracking-wide text-muted-foreground/60 hover:text-foreground"
                         title="Save as test fixture"
                     >
                         save fixture
@@ -589,7 +592,7 @@ function ListingCard({
                             e.stopPropagation();
                             setMenuOpen((v) => !v);
                         }}
-                        className="text-[10px] uppercase tracking-wide text-muted-foreground/60 hover:text-foreground"
+                        className="font-mono text-[10px] uppercase tracking-wide text-muted-foreground/60 hover:text-foreground"
                         title="More actions"
                         aria-expanded={menuOpen}
                     >
@@ -597,7 +600,7 @@ function ListingCard({
                     </button>
                     {menuOpen && (
                         <div
-                            className="absolute right-0 top-full z-10 mt-1 flex flex-col gap-1 rounded border bg-background p-1 text-xs shadow-md"
+                            className="absolute right-0 top-full z-10 mt-1 flex flex-col gap-1 rounded-md border border-border bg-popover p-1 text-xs text-popover-foreground shadow-md"
                             onClick={(e) => e.stopPropagation()}
                         >
                             <button
@@ -640,6 +643,7 @@ function EditablePill({ listing, field, label, emphasis = 'default', onEdit }: E
     const slot = listing.parsed?.[PARSED_SLOT_FOR_FIELD[field]] ?? null;
     const confidence = slot?.confidence;
     const muted = emphasis === 'muted';
+    const isNumeric = field === 'comp_min_usd' || field === 'comp_max_usd';
 
     return (
         <button
@@ -650,11 +654,11 @@ function EditablePill({ listing, field, label, emphasis = 'default', onEdit }: E
             }}
             className={
                 'group inline-flex items-center gap-1 rounded px-1 hover:bg-muted/60 ' +
-                (muted ? 'text-xs uppercase tracking-wide text-muted-foreground' : '')
+                (muted ? 'font-mono text-xs uppercase tracking-wide text-muted-foreground' : '')
             }
             title={`Edit ${field.replace('_', ' ')}`}
         >
-            <span>{label}</span>
+            <span className={isNumeric ? 'font-mono tabular-nums' : undefined}>{label}</span>
             {confidence != null && confidence < 0.7 && (
                 <Badge variant="warning" className="hidden px-1 py-0 text-[10px] group-hover:inline-flex">
                     {Math.round(confidence * 100)}%
@@ -688,14 +692,14 @@ function CorrectionEditor({ listing, field, onSave, onCancel, onSaveFixture }: C
         <form
             onSubmit={submit}
             onClick={(e) => e.stopPropagation()}
-            className="mt-2 space-y-2 rounded border bg-muted/30 p-3 text-sm"
+            className="mt-2 space-y-2 rounded-2xl border border-border bg-muted/30 p-3 text-sm"
         >
             <div className="flex flex-wrap items-center gap-2">
                 <span className="font-medium">Edit {field.replace('_', ' ')}</span>
                 {slot && (
                     <>
                         <Badge variant={slot.confidence >= 0.7 ? 'success' : 'warning'}>
-                            confidence {(slot.confidence * 100).toFixed(0)}%
+                            confidence <span className="font-mono tabular-nums">{(slot.confidence * 100).toFixed(0)}%</span>
                         </Badge>
                         <Badge variant="outline">source: {slot.source}</Badge>
                     </>
@@ -703,7 +707,7 @@ function CorrectionEditor({ listing, field, onSave, onCancel, onSaveFixture }: C
             </div>
 
             {slot?.evidence && (
-                <p className="rounded bg-background px-2 py-1 text-xs text-muted-foreground">
+                <p className="rounded-md bg-background px-2 py-1 text-xs text-muted-foreground">
                     <span className="font-medium text-foreground">evidence:</span> {slot.evidence}
                 </p>
             )}
@@ -730,7 +734,7 @@ function CorrectionEditor({ listing, field, onSave, onCancel, onSaveFixture }: C
             </div>
 
             {showRaw && (
-                <pre className="max-h-64 overflow-auto rounded border bg-background p-2 text-[11px] leading-tight">
+                <pre className="max-h-64 overflow-auto rounded-md border border-border bg-background p-2 font-mono text-[11px] leading-tight">
                     {JSON.stringify(listing.raw, null, 2)}
                 </pre>
             )}
@@ -752,7 +756,7 @@ function FieldInput({
             <select
                 value={typeof value === 'string' ? value : 'unknown'}
                 onChange={(e) => onChange(e.currentTarget.value)}
-                className="w-full rounded border bg-background px-2 py-1"
+                className="w-full rounded-md border border-border bg-background px-2 py-1"
             >
                 <option value="remote">remote</option>
                 <option value="hybrid">hybrid</option>
@@ -844,7 +848,8 @@ function Paginator<T>({ paginator }: { paginator: Paginator<T> }) {
     return (
         <div className="mt-6 flex items-center justify-between text-sm text-muted-foreground">
             <span>
-                Page {paginator.current_page} of {paginator.last_page}
+                Page <span className="font-mono tabular-nums">{paginator.current_page}</span> of{' '}
+                <span className="font-mono tabular-nums">{paginator.last_page}</span>
             </span>
             <div className="flex gap-2">
                 {paginator.prev_page_url && (
@@ -853,7 +858,7 @@ function Paginator<T>({ paginator }: { paginator: Paginator<T> }) {
                         preserveScroll
                         preserveState
                         only={['listings']}
-                        className="rounded border px-3 py-1 hover:bg-muted"
+                        className="rounded-md border border-border px-3 py-1 hover:bg-muted"
                     >
                         Prev
                     </Link>
@@ -864,7 +869,7 @@ function Paginator<T>({ paginator }: { paginator: Paginator<T> }) {
                         preserveScroll
                         preserveState
                         only={['listings']}
-                        className="rounded border px-3 py-1 hover:bg-muted"
+                        className="rounded-md border border-border px-3 py-1 hover:bg-muted"
                     >
                         Next
                     </Link>

@@ -14,14 +14,14 @@ export default function CreateCompanyPage({ options }: Props) {
             <Head title="Add company" />
             <div className="mx-auto max-w-2xl space-y-6">
                 <header>
-                    <h1 className="text-2xl font-semibold tracking-tight">Add a company</h1>
+                    <h1 className="text-2xl font-semibold tracking-tight text-foreground">Add a company</h1>
                     <p className="text-sm text-muted-foreground">
-                        Paste a careers URL — we'll detect Greenhouse, Lever, or Ashby automatically.
+                        Paste a careers URL — we&apos;ll detect Greenhouse, Lever, or Ashby automatically.
                     </p>
                 </header>
-                <Card>
+                <Card className="rounded-2xl">
                     <CardHeader>
-                        <CardTitle>Details</CardTitle>
+                        <CardTitle className="text-lg">Details</CardTitle>
                         <CardDescription>You can refine everything later. Defaults to Tier C, status researching.</CardDescription>
                     </CardHeader>
                     <CardContent>
