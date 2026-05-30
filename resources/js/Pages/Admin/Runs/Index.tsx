@@ -1,5 +1,5 @@
-import { Head, Link, router } from '@inertiajs/react';
-import { useMemo, useState } from 'react';
+import { Head, Link, router, usePage, usePoll } from '@inertiajs/react';
+import { useEffect, useMemo, useState } from 'react';
 
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Badge } from '@/components/ui/badge';
@@ -36,6 +36,22 @@ interface HealthEntry {
     consecutive_failures: number;
 }
 
+interface AtsTypeOption {
+    value: string;
+    label: string;
+    count: number;
+}
+
+interface AggregatorOption {
+    value: string;
+    label: string;
+}
+
+interface TriggerOptions {
+    ats_types: AtsTypeOption[];
+    aggregators: AggregatorOption[];
+}
+
 interface FilterState {
     date_from: string | null;
     date_to: string | null;
@@ -58,6 +74,8 @@ interface Props {
         sources: SourceOption[];
     };
     health: HealthEntry[];
+    triggerOptions: TriggerOptions;
+    activeRunCount: number;
 }
 
 function statusBadge(status: string): string {
@@ -98,8 +116,42 @@ function buildQuery(filters: Partial<FilterState>): Record<string, string | stri
     return out;
 }
 
-export default function RunsIndex({ runs, filters, options, health }: Props) {
+export default function RunsIndex({ runs, filters, options, health, triggerOptions, activeRunCount }: Props) {
     const [draft, setDraft] = useState<FilterState>(filters);
+
+    const [selectedAggregator, setSelectedAggregator] = useState<string>(
+        triggerOptions.aggregators[0]?.value ?? '',
+    );
+
+    const flash = (usePage().props.flash ?? null) as { success?: string | null; error?: string | null } | null;
+
+    const { start, stop } = usePoll(
+        2500,
+        { only: ['runs', 'health', 'activeRunCount'] },
+        { autoStart: false },
+    );
+
+    // Poll while any scrape is in flight; stop as soon as the count hits zero.
+    useEffect(() => {
+        if (activeRunCount > 0) {
+            start();
+        } else {
+            stop();
+        }
+    }, [activeRunCount, start, stop]);
+
+    function trigger(scope: string) {
+        router.post(
+            '/admin/runs/trigger',
+            { scope },
+            {
+                preserveScroll: true,
+                preserveState: true,
+                only: ['runs', 'health', 'activeRunCount', 'flash'],
+                onSuccess: () => start(),
+            },
+        );
+    }
 
     const sourceKindOptions = useMemo(
         () => ['all', ...options.source_kinds],
@@ -158,6 +210,84 @@ export default function RunsIndex({ runs, filters, options, health }: Props) {
                         Every ATS and aggregator scrape run, newest first. Click a row to drill into errors and captured artifacts.
                     </p>
                 </header>
+
+                {flash?.success && (
+                    <div className="rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-4 py-2 text-sm text-emerald-700 dark:text-emerald-300">
+                        {flash.success}
+                    </div>
+                )}
+
+                <Card className="rounded-2xl">
+                    <CardHeader className="flex flex-row items-center justify-between">
+                        <CardTitle className="text-sm">Run scrapers</CardTitle>
+                        {activeRunCount > 0 && (
+                            <span className="flex items-center gap-1.5 text-xs font-medium text-sky-600 dark:text-sky-400">
+                                <span className="h-2 w-2 animate-pulse rounded-full bg-sky-500" />
+                                {activeRunCount} running
+                            </span>
+                        )}
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <div>
+                            <Button type="button" size="sm" onClick={() => trigger('all')}>
+                                Run everything
+                            </Button>
+                        </div>
+
+                        <div className="flex flex-col gap-2">
+                            <span className="text-xs font-medium">ATS scrapers</span>
+                            <div className="flex flex-wrap gap-1.5">
+                                <Button type="button" size="sm" variant="outline" onClick={() => trigger('ats')}>
+                                    Run all ATS
+                                </Button>
+                                {triggerOptions.ats_types.map((t) => (
+                                    <Button
+                                        key={t.value}
+                                        type="button"
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={() => trigger(`ats:${t.value}`)}
+                                    >
+                                        {t.label} ({t.count})
+                                    </Button>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div className="flex flex-col gap-2">
+                            <span className="text-xs font-medium">Aggregators</span>
+                            <div className="flex flex-wrap items-center gap-1.5">
+                                <Button type="button" size="sm" variant="outline" onClick={() => trigger('aggregators')}>
+                                    Run all aggregators
+                                </Button>
+                                {triggerOptions.aggregators.length > 0 && (
+                                    <>
+                                        <select
+                                            className="border-input bg-background h-9 rounded-md border px-3 text-sm"
+                                            value={selectedAggregator}
+                                            onChange={(e) => setSelectedAggregator(e.target.value)}
+                                        >
+                                            {triggerOptions.aggregators.map((a) => (
+                                                <option key={a.value} value={a.value}>
+                                                    {a.label}
+                                                </option>
+                                            ))}
+                                        </select>
+                                        <Button
+                                            type="button"
+                                            size="sm"
+                                            variant="outline"
+                                            disabled={!selectedAggregator}
+                                            onClick={() => trigger(`aggregator:${selectedAggregator}`)}
+                                        >
+                                            Run
+                                        </Button>
+                                    </>
+                                )}
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
 
                 {health.length > 0 && (
                     <Card className="rounded-2xl border-amber-500/50">
