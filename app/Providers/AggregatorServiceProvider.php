@@ -38,18 +38,40 @@ use App\Scrapers\Aggregator\WorkingNomads\WorkingNomadsScraper;
 use Illuminate\Support\ServiceProvider;
 
 /**
- * Binds the aggregator registry, the shared ParserPipeline (one set of 12
- * extractors used by every aggregator scraper), and the concrete scraper
- * bindings as they're implemented.
+ * Binds the aggregator registry (self-populated in its factory closure with
+ * every concrete scraper), the shared ParserPipeline (one set of 12 extractors
+ * used by every aggregator scraper), and the related scoped services.
  *
  * Scoped (matching ScraperServiceProvider) so Octane resets state between
- * requests rather than holding stale closures forward.
+ * requests rather than holding stale closures forward. Population happens in
+ * the factory closure, not boot(): boot() runs once per process, but a
+ * long-running queue worker (Horizon) flushes scoped instances between jobs, so
+ * a boot-populated registry would be empty for every job after the first.
  */
 final class AggregatorServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
-        $this->app->scoped(AggregatorRegistry::class, fn (): AggregatorRegistry => new AggregatorRegistry());
+        $this->app->scoped(AggregatorRegistry::class, function ($app): AggregatorRegistry {
+            $registry = new AggregatorRegistry();
+            $registry->register($app->make(HackerNewsScraper::class));
+            $registry->register($app->make(RemotiveScraper::class));
+            $registry->register($app->make(HimalayasScraper::class));
+            $registry->register($app->make(WeWorkRemotelyScraper::class));
+            $registry->register($app->make(RemoteOkScraper::class));
+            $registry->register($app->make(FourDayWeekScraper::class));
+            $registry->register($app->make(WorkingNomadsScraper::class));
+            $registry->register($app->make(AdzunaScraper::class));
+            $registry->register($app->make(LarajobsScraper::class));
+            $registry->register($app->make(JobicyScraper::class));
+            $registry->register($app->make(ArbeitnowScraper::class));
+            $registry->register($app->make(PythonOrgScraper::class));
+            $registry->register($app->make(DjangoNewsScraper::class));
+            $registry->register($app->make(ElixirJobsScraper::class));
+            $registry->register($app->make(HexHireScraper::class));
+
+            return $registry;
+        });
 
         $this->app->scoped(SaveFixtureAction::class, fn ($app): SaveFixtureAction => new SaveFixtureAction(
             $app->make(\App\Scrapers\Aggregator\SourceContextFactory::class),
@@ -75,25 +97,5 @@ final class AggregatorServiceProvider extends ServiceProvider
             new VisaSponsorshipExtractor(),
             new ApplyMethodExtractor(),
         ]));
-    }
-
-    public function boot(): void
-    {
-        $registry = $this->app->make(AggregatorRegistry::class);
-        $registry->register($this->app->make(HackerNewsScraper::class));
-        $registry->register($this->app->make(RemotiveScraper::class));
-        $registry->register($this->app->make(HimalayasScraper::class));
-        $registry->register($this->app->make(WeWorkRemotelyScraper::class));
-        $registry->register($this->app->make(RemoteOkScraper::class));
-        $registry->register($this->app->make(FourDayWeekScraper::class));
-        $registry->register($this->app->make(WorkingNomadsScraper::class));
-        $registry->register($this->app->make(AdzunaScraper::class));
-        $registry->register($this->app->make(LarajobsScraper::class));
-        $registry->register($this->app->make(JobicyScraper::class));
-        $registry->register($this->app->make(ArbeitnowScraper::class));
-        $registry->register($this->app->make(PythonOrgScraper::class));
-        $registry->register($this->app->make(DjangoNewsScraper::class));
-        $registry->register($this->app->make(ElixirJobsScraper::class));
-        $registry->register($this->app->make(HexHireScraper::class));
     }
 }

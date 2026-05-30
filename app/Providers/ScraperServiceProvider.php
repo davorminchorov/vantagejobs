@@ -16,32 +16,35 @@ use App\Scrapers\Workable\WorkableScraper;
 use Illuminate\Support\ServiceProvider;
 
 /**
- * Binds the scraper registry as a scoped service and registers each concrete
- * scraper into it. Scoped (not singleton) so Octane wipes the registry between
- * requests rather than holding container-resolved closures across reboots.
+ * Binds the scraper registry as a scoped service, self-populated in its factory
+ * closure with every concrete scraper. Scoped (not singleton) so Octane resets
+ * the registry between requests rather than holding container-resolved closures
+ * across reboots.
  *
- * Concrete scraper bindings (Greenhouse, Lever, Ashby) land here as they're
- * implemented in steps 4-6.
+ * Population MUST happen in the factory closure, not in boot(): boot() runs once
+ * per process, but a long-running queue worker (Horizon) flushes scoped
+ * instances between jobs. A registry populated only at boot would be empty for
+ * every job after the first. Registering inside the closure means the registry
+ * is fully populated every time a fresh scope creates it.
  */
 final class ScraperServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
-        $this->app->scoped(ScraperRegistry::class, fn (): ScraperRegistry => new ScraperRegistry());
-    }
-
-    public function boot(): void
-    {
         $this->mergeConfigFrom(__DIR__.'/../../config/scrapers.php', 'scrapers');
 
-        $registry = $this->app->make(ScraperRegistry::class);
-        $registry->register($this->app->make(GreenhouseScraper::class));
-        $registry->register($this->app->make(LeverScraper::class));
-        $registry->register($this->app->make(AshbyScraper::class));
-        $registry->register($this->app->make(WorkableScraper::class));
-        $registry->register($this->app->make(SmartRecruitersScraper::class));
-        $registry->register($this->app->make(PersonioScraper::class));
-        $registry->register($this->app->make(RecruiteeScraper::class));
-        $registry->register($this->app->make(TeamtailorScraper::class));
+        $this->app->scoped(ScraperRegistry::class, function ($app): ScraperRegistry {
+            $registry = new ScraperRegistry();
+            $registry->register($app->make(GreenhouseScraper::class));
+            $registry->register($app->make(LeverScraper::class));
+            $registry->register($app->make(AshbyScraper::class));
+            $registry->register($app->make(WorkableScraper::class));
+            $registry->register($app->make(SmartRecruitersScraper::class));
+            $registry->register($app->make(PersonioScraper::class));
+            $registry->register($app->make(RecruiteeScraper::class));
+            $registry->register($app->make(TeamtailorScraper::class));
+
+            return $registry;
+        });
     }
 }
