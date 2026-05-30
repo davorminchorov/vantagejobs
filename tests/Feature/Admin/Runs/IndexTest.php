@@ -175,4 +175,49 @@ final class IndexTest extends TestCase
         $this->assertSame('aggregator', $props['health'][0]['kind']);
         $this->assertStringContainsString('no thread found', $props['health'][0]['reason']);
     }
+
+    #[Test]
+    public function it_exposes_trigger_options_and_active_run_count(): void
+    {
+        Company::factory()->create(['ats_type' => 'greenhouse', 'ats_slug' => 'gh-a']);
+        Company::factory()->create(['ats_type' => 'greenhouse', 'ats_slug' => 'gh-b']);
+        Company::factory()->create(['ats_type' => null, 'ats_slug' => null]);
+        AggregatorSource::factory()->ofType(AggregatorSourceType::REMOTIVE)->create();
+
+        // Aggregator-kind running rows (company_id null) so the factory does
+        // not spawn stray ATS companies that would skew the ATS type counts.
+        ScrapeRun::factory()->create([
+            'company_id' => null,
+            'source_kind' => 'aggregator',
+            'source' => 'remotive',
+            'status' => 'running',
+            'started_at' => CarbonImmutable::now()->subMinutes(2),
+            'finished_at' => null,
+        ]);
+        // Stale running row (older than 1h) must not be counted.
+        ScrapeRun::factory()->create([
+            'company_id' => null,
+            'source_kind' => 'aggregator',
+            'source' => 'remotive',
+            'status' => 'running',
+            'started_at' => CarbonImmutable::now()->subHours(3),
+            'finished_at' => null,
+        ]);
+
+        $response = $this->actingAs($this->user)->get('/admin/runs');
+        $response->assertOk();
+        $props = $response->viewData('page')['props'];
+
+        $this->assertSame(1, $props['activeRunCount']);
+
+        $atsTypes = collect($props['triggerOptions']['ats_types']);
+        $greenhouse = $atsTypes->firstWhere('value', 'greenhouse');
+        $this->assertNotNull($greenhouse);
+        $this->assertSame(2, $greenhouse['count']);
+        // A type with zero companies (e.g. lever) is omitted.
+        $this->assertNull($atsTypes->firstWhere('value', 'lever'));
+
+        $aggregators = collect($props['triggerOptions']['aggregators']);
+        $this->assertNotNull($aggregators->firstWhere('value', 'remotive'));
+    }
 }

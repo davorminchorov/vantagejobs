@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Admin\Runs;
 
 use App\Enums\AggregatorSourceType;
+use App\Enums\AtsType;
 use App\Models\AggregatorSource;
 use App\Models\Company;
 use App\Models\ScrapeRun;
@@ -123,7 +124,68 @@ final readonly class IndexController
                 'sources' => $this->sourceOptions(),
             ],
             'health' => $this->sourceHealth(),
+            'triggerOptions' => $this->triggerOptions(),
+            'activeRunCount' => $this->activeRunCount(),
         ]);
+    }
+
+    /**
+     * Targets available for manual triggering: ATS types that have at least one
+     * configured company (with a count), plus every aggregator source.
+     *
+     * @return array{
+     *     ats_types: list<array{value: string, label: string, count: int}>,
+     *     aggregators: list<array{value: string, label: string}>
+     * }
+     */
+    private function triggerOptions(): array
+    {
+        $atsCounts = Company::query()
+            ->whereNotNull('ats_type')
+            ->whereNotNull('ats_slug')
+            ->selectRaw('ats_type, COUNT(*) AS company_count')
+            ->groupBy('ats_type')
+            ->pluck('company_count', 'ats_type');
+
+        $atsTypes = [];
+        foreach (AtsType::cases() as $type) {
+            $count = (int) ($atsCounts[$type->value] ?? 0);
+            if ($count === 0) {
+                continue;
+            }
+            $atsTypes[] = [
+                'value' => $type->value,
+                'label' => ucfirst($type->value),
+                'count' => $count,
+            ];
+        }
+
+        $aggregators = AggregatorSource::query()
+            ->orderBy('name')
+            ->get(['type', 'name'])
+            ->map(static fn (AggregatorSource $s): array => [
+                'value' => $s->type->value,
+                'label' => (string) $s->name,
+            ])
+            ->all();
+
+        return [
+            'ats_types' => $atsTypes,
+            'aggregators' => $aggregators,
+        ];
+    }
+
+    /**
+     * Count of scrape_runs currently in flight (status=running) and started
+     * within the last hour, for the current tenant. Drives the live-poll
+     * indicator on the page.
+     */
+    private function activeRunCount(): int
+    {
+        return ScrapeRun::query()
+            ->where('status', 'running')
+            ->where('started_at', '>=', CarbonImmutable::now()->subHour())
+            ->count();
     }
 
     /**
