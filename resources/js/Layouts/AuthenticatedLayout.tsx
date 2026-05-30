@@ -34,6 +34,7 @@ const NAV_ITEMS: ReadonlyArray<NavItem> = [
     { name: 'Dashboard', href: '/dashboard' },
     { name: 'Companies', href: '/companies' },
     { name: 'Discover', href: '/discover' },
+    { name: 'Insights', href: '/insights/hiring' },
     { name: 'Bookmarks', href: '/bookmarks' },
     { name: 'Runs', href: '/admin/runs' },
     { name: 'Pipeline', href: null },
@@ -46,6 +47,9 @@ function isActive(currentUrl: string, item: NavItem): boolean {
     }
     if (item.href === '/settings/profile') {
         return currentUrl.startsWith('/settings');
+    }
+    if (item.href === '/insights/hiring') {
+        return currentUrl.startsWith('/insights');
     }
     return currentUrl === item.href || currentUrl.startsWith(`${item.href}/`);
 }
