@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Enums\ApplicationSource;
+use App\Enums\PipelineStatus;
 use App\Enums\WorkplaceType;
 use App\Tenancy\BelongsToTenant;
 use Database\Factories\RoleFactory;
@@ -11,6 +13,8 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\MorphToMany;
 
 #[Fillable([
@@ -32,6 +36,14 @@ use Illuminate\Database\Eloquent\Relations\MorphToMany;
     'raw',
     'posted_at',
     'last_seen_at',
+    'pipeline_status',
+    'application_source',
+    'applied_at',
+    'referral_contact_id',
+    'next_action',
+    'next_action_date',
+    'general_notes',
+    'interview_prep',
 ])]
 final class Role extends Model
 {
@@ -51,6 +63,11 @@ final class Role extends Model
             'raw' => 'array',
             'posted_at' => 'immutable_datetime',
             'last_seen_at' => 'immutable_datetime',
+            'pipeline_status' => PipelineStatus::class,
+            'application_source' => ApplicationSource::class,
+            'applied_at' => 'immutable_datetime',
+            'referral_contact_id' => 'integer',
+            'next_action_date' => 'immutable_date',
         ];
     }
 
@@ -68,5 +85,21 @@ final class Role extends Model
     public function company(): BelongsTo
     {
         return $this->belongsTo(Company::class);
+    }
+
+    /**
+     * @return HasMany<RoleStageNote, $this>
+     */
+    public function stageNotes(): HasMany
+    {
+        return $this->hasMany(RoleStageNote::class);
+    }
+
+    /**
+     * @return HasOne<Offer, $this>
+     */
+    public function offer(): HasOne
+    {
+        return $this->hasOne(Offer::class);
     }
 }

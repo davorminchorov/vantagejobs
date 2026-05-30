@@ -21,4 +21,6 @@ enum EventType: string
     case GHOST_DETECTED = 'ghost_detected';
     case ATS_REDETECTED = 'ats_redetected';
     case ATS_REDETECT_FAILED = 'ats_redetect_failed';
+    case ROLE_STATUS_CHANGED = 'role_status_changed';
+    case OFFER_RECORDED = 'offer_recorded';
 }

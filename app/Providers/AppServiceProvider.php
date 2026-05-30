@@ -6,6 +6,7 @@ namespace App\Providers;
 
 use App\Models\AggregatorListing;
 use App\Models\Company;
+use App\Models\Contact;
 use App\Models\Role;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Support\ServiceProvider;
@@ -38,6 +39,7 @@ class AppServiceProvider extends ServiceProvider
             'company' => Company::class,
             'role' => Role::class,
             'aggregator_listing' => AggregatorListing::class,
+            'contact' => Contact::class,
         ]);
     }
 }
