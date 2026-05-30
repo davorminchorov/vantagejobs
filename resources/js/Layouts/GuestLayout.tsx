@@ -9,7 +9,7 @@ interface GuestLayoutProps {
 
 export default function GuestLayout({ children, title }: GuestLayoutProps): ReactNode {
     return (
-        <div className="text-foreground flex min-h-svh w-full flex-col items-center justify-center bg-gradient-to-b from-teal-50 via-background to-background px-4 py-10 sm:px-6">
+        <div className="text-foreground flex min-h-svh w-full flex-col items-center justify-center bg-gradient-to-b from-teal-50 via-background to-background px-4 py-10 sm:px-6 dark:from-teal-950/30">
             <div className="flex w-full max-w-md flex-col items-center gap-6">
                 <a
                     href="/"

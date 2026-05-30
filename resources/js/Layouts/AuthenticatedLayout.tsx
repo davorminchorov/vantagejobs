@@ -82,7 +82,7 @@ export default function AuthenticatedLayout({ children, header }: AuthenticatedL
     return (
         <div className="bg-background text-foreground flex min-h-svh flex-col">
             <header className="bg-background/95 supports-[backdrop-filter]:bg-background/80 sticky top-0 z-40 w-full border-b backdrop-blur">
-                <div className="mx-auto flex h-16 w-full max-w-7xl items-center justify-between gap-2 px-4 sm:px-6">
+                <div className="mx-auto flex h-16 w-full max-w-[1600px] items-center justify-between gap-2 px-4 sm:px-6">
                     <div className="flex items-center gap-2">
                         <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
                             <SheetTrigger asChild>
@@ -236,11 +236,11 @@ export default function AuthenticatedLayout({ children, header }: AuthenticatedL
 
             {header ? (
                 <div className="border-b">
-                    <div className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6">{header}</div>
+                    <div className="mx-auto w-full max-w-[1600px] px-4 py-6 sm:px-6">{header}</div>
                 </div>
             ) : null}
 
-            <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 sm:px-6">{children}</main>
+            <main className="mx-auto w-full max-w-[1600px] flex-1 px-4 py-6 sm:px-6">{children}</main>
 
             <GlobalCommandPalette />
         </div>

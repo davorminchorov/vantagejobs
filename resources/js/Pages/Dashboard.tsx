@@ -25,10 +25,10 @@ interface Props {
 }
 
 const tierPill: Record<string, string> = {
-    A: 'bg-emerald-100 text-emerald-700',
-    B: 'bg-amber-100 text-amber-700',
-    C: 'bg-sky-100 text-sky-700',
-    graveyard: 'bg-rose-100 text-rose-700',
+    A: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-200',
+    B: 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-200',
+    C: 'bg-sky-100 text-sky-700 dark:bg-sky-900/40 dark:text-sky-200',
+    graveyard: 'bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-200',
 };
 
 export default function DashboardPage({
@@ -40,14 +40,13 @@ export default function DashboardPage({
         <AuthenticatedLayout>
             <Head title="Dashboard" />
 
-            <div className="-mx-4 -my-6 min-h-[calc(100svh-4rem)] bg-gradient-to-b from-teal-50 via-white to-white px-4 py-8 text-zinc-900 sm:-mx-6 sm:px-6">
-                <div className="mx-auto max-w-6xl">
+            <div className="text-foreground">
                     <header className="mb-8 flex flex-wrap items-end justify-between gap-4">
                         <div>
-                            <h1 className="bg-gradient-to-r from-teal-600 to-emerald-500 bg-clip-text text-3xl font-semibold tracking-tight text-transparent">
+                            <h1 className="bg-gradient-to-r from-teal-600 to-emerald-500 bg-clip-text text-3xl font-semibold tracking-tight text-transparent dark:from-teal-400 dark:to-emerald-300">
                                 Dashboard
                             </h1>
-                            <p className="mt-1 text-sm text-zinc-500">
+                            <p className="mt-1 text-sm text-muted-foreground">
                                 {companies_count > 0
                                     ? `${companies_count} ${companies_count === 1 ? 'company' : 'companies'} on the watch list.`
                                     : 'No companies on the watch list yet.'}
@@ -59,7 +58,7 @@ export default function DashboardPage({
                     </header>
 
                     {active_auto_dismiss_rules.length > 0 && (
-                        <div className="mb-8 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-amber-200/70 bg-amber-50 px-5 py-4 text-sm text-amber-900 shadow-sm">
+                        <div className="mb-8 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-amber-200/70 bg-amber-50 px-5 py-4 text-sm text-amber-900 shadow-sm dark:border-amber-700/40 dark:bg-amber-900/25 dark:text-amber-100">
                             <p>
                                 <span className="font-semibold">Auto-dismissing</span> listings from{' '}
                                 {active_auto_dismiss_rules
@@ -72,7 +71,7 @@ export default function DashboardPage({
                             </p>
                             <Link
                                 href="/discover/sources"
-                                className="shrink-0 rounded-full bg-white px-4 py-1.5 text-xs font-semibold text-amber-700 shadow-sm hover:bg-amber-100"
+                                className="shrink-0 rounded-full bg-background px-4 py-1.5 text-xs font-semibold text-amber-700 shadow-sm hover:bg-amber-100 dark:bg-amber-950/40 dark:text-amber-200 dark:hover:bg-amber-900/60"
                             >
                                 Manage
                             </Link>
@@ -80,12 +79,12 @@ export default function DashboardPage({
                     )}
 
                     {companies_count === 0 ? (
-                        <div className="rounded-3xl border border-zinc-200 bg-white p-8 shadow-xl shadow-zinc-200/50">
+                        <div className="rounded-3xl border border-border bg-card p-8 shadow-xl shadow-black/5">
                             <h2 className="text-xl font-semibold tracking-tight">Welcome to VantageJobs</h2>
-                            <p className="mt-2 text-sm text-zinc-500">
+                            <p className="mt-2 text-sm text-muted-foreground">
                                 Phase 0 is shipped. To populate the seeded starter list of 10 companies, run:
                             </p>
-                            <pre className="mt-4 overflow-x-auto rounded-xl bg-zinc-900 p-4 font-mono text-xs text-zinc-100">
+                            <pre className="mt-4 overflow-x-auto rounded-xl bg-zinc-900 p-4 font-mono text-xs text-zinc-100 dark:bg-black/50">
                                 spin exec -T php php artisan db:seed --class=ExampleCompaniesSeeder
                             </pre>
                             <Link
@@ -100,10 +99,10 @@ export default function DashboardPage({
                             {companies.map((company) => (
                                 <div
                                     key={company.id}
-                                    className="group rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm transition-all hover:-translate-y-1 hover:shadow-xl hover:shadow-teal-200/40"
+                                    className="group rounded-2xl border border-border bg-card p-5 shadow-sm transition-all hover:-translate-y-1 hover:shadow-xl hover:shadow-teal-500/10"
                                 >
                                     <div className="mb-3 flex items-start justify-between gap-2">
-                                        <span className="font-semibold text-zinc-900">{company.name}</span>
+                                        <span className="font-semibold text-foreground">{company.name}</span>
                                         <span
                                             className={`rounded-full px-2.5 py-0.5 font-mono text-xs font-semibold ${tierPill[company.tier] ?? tierPill.C}`}
                                         >
@@ -115,17 +114,17 @@ export default function DashboardPage({
                                             href={company.website}
                                             target="_blank"
                                             rel="noopener noreferrer"
-                                            className="block truncate text-sm text-zinc-400 hover:text-teal-700"
+                                            className="block truncate text-sm text-muted-foreground hover:text-teal-600 dark:hover:text-teal-400"
                                         >
                                             {company.website}
                                         </a>
                                     )}
-                                    <div className="mt-4 flex items-center justify-between border-t border-zinc-100 pt-3">
-                                        <span className="text-xs font-medium uppercase tracking-wide text-zinc-400">
+                                    <div className="mt-4 flex items-center justify-between border-t border-border pt-3">
+                                        <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                                             {company.status}
                                         </span>
                                         {company.ats_type && (
-                                            <span className="rounded-md bg-zinc-100 px-2 py-0.5 text-xs text-zinc-500">
+                                            <span className="rounded-md bg-muted px-2 py-0.5 text-xs text-muted-foreground">
                                                 {company.ats_type}
                                             </span>
                                         )}
@@ -134,7 +133,6 @@ export default function DashboardPage({
                             ))}
                         </div>
                     )}
-                </div>
             </div>
         </AuthenticatedLayout>
     );
