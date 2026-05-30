@@ -36,7 +36,7 @@ export default function Login({ status }: LoginPageProps): ReactNode {
             <Head title="Sign in" />
 
             {status ? (
-                <p className="mb-4 text-sm font-medium text-emerald-600">{status}</p>
+                <p className="mb-4 text-sm font-medium text-emerald-700 dark:text-emerald-300">{status}</p>
             ) : null}
 
             <form onSubmit={submit} className="space-y-4">
@@ -80,14 +80,14 @@ export default function Login({ status }: LoginPageProps): ReactNode {
                             name="remember"
                             checked={data.remember}
                             onChange={(event) => setData('remember', event.target.checked)}
-                            className="border-input h-4 w-4 rounded"
+                            className="border-input text-primary focus-visible:ring-ring h-4 w-4 rounded"
                         />
                         <span>Remember me</span>
                     </label>
 
                     <Link
                         href="/forgot-password"
-                        className="text-muted-foreground text-sm underline-offset-4 hover:underline"
+                        className="text-sm text-teal-700 underline-offset-4 hover:underline dark:text-teal-400"
                     >
                         Forgot password?
                     </Link>

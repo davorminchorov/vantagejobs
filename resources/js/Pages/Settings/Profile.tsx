@@ -30,7 +30,10 @@ export default function ProfilePage({ user }: Props) {
                 title="Profile"
                 description="Update your name and email address."
             >
-                <form onSubmit={submit} className="max-w-lg space-y-4">
+                <form
+                    onSubmit={submit}
+                    className="max-w-lg space-y-4 rounded-2xl border border-border bg-card p-6 text-card-foreground shadow-sm"
+                >
                     <div className="space-y-2">
                         <Label htmlFor="name">Name</Label>
                         <Input

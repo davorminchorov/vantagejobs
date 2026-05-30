@@ -96,14 +96,14 @@ export default function TwoFactorPage({ two_factor_enabled, two_factor_confirmed
                 {two_factor_enabled && !two_factor_confirmed && (
                     <div className="max-w-lg space-y-4">
                         <div>
-                            <h3 className="text-sm font-medium">Scan the QR code</h3>
+                            <h3 className="text-sm font-medium text-foreground">Scan the QR code</h3>
                             <p className="text-sm text-muted-foreground">
                                 Open your authenticator app and scan this code.
                             </p>
                         </div>
                         {qrSvg && (
                             <div
-                                className="inline-block rounded-md border bg-background p-3"
+                                className="inline-block rounded-xl border border-border bg-muted p-3"
                                 dangerouslySetInnerHTML={{ __html: qrSvg }}
                             />
                         )}
@@ -130,15 +130,17 @@ export default function TwoFactorPage({ two_factor_enabled, two_factor_confirmed
 
                 {two_factor_enabled && two_factor_confirmed && (
                     <div className="space-y-4">
-                        <p className="text-sm">Two-factor authentication is active.</p>
+                        <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-medium text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-200">
+                            Two-factor authentication is active
+                        </span>
 
                         {recoveryCodes && recoveryCodes.length > 0 && (
                             <div className="max-w-lg space-y-2">
-                                <h3 className="text-sm font-medium">Recovery codes</h3>
+                                <h3 className="text-sm font-medium text-foreground">Recovery codes</h3>
                                 <p className="text-sm text-muted-foreground">
                                     Store these somewhere safe. Each code can be used once.
                                 </p>
-                                <ul className="grid grid-cols-2 gap-2 rounded-md bg-muted p-3 font-mono text-sm">
+                                <ul className="grid grid-cols-2 gap-2 rounded-xl border border-border bg-muted p-3 font-mono text-sm tabular-nums">
                                     {recoveryCodes.map((code) => (
                                         <li key={code}>{code}</li>
                                     ))}

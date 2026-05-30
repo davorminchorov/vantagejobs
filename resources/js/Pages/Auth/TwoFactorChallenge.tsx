@@ -55,6 +55,7 @@ export default function TwoFactorChallenge(): ReactNode {
                             onChange={(event) => setData('recovery_code', event.target.value)}
                             required
                             autoFocus
+                            className="font-mono tracking-wide"
                         />
                         {errors.recovery_code ? (
                             <p className="text-destructive text-sm">{errors.recovery_code}</p>
@@ -73,6 +74,7 @@ export default function TwoFactorChallenge(): ReactNode {
                             onChange={(event) => setData('code', event.target.value)}
                             required
                             autoFocus
+                            className="font-mono tracking-wide tabular-nums"
                         />
                         {errors.code ? (
                             <p className="text-destructive text-sm">{errors.code}</p>

@@ -34,7 +34,7 @@ export default function ForgotPassword({ status }: ForgotPasswordPageProps): Rea
             </p>
 
             {status ? (
-                <p className="mb-4 text-sm font-medium text-emerald-600">{status}</p>
+                <p className="mb-4 text-sm font-medium text-emerald-700 dark:text-emerald-300">{status}</p>
             ) : null}
 
             <form onSubmit={submit} className="space-y-4">

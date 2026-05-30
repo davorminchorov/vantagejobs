@@ -46,10 +46,10 @@ export default function Welcome() {
 
                 <main className="flex-1">
                     <section className="mx-auto w-full max-w-5xl px-4 pt-20 sm:px-6 sm:pt-28">
-                        <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                        <p className="font-mono text-xs font-medium uppercase tracking-wide text-muted-foreground">
                             Personal job-hunting platform
                         </p>
-                        <h1 className="mt-3 max-w-3xl text-4xl font-semibold tracking-tight sm:text-5xl">
+                        <h1 className="mt-3 max-w-3xl bg-gradient-to-r from-teal-600 to-emerald-500 bg-clip-text text-4xl font-semibold tracking-tight text-transparent sm:text-5xl">
                             A queryable, signal-aware memory of your relationship with the job market.
                         </h1>
                         <p className="mt-5 max-w-2xl text-base text-muted-foreground sm:text-lg">
@@ -70,7 +70,7 @@ export default function Welcome() {
                                     </Link>
                                 </Button>
                             )}
-                            <span className="text-xs text-muted-foreground">
+                            <span className="text-sm text-muted-foreground">
                                 Invite-only. No public registration.
                             </span>
                         </div>
@@ -96,7 +96,10 @@ export default function Welcome() {
 
                 <footer className="border-t">
                     <div className="mx-auto flex h-12 w-full max-w-5xl items-center justify-between px-4 text-xs text-muted-foreground sm:px-6">
-                        <span>Phase 1 shipped · May 2026</span>
+                        <span>
+                            Phase <span className="font-mono tabular-nums">1</span> shipped ·{' '}
+                            <span className="font-mono tabular-nums">May 2026</span>
+                        </span>
                         <Link href="/up" className="hover:text-foreground">
                             Status
                         </Link>
@@ -109,11 +112,11 @@ export default function Welcome() {
 
 function Capability({ label, copy }: { label: string; copy: string }) {
     return (
-        <div className="space-y-2">
-            <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+        <div className="space-y-2 rounded-2xl border border-border bg-card p-5 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md">
+            <span className="font-mono text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
                 {label}
             </span>
-            <p className="text-sm text-foreground/90">{copy}</p>
+            <p className="text-sm text-card-foreground/90">{copy}</p>
         </div>
     );
 }
