@@ -55,8 +55,14 @@ export default function DashboardPage({
                                     : 'No companies on the watch list yet.'}
                             </p>
                         </div>
-                        <span className="rounded-full bg-teal-600 px-4 py-1.5 text-sm font-semibold text-white shadow-lg shadow-teal-600/25">
-                            <span className="font-mono tabular-nums">{companies_count}</span> tracked
+                        <span
+                            className="rounded-full bg-teal-600 px-4 py-1.5 text-sm font-semibold text-white shadow-lg shadow-teal-600/25"
+                            aria-label={`${companies_count} companies tracked`}
+                        >
+                            <span className="font-mono tabular-nums" aria-hidden="true">
+                                {companies_count}
+                            </span>{' '}
+                            <span aria-hidden="true">tracked</span>
                         </span>
                     </header>
 
@@ -119,7 +125,8 @@ export default function DashboardPage({
                                             href={company.website}
                                             target="_blank"
                                             rel="noopener noreferrer"
-                                            className="block truncate text-sm text-muted-foreground hover:text-teal-600 dark:hover:text-teal-400"
+                                            aria-label={`${company.name} website (opens in a new tab)`}
+                                            className="focus-visible:ring-ring block truncate rounded text-sm text-muted-foreground hover:text-teal-600 focus-visible:outline-none focus-visible:ring-2 dark:hover:text-teal-400"
                                         >
                                             {company.website}
                                         </a>

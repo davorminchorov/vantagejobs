@@ -21,7 +21,7 @@ Targeted at senior and staff backend / fullstack remote roles with an EU/CET geo
 - Not an auto-apply tool. Not a resume builder.
 - Not a "find your dream job in 30 days" gimmick.
 
-For the full scope and reasoning, see [`docs/PRD.md`](docs/PRD.md).
+For the full scope and reasoning, see [`docs/prd-v2.md`](prd-v2.md).
 
 ---
 
@@ -31,8 +31,9 @@ The four canonical docs live in `docs/`:
 
 | Document | Purpose |
 |---|---|
-| [`PRD.md`](docs/PRD.md) | What the platform does and why. Source of truth for scope and decisions. |
-| [`SOURCES.md`](docs/SOURCES.md) | How each data source is integrated — endpoints, fields, rate limits, gotchas. |
+| [`prd-v2.md`](prd-v2.md) | What the platform does and why. Source of truth for scope and decisions. |
+| [`CHANGELOG.md`](CHANGELOG.md) | Per-phase shipped scope, phases 0–6. |
+| [`SOURCES.md`](SOURCES.md) | How each data source is integrated — endpoints, fields, rate limits, gotchas. |
 | [`ARCHITECTURE.md`](docs/ARCHITECTURE.md) | High-level system design, data flow, key models, key commands. |
 | [`RUNBOOK.md`](docs/RUNBOOK.md) | Operational playbook. Read when something breaks. |
 
@@ -51,12 +52,12 @@ Phase-by-phase build history lives in `docs/PHASE_N_NOTES.md` files. Each is app
 - **Tenancy:** Hand-rolled row-level multi-tenancy (`tenant_id` on every domain table, `BelongsToTenant` global scope, `TenantContext` service). Single active Tenant in v1, schema-ready for more.
 - **HTTP client:** Saloon (`saloonphp/saloon`) wrapping Guzzle, with typed Connectors/Requests per source and Saloon's pool API for concurrency
 - **Scheduling:** `php artisan schedule:run` invoked by a Laravel Cloud scheduled task every minute (no host cron)
-- **Mail:** Postmark or Resend
-- **Backups:** Laravel Cloud managed Postgres PITR + nightly off-platform `pg_dump` to Backblaze B2
+- **Mail:** Laravel Mail, transport chosen by `MAIL_MAILER` config at deploy time (no provider SDK, no hardcoded Postmark/Resend dependency)
+- **Backups:** Laravel Cloud managed Postgres PITR + nightly off-platform `pg_dump` to an S3-compatible disk (B2/S3)
 - **Hosting:** Laravel Cloud (EU region)
 - **Local dev:** Spin (Docker Compose) wrapping `serversideup/php` images, served at `https://vantagejobs.test`
 
-Why these choices: see [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) and [`docs/PRD.md`](docs/PRD.md) section 9.
+Why these choices: see [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) and [`docs/prd-v2.md`](prd-v2.md) section 9.
 
 ---
 
@@ -86,7 +87,7 @@ spin up --build
 
 # In another terminal: install dependencies inside the container
 spin run -T php composer install
-spin run -T node npm install
+spin run -T node pnpm install
 
 # Generate app key, migrate, seed
 spin exec -T php php artisan key:generate
@@ -103,20 +104,17 @@ Visit `https://vantagejobs.test` and log in with your seeded credentials.
 All commands run through Spin. Use `spin exec -T php ...` when the stack is up; use `spin run -T php ...` for one-off containers when it's down.
 
 ```bash
-# Full scrape (all sources)
-spin exec -T php php artisan scrape:all
+# Full scrape (all companies/sources for a tenant)
+spin exec -T php php artisan scrape:all --tenant=me
 
-# Single source
-spin exec -T php php artisan scrape:source greenhouse
-
-# One company
-spin exec -T php php artisan scrape:source greenhouse --company=acme
+# One company (by id)
+spin exec -T php php artisan scrape:company {id} --tenant=me
 
 # Re-parse all aggregator listings (preserves manual corrections)
-spin exec -T php php artisan parser:reparse-all
+spin exec -T php php artisan parser:reparse-all --tenant=me
 
-# Run the daily digest manually
-spin exec -T php php artisan digest:send
+# Run the daily digest manually (--hour bypasses the local send-time gate)
+spin exec -T php php artisan digest:send-daily --tenant=me --hour={current-hour}
 
 # Open a database shell
 spin exec -T postgres psql -U vantagejobs vantagejobs
@@ -128,10 +126,10 @@ spin exec -T php php artisan test --compact --parallel --recreate-databases
 spin run -T php ./vendor/bin/pint --dirty --format agent
 
 # Type-check the frontend
-spin exec -T node npm run typecheck
+spin exec -T node pnpm run typecheck
 
 # Lint
-spin exec -T node npm run lint
+spin exec -T node pnpm run lint
 ```
 
 See `docs/ARCHITECTURE.md` for the broader development workflow and the `spin-laravel-development` skill for in-depth Docker/Spin tips.
@@ -146,7 +144,7 @@ Production runs on Laravel Cloud (EU region). See [`docs/ARCHITECTURE.md`](docs/
 2. Create a managed PostgreSQL 18 instance and link it to the project.
 3. Set production secrets via `cloud env:set` (APP_KEY, INITIAL_TENANT_*, INITIAL_USER_*, mail driver keys, B2 keys, GitHub token).
 4. Attach the custom domain via `cloud domains:add` and update DNS at the registrar.
-5. `git push origin main` — Cloud builds (`composer install`, `npm ci && npm run build`, `php artisan migrate --force`, config/route/view caching) and deploys.
+5. `git push origin main` — Cloud builds (`composer install`, `pnpm install --frozen-lockfile && pnpm run build`, `php artisan migrate --force`, config/route/view caching) and deploys.
 6. Register a Cloud scheduled task that runs `php artisan schedule:run` every minute.
 7. Confirm the `backup:run` schedule pushes nightly `pg_dump` to Backblaze B2 as off-platform redundancy alongside Cloud's managed Postgres PITR.
 
@@ -180,15 +178,15 @@ If you happen to find this repo and want to build your own version, that's fine 
 
 | Phase | Status |
 |---|---|
-| 0 — Foundation | ⬜ Not started |
-| 1 — ATS Pipeline | ⬜ Not started |
-| 2 — Aggregators + Triage | ⬜ Not started |
-| 3 — Parser Polish | ⬜ Not started |
-| 4 — Signals | ⬜ Not started |
-| 5 — Pipeline + Outreach | ⬜ Not started |
-| 6 — Polish + Notifications | ⬜ Not started |
+| 0 — Foundation | ✅ Shipped |
+| 1 — ATS Pipeline | ✅ Shipped |
+| 2 — Aggregators + Triage | ✅ Shipped |
+| 3 — Parser Polish | ✅ Shipped |
+| 4 — Signals | ✅ Shipped |
+| 5 — Pipeline + Outreach | ✅ Shipped |
+| 6 — Polish + Notifications | ✅ Shipped |
 
-Update the boxes as phases ship. ⬜ → 🟨 (in progress) → ✅ (shipped).
+Update the boxes as phases ship. ⬜ → 🟨 (in progress) → ✅ (shipped). Per-phase shipped scope: [`CHANGELOG.md`](CHANGELOG.md) and the `PHASE_N_NOTES.md` files.
 
 ---
 

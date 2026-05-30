@@ -163,7 +163,14 @@ export default function DiscoverIndex({ listings, filters, options }: Props) {
 
     useEffect(() => {
         if (focusIndex >= 0) {
-            cardRefs.current[focusIndex]?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+            const prefersReducedMotion =
+                typeof window !== 'undefined' &&
+                typeof window.matchMedia === 'function' &&
+                window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+            cardRefs.current[focusIndex]?.scrollIntoView({
+                block: 'nearest',
+                behavior: prefersReducedMotion ? 'auto' : 'smooth',
+            });
         }
     }, [focusIndex]);
 
@@ -242,14 +249,16 @@ export default function DiscoverIndex({ listings, filters, options }: Props) {
                             <span className="font-mono tabular-nums">{listings.total}</span> {listings.total === 1 ? 'listing' : 'listings'} · J/↓ next · ↑ prev · K keep · X dismiss · S snooze · B bookmark
                         </p>
                     </div>
-                    <form onSubmit={onSearchSubmit} className="flex gap-2">
+                    <form onSubmit={onSearchSubmit} className="flex w-full gap-2 sm:w-auto">
                         <Input
                             name="q"
                             defaultValue={filters.q ?? ''}
                             placeholder="Company or role"
-                            className="w-64"
+                            className="w-full min-w-0 sm:w-64"
                         />
-                        <Button type="submit" variant="outline">Search</Button>
+                        <Button type="submit" variant="outline" className="shrink-0">
+                            Search
+                        </Button>
                     </form>
                 </header>
 
@@ -406,14 +415,15 @@ function ListingCard({
             ref={ref}
             tabIndex={0}
             onClick={onFocus}
+            aria-label={`Listing: ${listing.parsed_role_title ?? 'unknown role'} at ${listing.parsed_company_name ?? 'unknown company'}`}
             className={
-                'rounded-2xl transition-all hover:-translate-y-0.5 hover:shadow-md ' +
+                'focus-visible:ring-ring rounded-2xl transition-all hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 ' +
                 (isSelected ? 'border-primary ring-1 ring-primary/40 ' : '') +
                 (isFocused ? 'border-primary ring-1 ring-ring/30' : '')
             }
         >
             <CardContent className="space-y-2 p-4">
-                <div className="flex items-baseline justify-between gap-4">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-baseline sm:justify-between">
                     <div className="flex min-w-0 items-start gap-3">
                         <input
                             type="checkbox"
@@ -448,10 +458,11 @@ function ListingCard({
                                         e.stopPropagation();
                                         onEdit('role_title');
                                     }}
-                                    className="ml-1 text-xs text-muted-foreground/40 hover:text-foreground"
+                                    className="focus-visible:ring-ring ml-1 rounded text-xs text-muted-foreground/40 hover:text-foreground focus-visible:outline-none focus-visible:ring-2"
+                                    aria-label="Edit role title"
                                     title="Edit role title"
                                 >
-                                    ✎
+                                    <span aria-hidden="true">✎</span>
                                 </button>
                             </h3>
                             <EditablePill
@@ -508,14 +519,21 @@ function ListingCard({
                         </div>
                         {listing.stack_tags && listing.stack_tags.length > 0 && (
                             <div
-                                className="flex flex-wrap gap-1 pt-1"
+                                className="focus-visible:ring-ring flex flex-wrap gap-1 rounded pt-1 focus-visible:outline-none focus-visible:ring-2"
                                 onClick={(e) => {
                                     e.stopPropagation();
                                     onEdit('stack_tags');
                                 }}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter' || e.key === ' ') {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                        onEdit('stack_tags');
+                                    }
+                                }}
                                 role="button"
                                 tabIndex={0}
-                                title="Click to edit stack tags"
+                                aria-label="Edit stack tags"
                             >
                                 {listing.stack_tags.slice(0, 8).map((tag) => (
                                     <span
@@ -535,11 +553,12 @@ function ListingCard({
                         )}
                     </div>
                     </div>
-                    <div className="flex shrink-0 gap-1">
+                    <div className="flex shrink-0 flex-wrap gap-1 sm:flex-nowrap">
                         {listing.url && (
                             <Button
                                 size="sm"
                                 variant="outline"
+                                className="min-h-11 sm:min-h-9"
                                 asChild
                             >
                                 <a
@@ -555,6 +574,7 @@ function ListingCard({
                         <Button
                             size="sm"
                             variant="default"
+                            className="min-h-11 sm:min-h-9"
                             onClick={(e) => {
                                 e.stopPropagation();
                                 onAction('keep');
@@ -565,6 +585,7 @@ function ListingCard({
                         <Button
                             size="sm"
                             variant="outline"
+                            className="min-h-11 sm:min-h-9"
                             onClick={(e) => {
                                 e.stopPropagation();
                                 onAction('bookmark');
@@ -575,6 +596,7 @@ function ListingCard({
                         <Button
                             size="sm"
                             variant="outline"
+                            className="min-h-11 sm:min-h-9"
                             onClick={(e) => {
                                 e.stopPropagation();
                                 onAction('snooze');
@@ -585,6 +607,7 @@ function ListingCard({
                         <Button
                             size="sm"
                             variant="ghost"
+                            className="min-h-11 sm:min-h-9"
                             onClick={(e) => {
                                 e.stopPropagation();
                                 onAction('dismiss');
@@ -632,14 +655,18 @@ function ListingCard({
                             e.stopPropagation();
                             setMenuOpen((v) => !v);
                         }}
-                        className="font-mono text-[10px] uppercase tracking-wide text-muted-foreground/60 hover:text-foreground"
+                        className="focus-visible:ring-ring rounded font-mono text-[10px] uppercase tracking-wide text-muted-foreground/60 hover:text-foreground focus-visible:outline-none focus-visible:ring-2"
                         title="More actions"
+                        aria-label="More actions"
+                        aria-haspopup="menu"
                         aria-expanded={menuOpen}
                     >
                         ⌄ more
                     </button>
                     {menuOpen && (
                         <div
+                            role="menu"
+                            aria-label="More actions"
                             className="absolute right-0 top-full z-10 mt-1 flex flex-col gap-1 rounded-md border border-border bg-popover p-1 text-xs text-popover-foreground shadow-md"
                             onClick={(e) => e.stopPropagation()}
                         >
@@ -704,7 +731,7 @@ function EditablePill({ listing, field, label, emphasis = 'default', onEdit }: E
                     {Math.round(confidence * 100)}%
                 </Badge>
             )}
-            <span className="hidden text-[10px] text-muted-foreground/60 group-hover:inline">✎</span>
+            <span aria-hidden="true" className="hidden text-[10px] text-muted-foreground/60 group-hover:inline">✎</span>
         </button>
     );
 }

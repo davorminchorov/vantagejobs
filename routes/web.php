@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Http\Controllers\Admin\Audit\IndexController as AdminAuditIndexController;
 use App\Http\Controllers\Admin\Parser\IndexController as AdminParserIndexController;
 use App\Http\Controllers\Admin\Parser\ReparseAllController as AdminParserReparseAllController;
 use App\Http\Controllers\Admin\Parser\RunRollupController as AdminParserRunRollupController;
@@ -77,6 +78,7 @@ use App\Http\Controllers\Tags\AttachTagController;
 use App\Http\Controllers\Tags\AutocompleteTagsController;
 use App\Http\Controllers\Tags\DetachTagController;
 use App\Http\Controllers\HealthController;
+use App\Http\Controllers\LivenessController;
 use App\Http\Controllers\Settings\CalendarTokenController;
 use App\Http\Controllers\Settings\DataController;
 use App\Http\Controllers\Settings\DownloadExportController;
@@ -97,6 +99,10 @@ use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
 Route::get('/', fn () => Inertia::render('Welcome'))->name('home');
+
+// Public, unauthenticated liveness probe. Gates on database reachability and
+// recent scrape freshness (see LivenessController / PRD §8.6).
+Route::get('/up', LivenessController::class)->name('up');
 
 // Public, unauthenticated iCal subscription feed. Resolved by per-user token.
 Route::get('/calendar/{token}/feed.ics', CalendarFeedController::class)->name('calendar.feed');
@@ -254,6 +260,8 @@ Route::middleware(['auth'])->group(function (): void {
             Route::post('/rollup', AdminParserRunRollupController::class)->name('rollup');
             Route::post('/reparse-all', AdminParserReparseAllController::class)->name('reparse-all');
         });
+
+        Route::get('/audit', AdminAuditIndexController::class)->name('audit.index');
     });
 
     Route::prefix('settings')->name('settings.')->group(function (): void {

@@ -575,7 +575,7 @@ The platform has one user (me) but is exposed to the public internet, so it need
 
 **What stays public without auth:**
 - The login page itself
-- A health-check endpoint at `/up` returning 200 if the app is alive (no DB queries, no auth, no leakage of internal state)
+- A health-check endpoint at `/up` (no auth, no leakage of internal state). As shipped this is a stricter liveness contract than the original "no DB query" sketch: it returns 200 only when the database is reachable AND a scrape finished within `health.liveness_max_scrape_age_hours` (48h), else 503 with a terse reason.
 - Static assets
 
 Everything else (dashboard, scrapers' admin UI, settings, every data view) requires a valid session. Middleware on the route groups, not per-controller.
@@ -607,7 +607,7 @@ For a tool I'll iterate on over months, I need to see what the platform is doing
 - **Scrape run history:** `/admin/runs` page lists every scheduled run with start/end time, duration, source breakdown (fetched / new / errors), and a drill-in view per run.
 - **Per-run drill-in:** Per-source error log, per-company fetch status, parser confidence histogram, raw HTTP response viewer (for the 7-day retention window).
 - **Parser stats dashboard:** Per-source, per-field confidence trend over the last 30 days. Companies where parsing has consistently failed are highlighted for manual inspection.
-- **Audit log viewer:** `/admin/audit` shows the security AuditLog (auth events) plus a system-level activity log (tier changes, graveyard moves, bulk operations, parse corrections) for the last 90 days. Filterable by actor (always me), entity, and date.
+- **Audit log viewer:** `/admin/audit` shows the security AuditLog (auth events, bulk operations, and other actions that write `AuditLog` rows). As shipped it is scoped to the current tenant plus null-tenant rows (failed logins, lockouts) and filterable by action prefix, outcome (success/failure), and date range.
 - **Laravel Telescope:** Installed in production behind auth, with retention of 7 days. For HTTP/cache/log inspection during real debugging.
 - **Health endpoint:** Public `/up` (200 if alive, no internal state leaked). Private `/health` (behind auth) with detailed JSON: DB connectivity, last successful scrape per source, queue depth, disk free.
 
@@ -706,7 +706,7 @@ Not in scope. The UI ships in English only. All dates use the user's timezone (s
 ### 8.7 Operability
 - Deployments via Laravel Cloud: `git push` to `main` triggers a Cloud build and deploy. The `cloud` CLI handles environment configuration, secrets, and manual rollbacks.
 - Logs are queryable through Laravel Cloud's log viewer with retention configured per environment; Telescope is installed in production behind auth (7-day retention) for HTTP/cache/job inspection during real debugging.
-- Health check endpoint (`/up`) returns 200 if the app is alive (no DB query). A private `/health` endpoint (auth required) returns detailed JSON: DB connectivity, last successful scrape per source, queue depth.
+- Health check endpoint (`/up`, public): as shipped, returns 200 only when the DB is reachable and a scrape finished within 48h, else 503 with a reason (`database_unreachable` / `no_recent_scrape`). A private `/health` endpoint (auth required) returns detailed JSON: DB connectivity, last successful scrape per source, queue depth.
 - Backup strategy: Laravel Cloud's managed Postgres backups (point-in-time recovery) are the primary safety net; a scheduled `php artisan backup:run` pushes a `pg_dump` to Backblaze B2 nightly as off-platform insurance. Restore tested quarterly against both sources.
 
 ### 8.8 Time, Dates, and Time Zones
@@ -845,7 +845,7 @@ Total estimated build time: 9 to 13 weekends. Reality is probably 16 to 20 by th
 
 These were open during PRD drafting and have since been resolved:
 
-- **Public read-only API for external tools (Raycast, CLI):** Not in v1. Revisit after Phase 6 ships and the platform is stable.
+- **Public read-only API for external tools (Raycast, CLI):** Not in v1. Phase 6 shipped without it (the platform is Inertia-only, no token auth, no CORS, no `/api` surface). Confirmed out of scope for v1; reconsider as a v2 concern if a real external-tool need appears. The Phase 6 data-export bundle (SQL/JSON/CSV) covers the "get my data out" case in the meantime.
 - **Company graveyard view:** In scope. See section 6.2.8.
 - **Dismissed AggregatorListing retention:** 90 days, configurable in settings. Hard-delete (not soft-delete) on expiry to keep the table lean.
 - **Compensation cost-of-living adjustments:** Not in v1. Raw nominal USD-normalized values only. Revisit when actually comparing offers across geographies.

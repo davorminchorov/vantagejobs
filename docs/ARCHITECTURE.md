@@ -164,6 +164,10 @@ The schema is designed around five domain pillars. Detail in `database/migration
 - **ScrapeRunArtifact** — raw HTTP response blob, 7-day retention. For debugging.
 - **Bookmark** — "watch later" flag on Roles. 30-day auto-expiry.
 - **Template** — message templates for outreach (categorized).
+- **NotificationLogEntry** (`notification_log`) — append-only ledger of every email sent (`kind` ∈ `NotificationKind`: daily_digest, a_tier_alert, weekly_summary, source_health; nullable `company_id`, `recipient`, `subject`, `context`, `sent_at`; no `updated_at`). Powers the A-tier 1-email-per-company-per-hour throttle, source-health alert dedupe, and an audit trail of what was emailed when. Indexed on `(tenant_id, kind, company_id, sent_at)`.
+- **ExportJob** (`export_jobs`) — tracks a queued data-export bundle through its lifecycle (`status` ∈ `ExportJobStatus`: pending, running, completed, failed, expired) and its 24h downloadable window. Carries `user_id`, `formats` (ExportFormat: sql, json, csv), `manifest` (schema version + per-entity row counts + timestamp), `disk`, `path`, `expires_at`.
+
+Phase 6 also adds the **Setting** model already listed under Identity, Tenancy & Auth above. A typed `SettingsRepository` reads `config('notifications.*')` / `config('sources.*')` / etc. defaults and layers DB rows on top, so a missing row never breaks behavior. It backs the DND window, digest send time, auto-dismiss threshold, listing retention, per-source enable/disable, notification recipient email (defaults to the user's login email), and the digest skip-empty toggle.
 
 **Tenancy invariant:** every table listed above (except `Tenant` itself) carries a `tenant_id` foreign key. A `BelongsToTenant` trait on every Eloquent model registers a global scope that filters on `TenantContext::current()->id`, and a model observer auto-fills `tenant_id` on insert. Tests that need to bypass scoping use `Model::withoutGlobalScope(BelongsToTenantScope::class)` explicitly and never silently. New migrations and new models MUST include `tenant_id`; it is a code review tripwire.
 
@@ -341,7 +345,7 @@ Laravel's scheduler runs as a Cloud scheduled task firing every minute, equivale
 * * * * * php artisan schedule:run
 ```
 
-No host cron to manage; Cloud's scheduler invokes the command. The schedule definitions live in `app/Console/Kernel.php` (or `routes/console.php` in Laravel 13's preferred shape), declaring each scrape, signal, digest, and purge job with its cadence. See PRD section 8.7 for the per-task schedule.
+No host cron to manage; Cloud's scheduler invokes the command. The schedule definitions live in **`routes/console.php`** (Laravel 13's preferred shape; there is no `app/Console/Kernel.php`), declaring each scrape, signal, digest, monitor, export-prune, and backup job with its cadence. Per-tenant jobs either accept `--tenant=` or loop over `Tenant` rows inside a `Schedule::call(...)` closure; tenant-agnostic sweeps (digest, A-tier alerts, source-health, exports/backups) self-gate per recipient inside the command. See PRD section 8.7 and `docs/PHASE_6_NOTES.md` for the per-task schedule.
 
 ### Deploys
 
@@ -375,6 +379,29 @@ Two layers:
 A monthly restore-to-scratch-DB job verifies that the B2 backups are valid (not just present).
 
 See [`RUNBOOK.md#backup-restore`](RUNBOOK.md#backup-restore) for restore procedures.
+
+### Notifications and monitoring (Phase 6)
+
+All outbound email is a queued, Markdown Laravel Mailable; the transport is chosen by `MAIL_MAILER` at deploy time (no provider SDK). Four notification kinds run on the scheduler and gate themselves before sending:
+
+- **Daily digest** (`digest:send-daily`, hourly tick) — sends only when the recipient's local configured send hour matches and (by default) only when there is new content. The skip-empty behavior is the `digest_skip_empty` Setting, default ON.
+- **A-tier instant alert** (`notifications:send-a-tier-alerts`, every 15 min) — high-signal new roles on A-tier companies. Throttled to **at most 1 email per company per hour** via a `notification_log` row check; a DND-window hit **defers** the alert to the next allowed minute rather than dropping it.
+- **Weekly summary** (`notifications:send-weekly-summary`, daily tick, day-gated inside the command per `weekly_summary_day`).
+- **Source-health monitor** (`monitor:source-health`, hourly) — reuses `AggregatorSource.consecutive_failures` / `last_run_at` / `last_error` plus `ParserConfidenceDaily` week-over-week confidence math. Emails a deduped fix-me alert (deduped through `notification_log`) for each red source. Thresholds in `config/sources.php` (`consecutive_failure_alert` 3, `confidence_drop_wow_pct` 20).
+
+The DND window, send times, throttle minutes, and recipient email are all `Setting`-backed with `config/notifications.php` defaults (digest 07:00, timezone fallback Europe/Berlin, DND 22:00–07:00, throttle 60 min, weekly day Sunday, A-tier stale 7 days).
+
+### Bulk operations and undo (Phase 6)
+
+`POST /bulk-actions` performs one of `BulkAction` (change_tier, tag, untag, dismiss, bookmark, mark_closed) over selected rows in a single DB transaction, writing an `AuditLog` row that captures prior state. `POST /bulk-actions/{auditLog}/undo` reads that captured before-state and reverses it within a 60-second soft-undo window; the client toast triggers it. `AuditLog` is the primary record, so no new `EventType` case was needed.
+
+### Data export and health (Phase 6)
+
+Data export is a queued job that produces a SQL dump, JSON-normalized export, and per-entity CSV into a manifest-bundled archive on the `export.disk` (default `local`), downloadable for `export.download_ttl_hours` (24h). `export_jobs` tracks status; `exports:prune` (daily) deletes expired bundles. Requested from `/settings/data` (`RequestExportController`), downloaded via `/settings/data/{export}/download` (`DownloadExportController`).
+
+`/health` (auth required, `HealthController`) returns rich JSON: DB connectivity, last successful scrape per source, queue depth, disk free. `/up` (public, `LivenessController`) is the fleet liveness contract: 200 `{"status":"up"}` only when a PDO connection opens AND a `ScrapeRun` finished within `config('health.liveness_max_scrape_age_hours', 48)` (checked across all tenants via `ScrapeRun::withoutTenantScope()`), else 503 with a terse `reason`. `bootstrap/app.php` no longer registers Laravel's built-in `withRouting(health: '/up')`.
+
+`/admin/audit` (auth, `Admin\Audit\IndexController`) is a paginated audit-log viewer over `AuditLog`, filtered by action prefix / outcome / date range (`AuditLogListFilters`), scoped to the current tenant plus null-tenant rows (failed logins, lockouts).
 
 ---
 

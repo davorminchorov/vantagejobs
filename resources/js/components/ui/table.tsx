@@ -4,7 +4,11 @@ import { cn } from '@/lib/utils';
 
 function Table({ className, ...props }: React.HTMLAttributes<HTMLTableElement>) {
     return (
-        <div className="relative w-full overflow-auto">
+        // `max-w-full` + `overflow-x-auto` keep a wide table inside its own
+        // scroll region so it never forces page-level horizontal scroll at
+        // 375px. `[-webkit-overflow-scrolling:touch]` gives momentum scroll
+        // on iOS.
+        <div className="relative w-full max-w-full overflow-x-auto [-webkit-overflow-scrolling:touch]">
             <table className={cn('w-full caption-bottom text-sm', className)} {...props} />
         </div>
     );
@@ -18,9 +22,14 @@ function TableBody({ className, ...props }: React.HTMLAttributes<HTMLTableSectio
     return <tbody className={cn('[&_tr:last-child]:border-0', className)} {...props} />;
 }
 
-function TableRow({ className, ...props }: React.HTMLAttributes<HTMLTableRowElement>) {
+function TableRow({
+    className,
+    ref,
+    ...props
+}: React.HTMLAttributes<HTMLTableRowElement> & { ref?: React.Ref<HTMLTableRowElement> }) {
     return (
         <tr
+            ref={ref}
             className={cn(
                 'border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted',
                 className,

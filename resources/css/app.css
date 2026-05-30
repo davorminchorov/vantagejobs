@@ -158,4 +158,36 @@
     body {
         @apply bg-background text-foreground;
     }
+
+    /*
+     * Keyboard focus baseline. Components opt into richer focus-visible rings,
+     * but anything interactive that forgets one still gets a perceptible ring
+     * instead of the browser default that some resets strip away.
+     */
+    :focus-visible {
+        outline: 2px solid var(--ring);
+        outline-offset: 2px;
+    }
+}
+
+/*
+ * Respect prefers-reduced-motion. The design leans on hover lifts, fades, and
+ * the tw-animate-css data-state transitions on dialogs / sheets / dropdowns.
+ * Users who ask for reduced motion get those collapsed to near-instant so the
+ * UI never animates against their stated preference. Scroll behaviour is
+ * forced to auto so programmatic scrollIntoView calls do not animate either.
+ */
+@media (prefers-reduced-motion: reduce) {
+    html {
+        scroll-behavior: auto;
+    }
+
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
 }

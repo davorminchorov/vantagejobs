@@ -1,5 +1,6 @@
 <?php
 
+use Monolog\Formatter\JsonFormatter;
 use Monolog\Handler\NullHandler;
 use Monolog\Handler\StreamHandler;
 use Monolog\Handler\SyslogUdpHandler;
@@ -102,6 +103,26 @@ return [
                 'stream' => 'php://stderr',
             ],
             'formatter' => env('LOG_STDERR_FORMATTER'),
+            'processors' => [PsrLogMessageProcessor::class],
+        ],
+
+        /*
+        | Structured one-line-JSON channel for log aggregators (Loki, Datadog,
+        | CloudWatch, etc.). Writes to stderr so a container runtime collects it.
+        | Switch the app onto it in production with `LOG_CHANNEL=structured`
+        | (or add it to the stack via `LOG_STACK=single,structured`).
+        */
+        'structured' => [
+            'driver' => 'monolog',
+            'level' => env('LOG_LEVEL', 'debug'),
+            'handler' => StreamHandler::class,
+            'handler_with' => [
+                'stream' => 'php://stderr',
+            ],
+            'formatter' => JsonFormatter::class,
+            'formatter_with' => [
+                'appendNewline' => true,
+            ],
             'processors' => [PsrLogMessageProcessor::class],
         ],
 

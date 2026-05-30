@@ -2,6 +2,7 @@ import { Head, Link, router } from '@inertiajs/react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import { useListKeyboardNav } from '@/hooks/useListKeyboardNav';
 import BulkActionBar from '@/components/bulk/BulkActionBar';
 import SaveViewButton from '@/components/saved-views/SaveViewButton';
 import { Badge } from '@/components/ui/badge';
@@ -168,6 +169,24 @@ export default function CompaniesIndexPage({ companies, filters, options }: Prop
         setSelectedIds(allOnPageSelected ? [] : companies.data.map((c) => c.id));
     }
 
+    const { registerItem, isFocused, setFocusIndex } = useListKeyboardNav({
+        itemCount: companies.data.length,
+        actions: {
+            Enter: (index) => {
+                const company = companies.data[index];
+                if (company) {
+                    router.visit(`/companies/${company.id}`);
+                }
+            },
+            x: (index) => {
+                const company = companies.data[index];
+                if (company) {
+                    toggleRow(company.id);
+                }
+            },
+        },
+    });
+
     useEffect(() => {
         if (isFirstRender.current) {
             isFirstRender.current = false;
@@ -232,7 +251,7 @@ export default function CompaniesIndexPage({ companies, filters, options }: Prop
         <AuthenticatedLayout>
             <Head title="Companies" />
             <div className="space-y-6">
-                <header className="flex items-end justify-between gap-4">
+                <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
                     <div>
                         <h1 className="text-2xl font-semibold tracking-tight">Companies</h1>
                         <p className="text-sm text-muted-foreground">
@@ -241,7 +260,7 @@ export default function CompaniesIndexPage({ companies, filters, options }: Prop
                                 : `${companies.total} ${companies.total === 1 ? 'company' : 'companies'} on the watch list.`}
                         </p>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                         <SaveViewButton
                             entity="companies"
                             filters={local as unknown as Record<string, unknown>}
@@ -325,10 +344,18 @@ export default function CompaniesIndexPage({ companies, filters, options }: Prop
                                             </TableRow>
                                         </TableHeader>
                                         <TableBody>
-                                            {companies.data.map((company) => (
+                                            {companies.data.map((company, index) => (
                                                 <TableRow
                                                     key={company.id}
+                                                    ref={registerItem(index)}
+                                                    tabIndex={0}
+                                                    aria-label={`${company.name}, tier ${company.tier}, ${company.open_roles_count} open roles`}
+                                                    onFocus={() => setFocusIndex(index)}
                                                     data-state={selectedIds.includes(company.id) ? 'selected' : undefined}
+                                                    className={cn(
+                                                        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring',
+                                                        isFocused(index) && 'bg-accent/50',
+                                                    )}
                                                 >
                                                     <TableCell>
                                                         <input

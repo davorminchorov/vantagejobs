@@ -7,6 +7,7 @@ import TagInput, { type TagSummary } from '@/components/companies/TagInput';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { DataTableScroll } from '@/components/ui/data-table-scroll';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
@@ -169,7 +170,7 @@ export default function ShowCompanyPage({
                             ) : null}
                         </div>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                         <Button asChild variant="outline">
                             <Link href={`/companies/${company.id}/edit`}>Edit</Link>
                         </Button>
@@ -595,38 +596,40 @@ function QualityCard({ quality }: { quality: QualityInfo }) {
                     <span className={`font-mono text-4xl font-semibold tabular-nums ${tone}`}>{score}</span>
                     <span className="font-mono text-sm tabular-nums text-muted-foreground">/ 100</span>
                 </div>
-                <table className="w-full text-sm">
-                    <thead className="font-mono text-xs uppercase tracking-wide text-muted-foreground">
-                        <tr>
-                            <th className="text-left font-semibold">Factor</th>
-                            <th className="text-right font-semibold">Weight</th>
-                            <th className="text-right font-semibold">Contribution</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {Object.entries(quality.breakdown).map(([key, factor]) => (
-                            <tr key={key} className="border-t">
-                                <td className="py-1.5">{FACTOR_LABEL[key] ?? key}</td>
-                                <td className="text-right font-mono tabular-nums text-muted-foreground">
-                                    {factor.weight > 0 ? '+' : ''}
-                                    {factor.weight}
-                                </td>
-                                <td
-                                    className={`text-right font-mono font-semibold tabular-nums ${
-                                        factor.contribution > 0
-                                            ? 'text-emerald-600'
-                                            : factor.contribution < 0
-                                              ? 'text-red-600'
-                                              : 'text-muted-foreground'
-                                    }`}
-                                >
-                                    {factor.contribution > 0 ? '+' : ''}
-                                    {factor.contribution}
-                                </td>
+                <DataTableScroll>
+                    <table className="w-full min-w-[20rem] text-sm">
+                        <thead className="font-mono text-xs uppercase tracking-wide text-muted-foreground">
+                            <tr>
+                                <th className="text-left font-semibold">Factor</th>
+                                <th className="text-right font-semibold">Weight</th>
+                                <th className="text-right font-semibold">Contribution</th>
                             </tr>
-                        ))}
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody>
+                            {Object.entries(quality.breakdown).map(([key, factor]) => (
+                                <tr key={key} className="border-t">
+                                    <td className="py-1.5">{FACTOR_LABEL[key] ?? key}</td>
+                                    <td className="text-right font-mono tabular-nums text-muted-foreground">
+                                        {factor.weight > 0 ? '+' : ''}
+                                        {factor.weight}
+                                    </td>
+                                    <td
+                                        className={`text-right font-mono font-semibold tabular-nums ${
+                                            factor.contribution > 0
+                                                ? 'text-emerald-600'
+                                                : factor.contribution < 0
+                                                  ? 'text-red-600'
+                                                  : 'text-muted-foreground'
+                                        }`}
+                                    >
+                                        {factor.contribution > 0 ? '+' : ''}
+                                        {factor.contribution}
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </DataTableScroll>
                 <p className="text-sm text-muted-foreground">
                     Score starts at the baseline and is adjusted by each factor. Positive
                     factors max at their weight; penalties subtract up to their weight.

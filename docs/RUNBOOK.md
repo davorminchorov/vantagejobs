@@ -111,13 +111,15 @@ If the artifact has unexpected JSON shape or HTML where JSON should be, the upst
 **Step 3:** Run the scraper manually with verbose output.
 
 ```bash
-# Production
+# Production (scrape:company takes the company id, not a slug)
 cloud shell --env=production
-php artisan scrape:source greenhouse --company={slug} --verbose
+php artisan scrape:company {id} --tenant={slug} --verbose
 
 # Local
-spin exec -T php php artisan scrape:source greenhouse --company={slug} --verbose
+spin exec -T php php artisan scrape:company {id} --tenant={slug} --verbose
 ```
+
+To re-run every company/source, use `php artisan scrape:all --tenant={slug}`.
 
 **Step 4:** Common causes by source:
 
@@ -150,7 +152,7 @@ spin exec -T php php artisan scrape:source greenhouse --company={slug} --verbose
 Check `companies.ats_status`. If `needs_redetection`, run:
 
 ```bash
-php artisan ats:redetect --company-id={id}
+php artisan signals:ats:redetect --company={id} --tenant={slug}
 ```
 
 ---
@@ -184,13 +186,13 @@ php artisan test --filter=ParserTest
 
 If a fixture fails, the parser regressed against known-good data. Bisect with `git bisect`.
 
-**Step 3:** If the source format changed, you need to update the parser. Use the artifact retention to look at recent raw input:
+**Step 3:** If the source format changed, you need to update the parser. There is no standalone `parser:debug` command; re-run the parser against recent rows for the source and inspect the output. `--source` takes the aggregator type (`hackernews`, `remotive`, `himalayas`, `weworkremotely`, `remoteok`), not the listing source string:
 
 ```bash
-php artisan parser:debug --listing-id={id}
+php artisan parser:reparse --source=hackernews --tenant={slug}
 ```
 
-This re-runs the parser against the raw input verbosely, showing each extractor's output and confidence.
+Add `--force-corrections` to drop the correction overlay so the raw parser output wins (useful when you want to see what the parser does without your manual fixes). For a single listing, inspect the stored `AggregatorListing.raw` payload in tinker against the extractor pipeline under `app/Parsers/`.
 
 ### Stack tag is over-matching (e.g., "Go" matching unrelated text)
 
@@ -208,7 +210,7 @@ Update `dictionaries/stack-tags.php`. For ambiguous short tags (Go, R, C, D), re
 Re-parse to apply:
 
 ```bash
-php artisan parser:reparse --source=hn_hiring
+php artisan parser:reparse --source=hackernews --tenant={slug}
 ```
 
 ---
@@ -219,14 +221,18 @@ php artisan parser:reparse --source=hn_hiring
 
 **Symptom:** No digest email this morning.
 
-**Step 1:** Check whether it was supposed to send.
+**Step 1:** Check whether it was supposed to send. The digest is configured to skip empty days by default (`digest_skip_empty` Setting; PRD section 7.4 + Phase 6). If there were no new Events in the last 24h, it didn't send — that's correct behavior. To force a run regardless of the local-hour gate (and see what it would do):
+
+```bash
+php artisan digest:send-daily --tenant={slug} --hour={current-local-hour}
+```
+
+`--hour=` bypasses the configured send-time gate. Check `notification_log` for the `daily_digest` row that proves a send happened:
 
 ```bash
 php artisan tinker
->>> App\Mail\DailyDigest::wouldSendToday();
+>>> App\Models\NotificationLogEntry::where('kind', 'daily_digest')->latest('sent_at')->first();
 ```
-
-The digest is configured to skip empty days by default (PRD section 7.4 + Phase 6). If there were no new Events in the last 24h, it didn't send. This is correct behavior.
 
 **Step 2:** If there was content, check the queue and mail logs.
 
@@ -250,21 +256,31 @@ If this fails, the mail driver is misconfigured. Check `.env` for `MAIL_MAILER`,
 php artisan schedule:list
 ```
 
-The digest should appear with its cron expression. If not, `app/Console/Kernel.php` doesn't have it registered.
+The digest should appear with its cron expression. If not, `routes/console.php` (Laravel 13 has no `app/Console/Kernel.php`) doesn't have it registered.
 
 ### A-tier alert didn't fire for a new role
 
 **Symptom:** A new role appeared on an A-tier Company but no email arrived.
 
 **Likely causes:**
-- The A-tier alert is throttled to 1 email per Company per hour (PRD Phase 6). Check if another alert went out for the same Company in the last hour.
-- DND window. Default 10pm-7am CET. The alert is queued and will fire after the window ends.
+- The A-tier alert is throttled to 1 email per Company per hour (`a_tier_throttle_minutes`, default 60). Check for a recent `a_tier_alert` row for the same company:
+  ```bash
+  php artisan tinker
+  >>> App\Models\NotificationLogEntry::where('kind', 'a_tier_alert')->where('company_id', {id})->latest('sent_at')->first();
+  ```
+- DND window (`dnd_start`/`dnd_end`, default 22:00–07:00 in the recipient timezone). The alert is **deferred** to the next allowed minute, not dropped — re-check after the window ends.
 - Mail driver error (see above).
 
-Check the queue:
+Force the sweep with a wide lookback to confirm it would fire:
 
 ```bash
-php artisan queue:work --once --queue=alerts
+php artisan notifications:send-a-tier-alerts --tenant={slug} --lookback=1440
+```
+
+Then process the mail queue (notifications are queued Mailables):
+
+```bash
+php artisan queue:work --once
 ```
 
 ---
@@ -299,12 +315,10 @@ ORDER BY pg_total_relation_size(schemaname || '.' || tablename) DESC
 LIMIT 20;
 ```
 
-**Step 3:** Vacuum and analyze if rows have churned heavily.
+**Step 3:** Vacuum and analyze if rows have churned heavily. There is no `db:vacuum-deep` artisan command yet — run it through psql:
 
 ```bash
-php artisan db:vacuum-deep
-# Or manually:
-# psql -c "VACUUM ANALYZE roles;"
+spin exec -T postgres psql -U vantagejobs vantagejobs -c "VACUUM ANALYZE roles;"
 ```
 
 **Step 4:** Check for missing indexes.
@@ -348,17 +362,7 @@ Expected growth per year (PRD section 8.9):
 - ~15k AggregatorListings at steady state (90-day retention)
 - Year 2 total: 8–12 GB
 
-If growth is materially higher, partition the `roles` snapshot table by month:
-
-```bash
-php artisan db:partition-roles --by=month
-```
-
-Or move closed roles older than 1 year to archive:
-
-```bash
-php artisan db:archive-old-roles --days=365
-```
+If growth is materially higher, partition the `roles` snapshot table by month or archive closed roles older than 1 year. **Neither `db:partition-roles` nor `db:archive-old-roles` is implemented yet** — they are the documented mitigation path, not shipped commands. Build them (or do the partitioning in raw SQL) when growth actually approaches the tier ceiling; until then this is a watch-the-metric item, not a runbook step.
 
 ---
 
@@ -420,8 +424,11 @@ psql "$RESTORE_DATABASE_URL" < /tmp/restore.sql
 # 4. Point a new Laravel deployment at the restored DB (Cloud env or otherwise). Run pending migrations (in case the backup is older than the code):
 php artisan migrate --force
 
-# 5. Re-seed env-driven settings if needed
-php artisan db:seed --class=ConfigSeeder
+# 5. Re-seed env-driven baseline rows only if the dump predates them
+#    (there is no ConfigSeeder; the seeders are CreateInitialTenantSeeder,
+#    CreateAdminUserSeeder, AggregatorSourcesSeeder). A full dump already
+#    carries this data — only re-seed against an empty/old restore.
+php artisan db:seed --class=AggregatorSourcesSeeder
 
 # 6. Verify
 php artisan tinker
@@ -529,7 +536,7 @@ php artisan tinker
 
 ### Health endpoint stays red
 
-- `/up` is a dumb liveness check (no DB query). If it's red, the PHP runtime itself is broken — see Step 2 above.
+- `/up` is the liveness check. It returns 200 only when the DB is reachable AND a scrape finished within `health.liveness_max_scrape_age_hours` (48h); otherwise 503 with a `reason` (`database_unreachable` or `no_recent_scrape`). A `database_unreachable` reason means PHP is up but Postgres is not — see Step 2 above and [Database health](#database-health).
 - `/health` (auth required) returns rich JSON: DB connectivity, last successful scrape per source, queue depth. If `/health` is red but `/up` is green, the app is up but a dependency is failing.
 
 If no recent scrape: the Cloud scheduler may not be running (see [Scheduler debugging](#scheduler-debugging)).
@@ -630,19 +637,14 @@ Generate new fine-grained PAT in GitHub settings, scoped to `public_repo` read.
 ```bash
 cloud env:set GITHUB_TOKEN=new_token --env=production --restart
 cloud shell --env=production
-php artisan github:test
+# No dedicated github:test command — verify by running the poller and checking rate-limit headers:
+php artisan signals:github:poll --tenant={slug}
+curl -i -H "Authorization: token $GITHUB_TOKEN" https://api.github.com/rate_limit
 ```
 
 ### Rotate the iCal feed secret (calendar export)
 
-If someone has your `.ics` URL and you want to invalidate it:
-
-```bash
-cloud shell --env=production
-php artisan calendar:rotate-secret
-```
-
-Old URL stops working immediately. New URL appears in `/settings/account`. Re-subscribe in calendar clients.
+If someone has your `.ics` URL and you want to invalidate it, rotate the feed token from the UI: **Settings → Calendar feed → Regenerate** (`POST /settings/calendar/regenerate`, `CalendarTokenController@regenerate`). There is no artisan command for this. Old URL and its cached body stop working immediately; the new subscription URL appears on `/settings/calendar`. Re-subscribe in calendar clients.
 
 ---
 
@@ -678,13 +680,7 @@ curl -i -H "Authorization: token $GITHUB_TOKEN" https://api.github.com/user
 
 **Symptom:** The queue has > 200 items and growing.
 
-**Step 1:** Run the volume cap manually if it didn't trigger.
-
-```bash
-php artisan triage:apply-volume-cap
-```
-
-This moves overflow listings to status `overflow` per PRD section 6.4.5.
+**Step 1:** There is no `triage:apply-volume-cap` command in v1 — the volume cap (PRD section 6.4.5) is not a standalone artisan job. Manage overflow from the `/discover` queue directly: filter and bulk-dismiss (Step 2), and tighten per-source enable/disable and the retention window in Settings → Triage.
 
 **Step 2:** Bulk-dismiss obvious junk.
 
