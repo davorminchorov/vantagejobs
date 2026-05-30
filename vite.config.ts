@@ -6,17 +6,22 @@ import { bunny } from 'laravel-vite-plugin/fonts';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 
-export default defineConfig({
+export default defineConfig(({ command }) => ({
     server: {
         host: '0.0.0.0',
         hmr: {
             host: 'vite.dev.test',
             clientPort: 443,
         },
-        https: {
-            key: fs.readFileSync('/usr/src/app/.infrastructure/conf/traefik/dev/certificates/local-dev-key.pem'),
-            cert: fs.readFileSync('/usr/src/app/.infrastructure/conf/traefik/dev/certificates/local-dev.pem'),
-        },
+        // Dev-server TLS certs live inside the container and are only needed when
+        // serving (HMR over HTTPS). Skip reading them during `vite build`.
+        https:
+            command === 'serve'
+                ? {
+                      key: fs.readFileSync('/usr/src/app/.infrastructure/conf/traefik/dev/certificates/local-dev-key.pem'),
+                      cert: fs.readFileSync('/usr/src/app/.infrastructure/conf/traefik/dev/certificates/local-dev.pem'),
+                  }
+                : undefined,
     },
     resolve: {
         alias: {
@@ -36,4 +41,4 @@ export default defineConfig({
         react(),
         tailwindcss(),
     ],
-});
+}));
