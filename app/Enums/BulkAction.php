@@ -12,4 +12,6 @@ enum BulkAction: string
     case DISMISS = 'dismiss';
     case BOOKMARK = 'bookmark';
     case MARK_CLOSED = 'mark_closed';
+    case KEEP = 'keep';
+    case SNOOZE = 'snooze';
 }

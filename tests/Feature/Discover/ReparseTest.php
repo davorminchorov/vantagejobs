@@ -80,6 +80,7 @@ final class ReparseTest extends TestCase
         $fresh = $listing->fresh();
         $this->assertSame('Stripe', $fresh->parsed_company_name);
         $this->assertSame('Senior Backend Engineer', $fresh->parsed_role_title);
+        $this->assertSame('backend', $fresh->discipline);
         $this->assertIsArray($fresh->parsed);
         $this->assertArrayHasKey('company_name', $fresh->parsed);
     }

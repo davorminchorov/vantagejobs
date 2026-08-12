@@ -1,4 +1,4 @@
-import { Head, Link, router, usePage } from '@inertiajs/react';
+import { Head, InfiniteScroll, router, usePage } from '@inertiajs/react';
 import { useEffect, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 
@@ -65,6 +65,8 @@ interface Filters {
 interface Props {
     listings: Paginator<Listing>;
     filters: Filters;
+    /** Per-status row counts, zero-filled for every status, scoped by the current non-status filters. */
+    counts: Record<string, number>;
     options: {
         sources: { value: string; label: string }[];
         statuses: string[];
@@ -105,12 +107,13 @@ const PARSED_SLOT_FOR_FIELD: Record<EditableField, string> = {
     stack_tags: 'stack_tags',
 };
 
-export default function DiscoverIndex({ listings, filters, options }: Props) {
+export default function DiscoverIndex({ listings, filters, counts, options }: Props) {
     const { debug } = usePage<PageProps>().props;
     const [focusIndex, setFocusIndex] = useState<number>(-1);
     const [editing, setEditing] = useState<{ listingId: number; field: EditableField } | null>(null);
     const [selectedIds, setSelectedIds] = useState<number[]>([]);
     const cardRefs = useRef<Array<HTMLDivElement | null>>([]);
+    const itemsRef = useRef<HTMLUListElement | null>(null);
 
     // Drop any selection that points at listings no longer on the page.
     useEffect(() => {
@@ -173,6 +176,8 @@ export default function DiscoverIndex({ listings, filters, options }: Props) {
 
         window.addEventListener('keydown', onKey);
         return () => window.removeEventListener('keydown', onKey);
+        // actOn is recreated each render but only reads state the deps already cover.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [focusIndex, listings.data, editing]);
 
     useEffect(() => {
@@ -188,14 +193,35 @@ export default function DiscoverIndex({ listings, filters, options }: Props) {
         }
     }, [focusIndex]);
 
+    /** Removes a listing from the merged `listings` prop client-side and reports the new total. */
+    function removeListingFromProp(old: unknown, id: number): Paginator<Listing> {
+        const paginator = old as Paginator<Listing>;
+        return {
+            ...paginator,
+            data: paginator.data.filter((l) => l.id !== id),
+            total: Math.max(0, paginator.total - 1),
+        };
+    }
+
+    /** Clamps focus onto whatever now sits at (or nearest to) the removed item's index. */
+    function refocusAfterRemoval(removedIndex: number) {
+        const newLength = listings.data.length - 1;
+        setFocusIndex(newLength <= 0 ? -1 : Math.min(removedIndex, newLength - 1));
+    }
+
     function actOn(listing: Listing, verb: 'keep' | 'dismiss' | 'snooze' | 'bookmark') {
+        const removedIndex = listings.data.findIndex((l) => l.id === listing.id);
         router.post(
             `/discover/${listing.id}/${verb}`,
             {},
             {
                 preserveScroll: true,
                 preserveState: true,
-                only: ['listings'],
+                only: ['counts', 'flash'],
+                onSuccess: () => {
+                    router.replaceProp('listings', (old: unknown) => removeListingFromProp(old, listing.id));
+                    refocusAfterRemoval(removedIndex);
+                },
             },
         );
     }
@@ -208,6 +234,7 @@ export default function DiscoverIndex({ listings, filters, options }: Props) {
                 preserveScroll: true,
                 preserveState: true,
                 only: ['listings'],
+                reset: ['listings'],
             },
         );
     }
@@ -220,6 +247,7 @@ export default function DiscoverIndex({ listings, filters, options }: Props) {
                 preserveScroll: true,
                 preserveState: true,
                 only: ['listings'],
+                reset: ['listings'],
             },
         );
     }
@@ -232,6 +260,7 @@ export default function DiscoverIndex({ listings, filters, options }: Props) {
                 preserveScroll: true,
                 preserveState: true,
                 only: ['listings'],
+                reset: ['listings'],
                 onSuccess: () => setEditing(null),
             },
         );
@@ -242,8 +271,23 @@ export default function DiscoverIndex({ listings, filters, options }: Props) {
             replace: true,
             preserveScroll: true,
             preserveState: true,
-            only: ['listings', 'filters'],
+            only: ['listings', 'filters', 'counts'],
+            reset: ['listings'],
         });
+    }
+
+    /** Bulk completion: drops every affected row from the merged list, mirroring actOn's single-row removal. */
+    function onBulkApplied() {
+        router.replaceProp('listings', (old: unknown) => {
+            const paginator = old as Paginator<Listing>;
+            const remaining = paginator.data.filter((l) => !selectedIds.includes(l.id));
+            return {
+                ...paginator,
+                data: remaining,
+                total: Math.max(0, paginator.total - (paginator.data.length - remaining.length)),
+            };
+        });
+        setFocusIndex(-1);
     }
 
     function onSearchSubmit(e: FormEvent<HTMLFormElement>) {
@@ -260,6 +304,7 @@ export default function DiscoverIndex({ listings, filters, options }: Props) {
                     <div>
                         <h1 className="text-2xl font-semibold tracking-tight text-foreground">Discover</h1>
                         <p className="text-sm text-muted-foreground">
+                            Showing <span className="font-mono tabular-nums">{listings.data.length}</span> of{' '}
                             <span className="font-mono tabular-nums">{listings.total}</span> {listings.total === 1 ? 'listing' : 'listings'}
                             <span className="hidden md:inline"> · J/↓ next · ↑ prev · K keep · X dismiss · S snooze · B bookmark</span>
                         </p>
@@ -277,53 +322,80 @@ export default function DiscoverIndex({ listings, filters, options }: Props) {
                     </form>
                 </header>
 
-                <StatusTabs current={filters.status} onChange={(status) => applyFilters({ status })} />
+                <StatusTabs current={filters.status} counts={counts} onChange={(status) => applyFilters({ status })} />
 
                 <FilterBar filters={filters} options={options} onChange={applyFilters} />
 
-                {listings.data.length === 0 ? (
+                {listings.total === 0 ? (
                     <EmptyState />
                 ) : (
-                    <ul className="space-y-3">
-                        {listings.data.map((listing, idx) => (
-                            <li key={listing.id}>
-                                <ListingCard
-                                    ref={(el) => {
-                                        cardRefs.current[idx] = el;
-                                    }}
-                                    listing={listing}
-                                    debug={debug}
-                                    isFocused={idx === focusIndex}
-                                    isSelected={selectedIds.includes(listing.id)}
-                                    onToggleSelect={() => toggleSelected(listing.id)}
-                                    editingField={editing?.listingId === listing.id ? editing.field : null}
-                                    onFocus={() => setFocusIndex(idx)}
-                                    onAction={(verb) => actOn(listing, verb)}
-                                    onEdit={(field) => setEditing({ listingId: listing.id, field })}
-                                    onCancelEdit={() => setEditing(null)}
-                                    onSave={(field, value) => saveCorrection(listing, field, value)}
-                                    onSaveFixture={() => saveFixture(listing)}
-                                    onReparse={(force) => reparse(listing, force)}
-                                />
-                            </li>
-                        ))}
-                    </ul>
+                    <InfiniteScroll
+                        data="listings"
+                        manual
+                        itemsElement={itemsRef}
+                        next={({ loading, fetch, hasMore }) =>
+                            hasMore ? (
+                                <div className="mt-6 flex justify-center">
+                                    <Button variant="outline" onClick={fetch} disabled={loading}>
+                                        {loading ? 'Loading…' : `Load more (${listings.total - listings.data.length} remaining)`}
+                                    </Button>
+                                </div>
+                            ) : null
+                        }
+                    >
+                        {listings.data.length === 0 && (
+                            <p className="py-8 text-center text-sm text-muted-foreground">
+                                Nothing left on this page. Load more below.
+                            </p>
+                        )}
+                        <ul ref={itemsRef} className="space-y-3">
+                            {listings.data.map((listing, idx) => (
+                                <li key={listing.id}>
+                                    <ListingCard
+                                        ref={(el) => {
+                                            cardRefs.current[idx] = el;
+                                        }}
+                                        listing={listing}
+                                        debug={debug}
+                                        isFocused={idx === focusIndex}
+                                        isSelected={selectedIds.includes(listing.id)}
+                                        onToggleSelect={() => toggleSelected(listing.id)}
+                                        editingField={editing?.listingId === listing.id ? editing.field : null}
+                                        onFocus={() => setFocusIndex(idx)}
+                                        onAction={(verb) => actOn(listing, verb)}
+                                        onEdit={(field) => setEditing({ listingId: listing.id, field })}
+                                        onCancelEdit={() => setEditing(null)}
+                                        onSave={(field, value) => saveCorrection(listing, field, value)}
+                                        onSaveFixture={() => saveFixture(listing)}
+                                        onReparse={(force) => reparse(listing, force)}
+                                    />
+                                </li>
+                            ))}
+                        </ul>
+                    </InfiniteScroll>
                 )}
-
-                <Paginator paginator={listings} />
 
                 <BulkActionBar
                     entity="aggregator_listing"
                     selectedIds={selectedIds}
                     onClear={() => setSelectedIds([])}
-                    only={['listings', 'flash']}
+                    onApplied={onBulkApplied}
+                    only={['counts', 'flash']}
                 />
             </div>
         </AuthenticatedLayout>
     );
 }
 
-function StatusTabs({ current, onChange }: { current: string; onChange: (s: string) => void }) {
+function StatusTabs({
+    current,
+    counts,
+    onChange,
+}: {
+    current: string;
+    counts: Record<string, number>;
+    onChange: (s: string) => void;
+}) {
     const moreActive = (MORE_STATUS_TABS as readonly string[]).includes(current);
 
     return (
@@ -342,7 +414,8 @@ function StatusTabs({ current, onChange }: { current: string; onChange: (s: stri
                                 : 'text-muted-foreground hover:text-foreground')
                         }
                     >
-                        {titleCaseStatus(status)}
+                        {titleCaseStatus(status)}{' '}
+                        <span className="font-mono text-xs tabular-nums text-muted-foreground">{counts[status] ?? 0}</span>
                     </button>
                 );
             })}
@@ -358,13 +431,22 @@ function StatusTabs({ current, onChange }: { current: string; onChange: (s: stri
                         }
                         aria-label="More status tabs"
                     >
-                        {moreActive ? titleCaseStatus(current) : 'More'} <span aria-hidden="true">⌄</span>
+                        {moreActive ? (
+                            <>
+                                {titleCaseStatus(current)}{' '}
+                                <span className="font-mono text-xs tabular-nums text-muted-foreground">{counts[current] ?? 0}</span>
+                            </>
+                        ) : (
+                            'More'
+                        )}{' '}
+                        <span aria-hidden="true">⌄</span>
                     </button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="start">
                     {MORE_STATUS_TABS.map((status) => (
                         <DropdownMenuItem key={status} onSelect={() => onChange(status)}>
-                            {titleCaseStatus(status)}
+                            {titleCaseStatus(status)}{' '}
+                            <span className="ml-1 font-mono text-xs tabular-nums text-muted-foreground">{counts[status] ?? 0}</span>
                         </DropdownMenuItem>
                     ))}
                 </DropdownMenuContent>
@@ -560,6 +642,7 @@ function ListingCard({
                                         : 'comp?'
                                 }
                                 emphasis="muted"
+                                placeholder={!listing.has_comp || listing.parsed_comp_min_usd == null}
                                 onEdit={onEdit}
                             />
                         </div>
@@ -964,39 +1047,3 @@ function EmptyState() {
     );
 }
 
-function Paginator<T>({ paginator }: { paginator: Paginator<T> }) {
-    if (paginator.last_page <= 1) return null;
-
-    return (
-        <div className="mt-6 flex items-center justify-between text-sm text-muted-foreground">
-            <span>
-                Page <span className="font-mono tabular-nums">{paginator.current_page}</span> of{' '}
-                <span className="font-mono tabular-nums">{paginator.last_page}</span>
-            </span>
-            <div className="flex gap-2">
-                {paginator.prev_page_url && (
-                    <Link
-                        href={paginator.prev_page_url}
-                        preserveScroll
-                        preserveState
-                        only={['listings']}
-                        className="rounded-md border border-border px-3 py-1 hover:bg-muted"
-                    >
-                        Prev
-                    </Link>
-                )}
-                {paginator.next_page_url && (
-                    <Link
-                        href={paginator.next_page_url}
-                        preserveScroll
-                        preserveState
-                        only={['listings']}
-                        className="rounded-md border border-border px-3 py-1 hover:bg-muted"
-                    >
-                        Next
-                    </Link>
-                )}
-            </div>
-        </div>
-    );
-}

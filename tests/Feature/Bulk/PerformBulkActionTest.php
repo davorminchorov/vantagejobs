@@ -15,6 +15,7 @@ use App\Models\Tag;
 use App\Models\User;
 use App\Tenancy\Tenant;
 use App\Tenancy\TenantContext;
+use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
@@ -128,6 +129,144 @@ final class PerformBulkActionTest extends TestCase
 
         $this->assertSame(1, Bookmark::query()->count());
         $this->assertTrue($listing->bookmarks()->exists());
+    }
+
+    #[Test]
+    public function keep_flips_listings_to_kept(): void
+    {
+        $listing = AggregatorListing::factory()->create(['status' => AggregatorListingStatus::NEW]);
+
+        $this->actingAs($this->user)
+            ->post('/bulk-actions', [
+                'entity' => 'aggregator_listing',
+                'action' => 'keep',
+                'ids' => [$listing->id],
+            ])
+            ->assertRedirect();
+
+        $this->assertSame(AggregatorListingStatus::KEPT, $listing->refresh()->status);
+    }
+
+    #[Test]
+    public function keep_is_undone_back_to_the_prior_status(): void
+    {
+        $listing = AggregatorListing::factory()->create(['status' => AggregatorListingStatus::NEW]);
+
+        $this->actingAs($this->user)
+            ->post('/bulk-actions', [
+                'entity' => 'aggregator_listing',
+                'action' => 'keep',
+                'ids' => [$listing->id],
+            ])
+            ->assertRedirect();
+
+        $log = AuditLog::query()->where('action', BulkActionExecutor::ACTION)->sole();
+
+        $this->actingAs($this->user)
+            ->post("/bulk-actions/{$log->id}/undo")
+            ->assertRedirect();
+
+        $this->assertSame(AggregatorListingStatus::NEW, $listing->refresh()->status);
+    }
+
+    #[Test]
+    public function snooze_sets_status_and_default_seven_days(): void
+    {
+        $listing = AggregatorListing::factory()->create(['status' => AggregatorListingStatus::NEW]);
+
+        $this->actingAs($this->user)
+            ->post('/bulk-actions', [
+                'entity' => 'aggregator_listing',
+                'action' => 'snooze',
+                'ids' => [$listing->id],
+            ])
+            ->assertRedirect();
+
+        $fresh = $listing->refresh();
+        $this->assertSame(AggregatorListingStatus::SNOOZED, $fresh->status);
+        $this->assertNotNull($fresh->snoozed_until);
+        $this->assertTrue($fresh->snoozed_until->greaterThan(CarbonImmutable::now()->addDays(6)));
+        $this->assertTrue($fresh->snoozed_until->lessThan(CarbonImmutable::now()->addDays(8)));
+    }
+
+    #[Test]
+    public function snooze_accepts_a_custom_days_param(): void
+    {
+        $listing = AggregatorListing::factory()->create(['status' => AggregatorListingStatus::NEW]);
+
+        $this->actingAs($this->user)
+            ->post('/bulk-actions', [
+                'entity' => 'aggregator_listing',
+                'action' => 'snooze',
+                'ids' => [$listing->id],
+                'days' => 14,
+            ])
+            ->assertRedirect();
+
+        $fresh = $listing->refresh();
+        $this->assertTrue($fresh->snoozed_until->greaterThan(CarbonImmutable::now()->addDays(13)));
+        $this->assertTrue($fresh->snoozed_until->lessThan(CarbonImmutable::now()->addDays(15)));
+    }
+
+    #[Test]
+    public function snooze_rejects_an_out_of_range_days_param(): void
+    {
+        $listing = AggregatorListing::factory()->create(['status' => AggregatorListingStatus::NEW]);
+
+        $this->actingAs($this->user)
+            ->post('/bulk-actions', [
+                'entity' => 'aggregator_listing',
+                'action' => 'snooze',
+                'ids' => [$listing->id],
+                'days' => 91,
+            ])
+            ->assertSessionHasErrors('days');
+    }
+
+    #[Test]
+    public function snooze_is_undone_back_to_the_prior_status_and_snoozed_until(): void
+    {
+        $listing = AggregatorListing::factory()->create(['status' => AggregatorListingStatus::NEW, 'snoozed_until' => null]);
+
+        $this->actingAs($this->user)
+            ->post('/bulk-actions', [
+                'entity' => 'aggregator_listing',
+                'action' => 'snooze',
+                'ids' => [$listing->id],
+            ])
+            ->assertRedirect();
+
+        $log = AuditLog::query()->where('action', BulkActionExecutor::ACTION)->sole();
+
+        $this->actingAs($this->user)
+            ->post("/bulk-actions/{$log->id}/undo")
+            ->assertRedirect();
+
+        $fresh = $listing->refresh();
+        $this->assertSame(AggregatorListingStatus::NEW, $fresh->status);
+        $this->assertNull($fresh->snoozed_until);
+    }
+
+    #[Test]
+    public function keep_and_snooze_are_not_allowed_for_company(): void
+    {
+        $company = Company::factory()->create();
+
+        $this->actingAs($this->user)
+            ->post('/bulk-actions', [
+                'entity' => 'company',
+                'action' => 'keep',
+                'ids' => [$company->id],
+            ])
+            ->assertSessionHasErrors('action');
+
+        $this->actingAs($this->user)
+            ->post('/bulk-actions', [
+                'entity' => 'company',
+                'action' => 'snooze',
+                'ids' => [$company->id],
+            ])
+            ->assertSessionHasErrors('action');
     }
 
     #[Test]

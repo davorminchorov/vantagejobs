@@ -12,6 +12,8 @@ use App\Models\Company;
 use App\Models\Role;
 use App\Models\Tag;
 use App\Models\User;
+use App\Scrapers\Aggregator\KeepListingAction;
+use App\Scrapers\Aggregator\SnoozeListingAction;
 use App\Tenancy\TenantContext;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\ConnectionResolverInterface;
@@ -32,6 +34,8 @@ use Illuminate\Database\Eloquent\Relations\MorphToMany;
  *                aggregator_listing           -> status = 'dismissed'
  *   BOOKMARK     role | aggregator_listing    -> bookmarks row
  *   MARK_CLOSED  role                         -> is_open = false
+ *   KEEP         aggregator_listing           -> status = 'kept'
+ *   SNOOZE       aggregator_listing           -> status = 'snoozed', snoozed_until
  *
  * Capture shape (AuditLog.context):
  *   {
@@ -56,6 +60,8 @@ final readonly class BulkActionExecutor
     public function __construct(
         private ConnectionResolverInterface $db,
         private TenantContext $tenant,
+        private KeepListingAction $keepListing,
+        private SnoozeListingAction $snoozeListing,
     ) {}
 
     /**
@@ -74,6 +80,8 @@ final readonly class BulkActionExecutor
                 BulkAction::DISMISS => $this->applyDismiss($entity, $rows),
                 BulkAction::BOOKMARK => $this->applyBookmark($entity, $rows),
                 BulkAction::MARK_CLOSED => $this->applyMarkClosed($rows),
+                BulkAction::KEEP => $this->applyKeep($rows),
+                BulkAction::SNOOZE => $this->applySnooze($rows, $params),
             };
 
             return $this->writeAudit(self::ACTION, $action, $entity, $params, $before, $actor);
@@ -100,6 +108,8 @@ final readonly class BulkActionExecutor
                 BulkAction::MARK_CLOSED => $this->revertColumn($entity, $before, 'is_open'),
                 BulkAction::TAG, BulkAction::UNTAG => $this->revertTagPivot($entity, $before),
                 BulkAction::BOOKMARK => $this->revertBookmark($entity, $before),
+                BulkAction::KEEP => $this->revertColumn($entity, $before, 'status'),
+                BulkAction::SNOOZE => $this->revertSnooze($entity, $before),
             };
 
             return $this->writeAudit(
@@ -265,6 +275,54 @@ final readonly class BulkActionExecutor
     }
 
     /**
+     * @param  array<int, Model>  $rows
+     * @return array<int, array{id:int, field:string, old:mixed}>
+     */
+    private function applyKeep(array $rows): array
+    {
+        $before = [];
+
+        foreach ($rows as $row) {
+            /** @var AggregatorListing $row */
+            $old = $row->getAttribute('status');
+            $old = $old instanceof \BackedEnum ? $old->value : $old;
+            $before[] = ['id' => (int) $row->id, 'field' => 'status', 'old' => $old];
+            $this->keepListing->keep($row);
+        }
+
+        return $before;
+    }
+
+    /**
+     * @param  array<int, Model>  $rows
+     * @param  array<string, mixed>  $params
+     * @return array<int, array{id:int, field:string, old:mixed}>
+     */
+    private function applySnooze(array $rows, array $params): array
+    {
+        $days = isset($params['days']) ? (int) $params['days'] : SnoozeListingAction::DEFAULT_DAYS;
+        $before = [];
+
+        foreach ($rows as $row) {
+            /** @var AggregatorListing $row */
+            $oldStatus = $row->getAttribute('status');
+            $oldStatus = $oldStatus instanceof \BackedEnum ? $oldStatus->value : $oldStatus;
+            $oldSnoozedUntil = $row->getAttribute('snoozed_until');
+
+            $before[] = ['id' => (int) $row->id, 'field' => 'status', 'old' => $oldStatus];
+            $before[] = [
+                'id' => (int) $row->id,
+                'field' => 'snoozed_until',
+                'old' => $oldSnoozedUntil?->toISOString(),
+            ];
+
+            $this->snoozeListing->snooze($row, $days);
+        }
+
+        return $before;
+    }
+
+    /**
      * @param  array<int, array{id:int, field:string, old:mixed}>  $before
      */
     private function revertColumn(string $entity, array $before, string $column): void
@@ -275,6 +333,28 @@ final readonly class BulkActionExecutor
                 continue;
             }
             $row->setAttribute($column, $entry['old']);
+            $row->save();
+        }
+    }
+
+    /**
+     * Reverts every captured (field, old value) pair per row, applied in a
+     * single save per row. Used by SNOOZE, whose before-state spans two
+     * columns (status and snoozed_until) unlike the single-column actions
+     * revertColumn() handles.
+     *
+     * @param  array<int, array{id:int, field:string, old:mixed}>  $before
+     */
+    private function revertSnooze(string $entity, array $before): void
+    {
+        foreach (collect($before)->groupBy('id') as $id => $entries) {
+            $row = $this->query($entity)->find((int) $id);
+            if ($row === null) {
+                continue;
+            }
+            foreach ($entries as $entry) {
+                $row->setAttribute($entry['field'], $entry['old']);
+            }
             $row->save();
         }
     }

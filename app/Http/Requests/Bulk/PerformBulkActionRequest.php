@@ -23,7 +23,7 @@ final class PerformBulkActionRequest extends FormRequest
     private const MATRIX = [
         BulkActionExecutor::ENTITY_COMPANY => ['change_tier', 'tag', 'untag', 'dismiss'],
         BulkActionExecutor::ENTITY_ROLE => ['tag', 'untag', 'bookmark', 'mark_closed'],
-        BulkActionExecutor::ENTITY_LISTING => ['dismiss', 'bookmark'],
+        BulkActionExecutor::ENTITY_LISTING => ['dismiss', 'bookmark', 'keep', 'snooze'],
     ];
 
     public function authorize(): bool
@@ -43,6 +43,7 @@ final class PerformBulkActionRequest extends FormRequest
             'ids.*' => ['integer', 'min:1'],
             'tier' => ['nullable', 'string', Rule::in(self::VALID_TIERS)],
             'tag' => ['nullable', 'string', 'min:1', 'max:60'],
+            'days' => ['nullable', 'integer', 'min:1', 'max:90'],
         ];
     }
 
@@ -95,6 +96,9 @@ final class PerformBulkActionRequest extends FormRequest
         }
         if ($this->input('tag') !== null) {
             $params['tag'] = trim((string) $this->input('tag'));
+        }
+        if ($this->input('days') !== null) {
+            $params['days'] = (int) $this->input('days');
         }
 
         return $params;

@@ -15,7 +15,7 @@ import { cn } from '@/lib/utils';
 
 export type BulkEntity = 'company' | 'role' | 'aggregator_listing';
 
-export type BulkActionKey = 'change_tier' | 'tag' | 'untag' | 'dismiss' | 'bookmark' | 'mark_closed';
+export type BulkActionKey = 'change_tier' | 'tag' | 'untag' | 'dismiss' | 'bookmark' | 'mark_closed' | 'keep' | 'snooze';
 
 interface BulkActionOption {
     readonly key: BulkActionKey;
@@ -24,6 +24,8 @@ interface BulkActionOption {
     readonly tier?: boolean;
     /** Requires a tag param. */
     readonly tag?: boolean;
+    /** Takes an optional days param (defaults to SnoozeListingAction::DEFAULT_DAYS server-side). */
+    readonly days?: boolean;
     /** Confirmation copy shown in the dialog. */
     readonly confirm: string;
 }
@@ -42,12 +44,16 @@ const ACTIONS_BY_ENTITY: Record<BulkEntity, ReadonlyArray<BulkActionOption>> = {
         { key: 'mark_closed', label: 'Mark closed', confirm: 'Mark the selected roles as closed?' },
     ],
     aggregator_listing: [
+        { key: 'keep', label: 'Keep', confirm: 'Keep the selected listings?' },
         { key: 'dismiss', label: 'Dismiss', confirm: 'Dismiss the selected listings?' },
+        { key: 'snooze', label: 'Snooze', days: true, confirm: 'Snooze the selected listings?' },
         { key: 'bookmark', label: 'Bookmark', confirm: 'Bookmark the selected listings?' },
     ],
 };
 
 const TIER_OPTIONS = ['A', 'B', 'C', 'graveyard'] as const;
+
+const DEFAULT_SNOOZE_DAYS = 7;
 
 interface UndoPayload {
     audit_log_id: number;
@@ -64,15 +70,22 @@ interface Props {
     onClear: () => void;
     /** Inertia `only` keys to refresh after the action lands. */
     only?: string[];
+    /**
+     * Called once the action succeeds, before selection is cleared. Lets a
+     * page rendering a merged/infinite-scroll list remove the affected rows
+     * client-side instead of relying on a fresh `only` fetch of that prop.
+     */
+    onApplied?: () => void;
 }
 
 const UNDO_WINDOW_MS = 60_000;
 
-export default function BulkActionBar({ entity, selectedIds, onClear, only }: Props) {
+export default function BulkActionBar({ entity, selectedIds, onClear, only, onApplied }: Props) {
     const page = usePage<{ flash: FlashWithUndo }>();
     const [pending, setPending] = useState<BulkActionOption | null>(null);
     const [tier, setTier] = useState<string>('B');
     const [tag, setTag] = useState<string>('');
+    const [days, setDays] = useState<number>(DEFAULT_SNOOZE_DAYS);
     const [submitting, setSubmitting] = useState(false);
     const [undo, setUndo] = useState<UndoPayload | null>(null);
     const undoTimer = useRef<number | null>(null);
@@ -115,6 +128,9 @@ export default function BulkActionBar({ entity, selectedIds, onClear, only }: Pr
         if (pending.tag) {
             data.tag = tag.trim();
         }
+        if (pending.days) {
+            data.days = days;
+        }
 
         setSubmitting(true);
         router.post('/bulk-actions', data, {
@@ -124,6 +140,7 @@ export default function BulkActionBar({ entity, selectedIds, onClear, only }: Pr
             onSuccess: () => {
                 setPending(null);
                 setTag('');
+                onApplied?.();
                 onClear();
             },
             onFinish: () => setSubmitting(false),
@@ -171,6 +188,9 @@ export default function BulkActionBar({ entity, selectedIds, onClear, only }: Pr
                                     setPending(action);
                                     if (action.tag) {
                                         setTag('');
+                                    }
+                                    if (action.days) {
+                                        setDays(DEFAULT_SNOOZE_DAYS);
                                     }
                                 }}
                             >
@@ -235,13 +255,36 @@ export default function BulkActionBar({ entity, selectedIds, onClear, only }: Pr
                         </div>
                     ) : null}
 
+                    {pending?.days ? (
+                        <div className="space-y-1.5">
+                            <label className="font-mono text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                                Days
+                            </label>
+                            <input
+                                type="number"
+                                min={1}
+                                max={90}
+                                value={days}
+                                onChange={(e) => setDays(Number(e.target.value))}
+                                className={cn(
+                                    'h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm',
+                                    'focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-2',
+                                )}
+                            />
+                        </div>
+                    ) : null}
+
                     <DialogFooter>
                         <Button variant="ghost" onClick={() => setPending(null)} disabled={submitting}>
                             Cancel
                         </Button>
                         <Button
                             onClick={submit}
-                            disabled={submitting || (pending?.tag === true && tag.trim() === '')}
+                            disabled={
+                                submitting ||
+                                (pending?.tag === true && tag.trim() === '') ||
+                                (pending?.days === true && (days < 1 || days > 90))
+                            }
                         >
                             {submitting ? 'Applying…' : 'Apply'}
                         </Button>

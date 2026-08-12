@@ -209,6 +209,42 @@ final class CorrectionsTest extends TestCase
     }
 
     #[Test]
+    public function correcting_any_field_backfills_discipline_from_the_existing_parsed_slot(): void
+    {
+        // `discipline` isn't itself a correctable field, but DisciplineExtractor
+        // already wrote it into the `parsed` jsonb blob before the denormalized
+        // column existed. Any correction should backfill the column for free.
+        $listing = AggregatorListing::factory()->create([
+            'source_id' => $this->source->id,
+            'discipline' => null,
+            'parsed_seniority' => 'mid',
+            'parsed' => [
+                'discipline' => [
+                    'value' => 'frontend',
+                    'confidence' => 0.8,
+                    'source' => 'inferred',
+                    'evidence' => 'matched: frontend',
+                ],
+                'seniority' => [
+                    'value' => 'mid',
+                    'confidence' => 0.8,
+                    'source' => 'inferred',
+                    'evidence' => null,
+                ],
+            ],
+        ]);
+
+        $this->actingAs($this->user)
+            ->post("/discover/{$listing->id}/corrections", [
+                'field' => 'seniority',
+                'new_value' => 'senior',
+            ])
+            ->assertRedirect();
+
+        $this->assertSame('frontend', $listing->fresh()->discipline);
+    }
+
+    #[Test]
     public function saving_an_unchanged_value_is_a_no_op(): void
     {
         $listing = AggregatorListing::factory()->create([

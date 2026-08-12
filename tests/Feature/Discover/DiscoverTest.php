@@ -178,6 +178,83 @@ final class DiscoverTest extends TestCase
     }
 
     /* --------------------------------------------------------------
+     | counts prop
+     * -------------------------------------------------------------- */
+
+    #[Test]
+    public function counts_are_zero_filled_for_every_status(): void
+    {
+        AggregatorListing::factory()->create([
+            'source_id' => $this->hackerNews->id,
+            'external_id' => 'a',
+            'status' => AggregatorListingStatus::NEW,
+        ]);
+
+        $response = $this->actingAs($this->user)->get('/discover');
+
+        $response->assertOk();
+        $counts = $response->viewData('page')['props']['counts'];
+
+        foreach (AggregatorListingStatus::cases() as $status) {
+            $this->assertArrayHasKey($status->value, $counts);
+        }
+        $this->assertSame(1, $counts[AggregatorListingStatus::NEW->value]);
+        $this->assertSame(0, $counts[AggregatorListingStatus::DISMISSED->value]);
+    }
+
+    #[Test]
+    public function counts_respect_non_status_filters(): void
+    {
+        AggregatorListing::factory()->create([
+            'source_id' => $this->hackerNews->id,
+            'external_id' => 'hn-new',
+            'status' => AggregatorListingStatus::NEW,
+        ]);
+        AggregatorListing::factory()->create([
+            'source_id' => $this->remotive->id,
+            'external_id' => 'rem-new',
+            'status' => AggregatorListingStatus::NEW,
+        ]);
+        AggregatorListing::factory()->create([
+            'source_id' => $this->remotive->id,
+            'external_id' => 'rem-kept',
+            'status' => AggregatorListingStatus::KEPT,
+        ]);
+
+        $response = $this->actingAs($this->user)->get('/discover?source=remotive');
+
+        $response->assertOk();
+        $counts = $response->viewData('page')['props']['counts'];
+
+        $this->assertSame(1, $counts[AggregatorListingStatus::NEW->value]);
+        $this->assertSame(1, $counts[AggregatorListingStatus::KEPT->value]);
+    }
+
+    #[Test]
+    public function counts_ignore_the_status_filter_itself(): void
+    {
+        AggregatorListing::factory()->create([
+            'source_id' => $this->hackerNews->id,
+            'external_id' => 'new-1',
+            'status' => AggregatorListingStatus::NEW,
+        ]);
+        AggregatorListing::factory()->create([
+            'source_id' => $this->hackerNews->id,
+            'external_id' => 'kept-1',
+            'status' => AggregatorListingStatus::KEPT,
+        ]);
+
+        // Viewing the "kept" tab must not zero out the "new" count.
+        $response = $this->actingAs($this->user)->get('/discover?status=kept');
+
+        $response->assertOk();
+        $counts = $response->viewData('page')['props']['counts'];
+
+        $this->assertSame(1, $counts[AggregatorListingStatus::NEW->value]);
+        $this->assertSame(1, $counts[AggregatorListingStatus::KEPT->value]);
+    }
+
+    /* --------------------------------------------------------------
      | Action endpoints
      * -------------------------------------------------------------- */
 

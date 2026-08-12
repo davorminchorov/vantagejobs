@@ -7,7 +7,7 @@ namespace App\Http\Controllers\Discover;
 use App\Enums\AggregatorListingStatus;
 use App\Enums\AggregatorSourceType;
 use App\Models\AggregatorListing;
-use App\Models\AggregatorSource;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -24,10 +24,36 @@ final readonly class IndexController
     {
         $filters = $this->normalizeFilters($request);
 
-        $query = AggregatorListing::query()
-            ->with('source:id,type,name')
+        $query = $this->applyNonStatusFilters(AggregatorListing::query()->with('source:id,type,name'), $filters)
             ->where('status', $filters['status']);
 
+        $listings = $query
+            ->orderByDesc('posted_at')
+            ->orderByDesc('id')
+            ->paginate(25)
+            ->withQueryString();
+
+        return Inertia::render('Discover/Index', [
+            'listings' => Inertia::scroll($listings)->append('data', matchOn: 'id'),
+            'filters' => $filters,
+            'counts' => $this->statusCounts($filters),
+            'options' => [
+                'sources' => array_map(static fn (AggregatorSourceType $t): array => [
+                    'value' => $t->value,
+                    'label' => $t->displayName(),
+                ], AggregatorSourceType::cases()),
+                'statuses' => array_map(static fn (AggregatorListingStatus $s): string => $s->value, AggregatorListingStatus::cases()),
+            ],
+        ]);
+    }
+
+    /**
+     * @param  Builder<AggregatorListing>  $query
+     * @param  array{status: string, source: ?string, has_comp: bool, remote_only: bool, q: ?string}  $filters
+     * @return Builder<AggregatorListing>
+     */
+    private function applyNonStatusFilters(Builder $query, array $filters): Builder
+    {
         if ($filters['source'] !== null) {
             $query->whereHas('source', fn ($q) => $q->where('type', $filters['source']));
         }
@@ -45,23 +71,30 @@ final readonly class IndexController
             });
         }
 
-        $listings = $query
-            ->orderByDesc('posted_at')
-            ->orderByDesc('id')
-            ->paginate(25)
-            ->withQueryString();
+        return $query;
+    }
 
-        return Inertia::render('Discover/Index', [
-            'listings' => $listings,
-            'filters' => $filters,
-            'options' => [
-                'sources' => array_map(static fn (AggregatorSourceType $t): array => [
-                    'value' => $t->value,
-                    'label' => $t->displayName(),
-                ], AggregatorSourceType::cases()),
-                'statuses' => array_map(static fn (AggregatorListingStatus $s): string => $s->value, AggregatorListingStatus::cases()),
-            ],
-        ]);
+    /**
+     * Per-status counts for the tabs and the More dropdown, zero-filled for
+     * every AggregatorListingStatus case and scoped by the current
+     * non-status filters (mirrors DashboardController::pipelineSummary()).
+     *
+     * @param  array{status: string, source: ?string, has_comp: bool, remote_only: bool, q: ?string}  $filters
+     * @return array<string, int>
+     */
+    private function statusCounts(array $filters): array
+    {
+        $counts = $this->applyNonStatusFilters(AggregatorListing::query(), $filters)
+            ->selectRaw('status, COUNT(*) AS row_count')
+            ->groupBy('status')
+            ->pluck('row_count', 'status');
+
+        $result = [];
+        foreach (AggregatorListingStatus::cases() as $status) {
+            $result[$status->value] = (int) ($counts[$status->value] ?? 0);
+        }
+
+        return $result;
     }
 
     /**
