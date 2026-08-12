@@ -37,6 +37,7 @@ final readonly class ShowCompanyController
             ->orderByDesc('occurred_at')
             ->limit(50)
             ->get(['id', 'type', 'title', 'body', 'occurred_at', 'role_id'])
+            ->toBase()
             ->map(fn (Event $e) => [
                 'kind' => 'event',
                 'id' => "event-{$e->id}",
@@ -52,6 +53,7 @@ final readonly class ShowCompanyController
             ->orderByDesc('created_at')
             ->limit(50)
             ->get(['id', 'body', 'created_at'])
+            ->toBase()
             ->map(fn (Note $n) => [
                 'kind' => 'note',
                 'id' => "note-{$n->id}",
