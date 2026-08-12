@@ -59,6 +59,10 @@ final class AtsDetectorTest extends TestCase
             ['https://ats.rippling.com/acme-job-board/jobs/f8e316a0', ['ats_type' => 'rippling', 'ats_slug' => 'acme-job-board']],
             ['https://ats.rippling.com/api/v2/board/acme/jobs', ['ats_type' => 'rippling', 'ats_slug' => 'acme']],
 
+            // Gem
+            ['https://jobs.gem.com/acme', ['ats_type' => 'gem', 'ats_slug' => 'acme']],
+            ['https://api.gem.com/job_board/v0/acme/job_posts/', ['ats_type' => 'gem', 'ats_slug' => 'acme']],
+
             ['https://example.com/careers', null],
             ['https://career.acme.com/', null],
             ['', null],

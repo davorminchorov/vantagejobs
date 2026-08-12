@@ -17,4 +17,5 @@ enum AtsType: string
     case PINPOINT = 'pinpoint';
     case BAMBOOHR = 'bamboohr';
     case RIPPLING = 'rippling';
+    case GEM = 'gem';
 }

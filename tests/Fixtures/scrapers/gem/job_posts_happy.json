@@ -1,0 +1,89 @@
+[
+  {
+    "id": "5001001",
+    "title": "Senior Backend Engineer",
+    "absolute_url": "https://jobs.gem.com/acme/5001001",
+    "content": "<h2>Role Details</h2><p>Help us build cool things out of our San Francisco HQ.</p>",
+    "content_plain": "Role Details\nHelp us build cool things out of our San Francisco HQ.",
+    "departments": [
+      { "id": "4022145002", "name": "Engineering", "parent_id": null, "child_ids": [] }
+    ],
+    "offices": [
+      {
+        "id": "4010840002",
+        "name": "San Francisco",
+        "location": { "name": "San Francisco, United States" },
+        "parent_id": null,
+        "parent_office_external_id": null,
+        "child_ids": [],
+        "child_office_external_ids": []
+      }
+    ],
+    "location": { "name": "San Francisco, United States" },
+    "location_type": "hybrid",
+    "employment_type": "full_time",
+    "requisition_id": "ENG-123",
+    "internal_job_id": "4117748002",
+    "created_at": "2026-05-01T15:37:20.000Z",
+    "first_published_at": "2026-05-01T15:37:23.000Z",
+    "updated_at": "2026-05-10T14:32:00.000Z"
+  },
+  {
+    "id": "5001002",
+    "title": "Staff Product Designer",
+    "absolute_url": "https://jobs.gem.com/acme/5001002",
+    "content": "<h2>Role Details</h2><p>Design at scale from our New York office.</p>",
+    "content_plain": "Role Details\nDesign at scale from our New York office.",
+    "departments": [
+      { "id": "4022146002", "name": "Design", "parent_id": null, "child_ids": [] }
+    ],
+    "offices": [
+      {
+        "id": "4010841002",
+        "name": "New York HQ",
+        "location": { "name": "New York, NY" },
+        "parent_id": null,
+        "parent_office_external_id": null,
+        "child_ids": [],
+        "child_office_external_ids": []
+      }
+    ],
+    "location": { "name": "New York, NY" },
+    "location_type": "in_office",
+    "employment_type": "full_time",
+    "requisition_id": "DES-7",
+    "internal_job_id": "4117749002",
+    "created_at": "2026-05-01T09:15:00.000Z",
+    "first_published_at": "2026-05-01T09:16:00.000Z",
+    "updated_at": "2026-05-09T09:15:00.000Z"
+  },
+  {
+    "id": "5001003",
+    "title": "Engineering Manager, Platform",
+    "absolute_url": "https://jobs.gem.com/acme/5001003",
+    "content": "<h2>Role Details</h2><p>Lead a platform team, fully remote.</p>",
+    "content_plain": "Role Details\nLead a platform team, fully remote.",
+    "departments": [
+      { "id": "4022145002", "name": "Engineering", "parent_id": null, "child_ids": [] }
+    ],
+    "offices": [
+      {
+        "id": "4010842002",
+        "name": "Remote",
+        "location": null,
+        "parent_id": null,
+        "parent_office_external_id": null,
+        "child_ids": [],
+        "child_office_external_ids": []
+      }
+    ],
+    "location": { "name": "Remote, US" },
+    "location_type": "remote",
+    "employment_type": "full_time",
+    "requisition_id": "ENG-456",
+    "internal_job_id": "4117750002",
+    "created_at": "2026-05-02T18:00:00.000Z",
+    "first_published_at": "2026-05-02T18:01:00.000Z",
+    "updated_at": "2026-05-11T18:00:00.000Z"
+  }
+]

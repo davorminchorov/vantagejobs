@@ -56,6 +56,10 @@ final class AtsDetector
         // "api" is never mistaken for a board slug.
         ['type' => AtsType::RIPPLING, 'regex' => '#ats\.rippling\.com/api/v[0-9]+/board/([a-z0-9_-]+)#i'],
         ['type' => AtsType::RIPPLING, 'regex' => '#ats\.rippling\.com/([a-z0-9_-]+)#i'],
+        // Gem: jobs.gem.com/{slug} (the API lives on api.gem.com but careers
+        // links always point at the board host).
+        ['type' => AtsType::GEM, 'regex' => '#jobs\.gem\.com/([a-z0-9_-]+)#i'],
+        ['type' => AtsType::GEM, 'regex' => '#api\.gem\.com/job_board/v[0-9]+/([a-z0-9_-]+)#i'],
     ];
 
     /**

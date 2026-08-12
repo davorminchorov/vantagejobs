@@ -649,6 +649,15 @@ These are integrated only if Phase 1+2 coverage proves insufficient. Each follow
 - **Response shape:** `{"items":[...]}`; items carry uuid `id`, `name`, `url`, `department.name`, structured `locations[].{name,country,countryCode}`. No comp fields, no posted date.
 - **Gotchas:** No ETag/Last-Modified observed live — conditional-GET plumbing is forward-compatible only. Board slugs often end in `-job-board` (e.g. `cars-and-bids-job-board`).
 
+## 3.12 Gem
+- **Verdict:** Integrated (verified live 2026-08-12). Officially documented public JSON endpoint.
+- **Endpoint:** `GET https://api.gem.com/job_board/v0/{slug}/job_posts/` (boards live at `jobs.gem.com/{slug}`)
+- **Docs:** https://help.gem.com/databases/gem-help-center/the-job-board-api
+- **Auth:** None. **Pagination:** None — bare JSON array, no cursor/meta fields.
+- **Detection:** `jobs.gem.com/{slug}` or the API path.
+- **Response shape:** Greenhouse-like posts: `id` (string, numeric or opaque base64), `title`, `absolute_url`, `content`/`content_plain`, `departments[]`, `offices[]` with nested `location.name`, `location_type` (`remote|hybrid|in_office`), `employment_type`, `requisition_id`, `created_at`/`updated_at`/`first_published_at`.
+- **Gotchas:** Unknown vanity path returns a 404 JSON object; a valid board with zero postings returns `200 []` (handled by the mass-close guard). No structured comp — comp language only appears inline in HTML content.
+
 ---
 
 # Category 4: Signal Sources (Phase 4)
@@ -926,7 +935,7 @@ Each scraper builds its own Saloon connector (extending `ConfigurableConnector`,
 |---|---|---|
 | Greenhouse / Lever / Ashby (tracked companies) | 6 hours | Direct ATS data, want freshness |
 | Workable / Personio / Recruitee / Teamtailor | 12 hours | Lower-volume ATS |
-| Pinpoint / BambooHR / Rippling | 12 hours | Lower-volume ATS |
+| Pinpoint / BambooHR / Rippling / Gem | 12 hours | Lower-volume ATS |
 | Himalayas / Remotive / RemoteOK / WWR RSS / 4dayweek | 24 hours | Aggregator caching + ToS |
 | HN "Who is Hiring" | Monthly + day-5 | Thread posts on the 1st |
 | layoffs.fyi + TrueUp | Weekly | Negative signals don't move fast |
