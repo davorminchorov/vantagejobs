@@ -17,8 +17,10 @@ use Illuminate\Support\Facades\DB;
  * Diffs fetched-vs-existing roles for one (company, source) pair, then
  * applies the resulting plan inside a transaction. Emits Event rows for
  * new / closed / reopened roles. Touches (still-open seen again) refresh
- * the mutable fields (title, comp, location, ...) plus last_seen_at — no
- * event; detail changes are silent by design.
+ * the mutable fields (title, comp, location, ...) plus last_seen_at, and
+ * emit a ROLE_UPDATED event only when a material field changed (title,
+ * comp, location, workplace type) so timelines don't flood with silent
+ * detail churn.
  *
  * Idempotency contract: applying twice against the same fetched list
  * produces zero new Events on the second call.
@@ -152,10 +154,17 @@ final class RoleDiffer
                 /** @var ParsedRole $parsed */
                 $parsed = $touch['parsed'];
 
+                $role = Role::query()->whereKey($touch['id'])->first();
+                if ($role === null) {
+                    continue;
+                }
+
+                $changes = $this->materialChanges($role, $parsed);
+
                 // Instance-level update (not a query-builder mass update) so
                 // the array/enum casts on `raw` and `workplace_type` actually
                 // serialize correctly.
-                Role::query()->whereKey($touch['id'])->first()?->update([
+                $role->update([
                     'title' => $parsed->title,
                     'url' => $parsed->url,
                     'location' => $parsed->location,
@@ -171,6 +180,17 @@ final class RoleDiffer
                     'posted_at' => $parsed->postedAt,
                     'last_seen_at' => $now,
                 ]);
+
+                if ($changes !== []) {
+                    Event::query()->create([
+                        'company_id' => $company->id,
+                        'role_id' => $role->id,
+                        'type' => EventType::ROLE_UPDATED->value,
+                        'title' => 'Role updated: '.implode(', ', array_keys($changes)),
+                        'body' => (string) json_encode(['changes' => $changes]),
+                        'occurred_at' => $now,
+                    ]);
+                }
             }
 
             return [
@@ -180,6 +200,45 @@ final class RoleDiffer
                 'touched' => count($plan->toTouch),
             ];
         });
+    }
+
+    /**
+     * Diffs the fields whose change is worth a timeline entry: title,
+     * compensation (bounds/currency/interval), location, and workplace
+     * type. Silent-by-design fields (url, department, team, raw,
+     * posted_at) never trigger an event, keeping timelines readable when
+     * sources reshuffle metadata on every fetch.
+     *
+     * @return array<string, array{old: mixed, new: mixed}>
+     */
+    private function materialChanges(Role $role, ParsedRole $parsed): array
+    {
+        $current = [
+            'title' => $role->title,
+            'comp_min' => $role->comp_min,
+            'comp_max' => $role->comp_max,
+            'comp_currency' => $role->comp_currency,
+            'location' => $role->location,
+            'workplace_type' => $role->workplace_type?->value,
+        ];
+
+        $incoming = [
+            'title' => $parsed->title,
+            'comp_min' => $parsed->compMin,
+            'comp_max' => $parsed->compMax,
+            'comp_currency' => $parsed->compCurrency,
+            'location' => $parsed->location,
+            'workplace_type' => $parsed->workplaceType->value,
+        ];
+
+        $changes = [];
+        foreach ($incoming as $field => $new) {
+            if ($current[$field] !== $new) {
+                $changes[$field] = ['old' => $current[$field], 'new' => $new];
+            }
+        }
+
+        return $changes;
     }
 
     /**

@@ -36,7 +36,7 @@ final class RoleDifferTest extends TestCase
         app(TenantContext::class)->setCurrent($this->tenant);
 
         $this->company = Company::factory()->create(['ats_type' => 'greenhouse']);
-        $this->differ = new RoleDiffer();
+        $this->differ = new RoleDiffer;
     }
 
     #[Test]
@@ -101,12 +101,19 @@ final class RoleDifferTest extends TestCase
     }
 
     #[Test]
-    public function touches_still_open_roles_without_emitting_events(): void
+    public function touches_still_open_roles_without_emitting_events_when_nothing_material_changed(): void
     {
         $role = Role::factory()->create([
             'company_id' => $this->company->id,
             'source' => 'greenhouse',
             'external_id' => 'gh-steady',
+            'title' => 'Staff Engineer',
+            'location' => null,
+            'is_remote' => false,
+            'workplace_type' => WorkplaceType::UNSPECIFIED->value,
+            'comp_min' => null,
+            'comp_max' => null,
+            'comp_currency' => null,
             'is_open' => true,
             'last_seen_at' => now()->subDays(7),
         ]);
@@ -120,7 +127,7 @@ final class RoleDifferTest extends TestCase
 
         $this->assertSame(['new' => 0, 'reopened' => 0, 'closed' => 0, 'touched' => 1], $counts);
         $this->assertTrue($role->fresh()->last_seen_at->greaterThan($originalSeenAt));
-        $this->assertSame(0, Event::query()->count(), 'Touch must not emit any event.');
+        $this->assertSame(0, Event::query()->count(), 'Unchanged touch must not emit any event.');
     }
 
     #[Test]
@@ -213,7 +220,52 @@ final class RoleDifferTest extends TestCase
         $this->assertSame(180000, $fresh->comp_max);
         $this->assertSame('USD', $fresh->comp_currency);
         $this->assertSame(['posting' => 'updated'], $fresh->raw);
-        $this->assertSame(0, Event::query()->count(), 'Detail refresh must not emit any event.');
+
+        // Title, comp, location, and workplace type all changed: one
+        // ROLE_UPDATED event carrying the changed-field map.
+        $event = Event::query()->where('type', EventType::ROLE_UPDATED->value)->sole();
+        $this->assertSame($role->id, $event->role_id);
+        $this->assertStringContainsString('title', $event->title);
+
+        $changes = json_decode((string) $event->body, true)['changes'] ?? [];
+        $this->assertSame(['old' => 'Old Title', 'new' => 'New Title'], $changes['title']);
+        $this->assertSame(['old' => 100000, 'new' => 150000], $changes['comp_min']);
+        $this->assertArrayHasKey('location', $changes);
+        // workplace_type stayed remote -> remote, so it must NOT be listed.
+        $this->assertArrayNotHasKey('workplace_type', $changes);
+        $this->assertSame(1, Event::query()->count(), 'Exactly one event for one touched role.');
+    }
+
+    #[Test]
+    public function touch_with_only_silent_field_changes_emits_no_event(): void
+    {
+        Role::factory()->create([
+            'company_id' => $this->company->id,
+            'source' => 'greenhouse',
+            'external_id' => 'gh-quiet',
+            'title' => 'Backend Engineer',
+            'location' => null,
+            'workplace_type' => WorkplaceType::UNSPECIFIED->value,
+            'comp_min' => null,
+            'comp_max' => null,
+            'comp_currency' => null,
+            'department' => 'Engineering',
+            'is_open' => true,
+        ]);
+
+        $plan = $this->differ->plan($this->company->roles()->get(), [
+            new ParsedRole(
+                externalId: 'gh-quiet',
+                title: 'Backend Engineer',
+                url: 'https://example.com/jobs/relocated',
+                department: 'Platform Engineering',
+                raw: ['reshuffled' => true],
+            ),
+        ]);
+
+        $this->differ->apply($this->company, AtsType::GREENHOUSE, $plan);
+
+        $this->assertSame(0, Event::query()->count(), 'url/department/raw churn must stay silent.');
     }
 
     #[Test]
