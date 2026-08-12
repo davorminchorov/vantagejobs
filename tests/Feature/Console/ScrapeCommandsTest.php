@@ -150,7 +150,7 @@ final class ScrapeCommandsTest extends TestCase
     {
         app(TenantContext::class)->setCurrent(null);
 
-        $this->artisan('scrape:all', ['--tenant' => 'primary', '--source' => 'bamboohr'])
+        $this->artisan('scrape:all', ['--tenant' => 'primary', '--source' => 'not-a-real-ats'])
             ->expectsOutputToContain('Unknown --source')
             ->assertExitCode(1);
     }
