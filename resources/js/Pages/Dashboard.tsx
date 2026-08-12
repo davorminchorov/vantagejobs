@@ -146,7 +146,7 @@ export default function DashboardPage({
                                                     )}
                                                     <span className="text-muted-foreground">
                                                         {' '}
-                                                        —{' '}
+                                                        ·{' '}
                                                         {due.days_overdue === null
                                                             ? 'never contacted'
                                                             : `${due.days_overdue}d overdue`}

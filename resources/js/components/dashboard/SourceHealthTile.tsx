@@ -117,7 +117,7 @@ export default function SourceHealthTile({ summary }: { summary: SourceHealthSum
                                 ) : (
                                     <span className="font-medium text-foreground">{source.name}</span>
                                 )}
-                                <span className="text-muted-foreground"> — {source.reasons.join('; ')}</span>
+                                <span className="text-muted-foreground">: {source.reasons.join('; ')}</span>
                             </span>
                         </li>
                     ))}
