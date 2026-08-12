@@ -1,10 +1,14 @@
 import { Link } from '@inertiajs/react';
 
 export type SourceHealthStatus = 'green' | 'yellow' | 'red';
+export type SourceHealthKind = 'aggregator' | 'ats';
 
 export interface SourceHealthRow {
-    source_id: number;
-    key: string;
+    kind: SourceHealthKind;
+    value: string;
+    source_id: number | null;
+    company_id: number | null;
+    key: string | null;
     name: string;
     status: SourceHealthStatus;
     reasons: string[];
@@ -97,13 +101,22 @@ export default function SourceHealthTile({ summary }: { summary: SourceHealthSum
             {attention.length > 0 && (
                 <ul className="mt-4 space-y-2 border-t border-border pt-3">
                     {attention.map((source) => (
-                        <li key={source.source_id} className="flex items-start gap-3 text-sm">
+                        <li key={source.value} className="flex items-start gap-3 text-sm">
                             <span
                                 className={`mt-1.5 inline-block size-2 shrink-0 rounded-full ${statusDot[source.status]}`}
                                 aria-hidden="true"
                             />
                             <span className="min-w-0">
-                                <span className="font-medium text-foreground">{source.name}</span>
+                                {source.kind === 'ats' ? (
+                                    <Link
+                                        href="/admin/runs"
+                                        className="font-medium text-foreground underline-offset-2 hover:underline"
+                                    >
+                                        {source.name}
+                                    </Link>
+                                ) : (
+                                    <span className="font-medium text-foreground">{source.name}</span>
+                                )}
                                 <span className="text-muted-foreground"> — {source.reasons.join('; ')}</span>
                             </span>
                         </li>

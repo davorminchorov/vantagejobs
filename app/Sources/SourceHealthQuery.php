@@ -5,16 +5,19 @@ declare(strict_types=1);
 namespace App\Sources;
 
 use App\Models\AggregatorSource;
+use App\Models\Company;
 use App\Models\ParserConfidenceDaily;
+use App\Models\ScrapeRun;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\Config\Repository as ConfigRepository;
 use Illuminate\Support\Collection;
 
 /**
- * Computes a green / yellow / red health status for every enabled aggregator
- * source in the active tenant, reusing the signals the scrape orchestrator
- * already maintains:
+ * Computes a single green / yellow / red health verdict for the active
+ * tenant, so /dashboard and /admin/runs never disagree about whether
+ * anything needs attention. Two signal groups feed it:
  *
+ *  Aggregator sources (perSource(), unchanged):
  *  - AggregatorSource.consecutive_failures: at or above the configured
  *    failure-alert threshold the source is RED (scrapes are flat-out failing).
  *  - AggregatorSource.last_run_at staleness: enabled but not run within the
@@ -24,12 +27,21 @@ use Illuminate\Support\Collection;
  *    but material drop (half the threshold) is YELLOW. This catches a source
  *    that still returns 200s but whose markup changed under us.
  *
+ *  ATS companies (summary() only, mirroring Admin\Runs\IndexController::sourceHealth()):
+ *  - A company's most recent ATS scrape in the last 24h ended in `error`
+ *    (RED) or `partial` (YELLOW).
+ *  - A company flagged by the ATS-switch detector: `ats_status` of
+ *    `redetect_failed` (RED, manual review) or `needs_redetection` (YELLOW,
+ *    awaiting automated redetection).
+ *
  * RED outranks YELLOW outranks GREEN. The most severe reason wins, and the
  * full reason list is carried so the dashboard tile and the alert email can
- * explain exactly what tripped.
+ * explain exactly what tripped. Only degraded ATS companies become entries —
+ * there is no "healthy ATS company" row, since every enabled aggregator
+ * source already gets one from perSource().
  *
- * Tenant scoping is implicit: both models use BelongsToTenant, so every read
- * is bounded by the active TenantContext.
+ * Tenant scoping is implicit: every model here uses BelongsToTenant, so
+ * every read is bounded by the active TenantContext.
  */
 final readonly class SourceHealthQuery
 {
@@ -87,8 +99,10 @@ final readonly class SourceHealthQuery
     }
 
     /**
-     * Roll the per-source rows up into a single summary for the dashboard tile:
-     * the overall (worst) colour plus per-status counts.
+     * Roll the per-source rows up into a single summary for the dashboard
+     * tile and the /admin/runs strip: the overall (worst) colour plus
+     * per-status counts, over the union of aggregator sources (all of them)
+     * and degraded ATS companies (only the ones with something wrong).
      *
      * @return array{
      *     status: string,
@@ -99,7 +113,43 @@ final readonly class SourceHealthQuery
      */
     public function summary(?CarbonImmutable $now = null): array
     {
-        $sources = $this->perSource($now);
+        $now ??= CarbonImmutable::now();
+
+        $aggregatorRows = array_map(
+            static fn (array $row): array => [
+                'kind' => 'aggregator',
+                'value' => sprintf('aggregator:%s', $row['key']),
+                'source_id' => $row['source_id'],
+                'company_id' => null,
+                'key' => $row['key'],
+                'name' => $row['name'],
+                'status' => $row['status'],
+                'reasons' => $row['reasons'],
+                'consecutive_failures' => $row['consecutive_failures'],
+                'last_run_at' => $row['last_run_at'],
+                'last_error' => $row['last_error'],
+                'confidence_p50' => $row['confidence_p50'],
+                'confidence_p50_prev' => $row['confidence_p50_prev'],
+                'confidence_drop_pct' => $row['confidence_drop_pct'],
+            ],
+            $this->perSource($now),
+        );
+
+        $sources = [
+            ...$aggregatorRows,
+            ...$this->atsRunFailureRows($now),
+            ...$this->atsSwitchFlagRows(),
+        ];
+
+        usort($sources, static function (array $a, array $b): int {
+            $rank = static fn (string $status): int => match ($status) {
+                'red' => 0,
+                'yellow' => 1,
+                default => 2,
+            };
+
+            return [$rank($a['status']), $a['name']] <=> [$rank($b['status']), $b['name']];
+        });
 
         $counts = ['green' => 0, 'yellow' => 0, 'red' => 0];
         foreach ($sources as $source) {
@@ -119,6 +169,136 @@ final readonly class SourceHealthQuery
             'total' => count($sources),
             'sources' => $sources,
         ];
+    }
+
+    /**
+     * Companies whose most recent ATS scrape in the last 24h ended in
+     * `error` (red) or `partial` (yellow). Mirrors
+     * Admin\Runs\IndexController::sourceHealth() lines 304-360, including the
+     * reason text, so both screens describe the same failure identically.
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function atsRunFailureRows(CarbonImmutable $now): array
+    {
+        $since = $now->subDay();
+
+        $recentRuns = ScrapeRun::query()
+            ->where('source_kind', 'ats')
+            ->whereNotNull('company_id')
+            ->where('started_at', '>=', $since)
+            ->orderByDesc('started_at')
+            ->get(['company_id', 'status', 'started_at', 'errors']);
+
+        if ($recentRuns->isEmpty()) {
+            return [];
+        }
+
+        $latestByCompany = [];
+        foreach ($recentRuns as $run) {
+            $companyId = (int) $run->company_id;
+            if (! isset($latestByCompany[$companyId])) {
+                $latestByCompany[$companyId] = $run;
+            }
+        }
+
+        $failing = array_filter(
+            $latestByCompany,
+            static fn (ScrapeRun $run): bool => in_array($run->status, ['error', 'partial'], true),
+        );
+
+        if ($failing === []) {
+            return [];
+        }
+
+        $companies = Company::query()
+            ->whereIn('id', array_keys($failing))
+            ->get(['id', 'name'])
+            ->keyBy('id');
+
+        $rows = [];
+        foreach ($failing as $companyId => $run) {
+            $status = (string) $run->status;
+            $severity = $status === 'error' ? 'red' : 'yellow';
+
+            $reason = sprintf('Last ATS run %s', $status);
+            if (is_array($run->errors) && $run->errors !== []) {
+                $first = $run->errors[0]['message'] ?? null;
+                if (is_string($first) && $first !== '') {
+                    $reason .= ': '.$first;
+                }
+            }
+
+            $rows[] = [
+                'kind' => 'ats',
+                'value' => sprintf('ats:%d', $companyId),
+                'source_id' => null,
+                'company_id' => $companyId,
+                'key' => null,
+                'name' => (string) ($companies->get($companyId)?->name ?? ('Company #'.$companyId)),
+                'status' => $severity,
+                'reasons' => [$reason],
+                'consecutive_failures' => 0,
+                'last_run_at' => $run->started_at?->toIso8601String(),
+                'last_error' => $reason,
+                'confidence_p50' => null,
+                'confidence_p50_prev' => null,
+                'confidence_drop_pct' => null,
+            ];
+        }
+
+        return $rows;
+    }
+
+    /**
+     * Companies flagged by the ATS-switch detector (PRD §11.2): `ats_status`
+     * of `redetect_failed` (red) or `needs_redetection` (yellow). Mirrors
+     * Admin\Runs\IndexController::sourceHealth() lines 362-389, including the
+     * reason text.
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function atsSwitchFlagRows(): array
+    {
+        $companies = Company::query()
+            ->whereIn('ats_status', ['needs_redetection', 'redetect_failed'])
+            ->get(['id', 'name', 'ats_status', 'ats_consecutive_404s', 'ats_redetect_attempts', 'last_checked_at']);
+
+        return $companies
+            ->map(static function (Company $company): array {
+                $status = (string) $company->ats_status;
+                $severity = $status === 'redetect_failed' ? 'red' : 'yellow';
+
+                $reason = match ($status) {
+                    'redetect_failed' => sprintf(
+                        'ATS redetection failed after %d attempts — manual review required',
+                        (int) $company->ats_redetect_attempts,
+                    ),
+                    'needs_redetection' => sprintf(
+                        '%d consecutive 404s — awaiting ATS redetection',
+                        (int) $company->ats_consecutive_404s,
+                    ),
+                    default => 'ATS health alert',
+                };
+
+                return [
+                    'kind' => 'ats',
+                    'value' => sprintf('ats:%d', (int) $company->id),
+                    'source_id' => null,
+                    'company_id' => (int) $company->id,
+                    'key' => null,
+                    'name' => (string) $company->name,
+                    'status' => $severity,
+                    'reasons' => [$reason],
+                    'consecutive_failures' => (int) $company->ats_consecutive_404s,
+                    'last_run_at' => $company->last_checked_at?->toIso8601String(),
+                    'last_error' => null,
+                    'confidence_p50' => null,
+                    'confidence_p50_prev' => null,
+                    'confidence_drop_pct' => null,
+                ];
+            })
+            ->all();
     }
 
     /**

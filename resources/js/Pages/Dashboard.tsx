@@ -1,15 +1,19 @@
 import { Head, Link } from '@inertiajs/react';
+import type { ReactNode } from 'react';
 
-import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import PageHeader from '@/components/PageHeader';
 import SourceHealthTile, { type SourceHealthSummary } from '@/components/dashboard/SourceHealthTile';
+import { Badge } from '@/components/ui/badge';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import { RelativeDate } from '@/lib/dates';
 
-interface DashboardCompany {
+interface WatchListCompany {
     id: number;
     name: string;
-    website: string | null;
-    ats_type: string | null;
     tier: 'A' | 'B' | 'C' | 'graveyard';
     status: string;
+    open_roles: number;
     last_checked_at: string | null;
 }
 
@@ -19,53 +23,69 @@ interface AutoDismissRule {
     dismiss_count: number;
 }
 
+interface FollowUpDue {
+    contact_name: string;
+    company_name: string | null;
+    days_overdue: number | null;
+}
+
+interface FollowUpsDue {
+    count: number;
+    top: FollowUpDue[];
+}
+
+interface PipelineStage {
+    status: string;
+    label: string;
+    count: number;
+}
+
+interface PipelineSummary {
+    total_active: number;
+    stages: PipelineStage[];
+}
+
 interface Props {
-    companies: DashboardCompany[];
+    companies: WatchListCompany[];
     companies_count: number;
     active_auto_dismiss_rules: AutoDismissRule[];
     source_health?: SourceHealthSummary;
+    follow_ups_due: FollowUpsDue;
+    pipeline_summary: PipelineSummary;
+    discover_new_count: number;
 }
 
-const tierPill: Record<string, string> = {
-    A: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-200',
-    B: 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-200',
-    C: 'bg-sky-100 text-sky-700 dark:bg-sky-900/40 dark:text-sky-200',
-    graveyard: 'bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-200',
+const tierVariant: Record<string, 'success' | 'warning' | 'secondary' | 'destructive'> = {
+    A: 'success',
+    B: 'warning',
+    C: 'secondary',
+    graveyard: 'destructive',
 };
+
+const TERMINAL_STAGES = new Set(['rejected', 'withdrawn']);
 
 export default function DashboardPage({
     companies = [],
     companies_count = 0,
     active_auto_dismiss_rules = [],
     source_health,
+    follow_ups_due,
+    pipeline_summary,
+    discover_new_count = 0,
 }: Props) {
+    const activeStages = pipeline_summary.stages.filter((stage) => !TERMINAL_STAGES.has(stage.status));
+
     return (
         <AuthenticatedLayout>
             <Head title="Dashboard" />
 
             <div className="text-foreground">
-                    <header className="mb-8 flex flex-wrap items-end justify-between gap-4">
-                        <div>
-                            <h1 className="bg-gradient-to-r from-teal-600 to-emerald-500 bg-clip-text text-3xl font-semibold tracking-tight text-transparent dark:from-teal-400 dark:to-emerald-300">
-                                Dashboard
-                            </h1>
-                            <p className="mt-1 text-sm text-muted-foreground">
-                                {companies_count > 0
-                                    ? `${companies_count} ${companies_count === 1 ? 'company' : 'companies'} on the watch list.`
-                                    : 'No companies on the watch list yet.'}
-                            </p>
-                        </div>
-                        <span
-                            className="rounded-full bg-teal-600 px-4 py-1.5 text-sm font-semibold text-white shadow-lg shadow-teal-600/25"
-                            aria-label={`${companies_count} companies tracked`}
-                        >
-                            <span className="font-mono tabular-nums" aria-hidden="true">
-                                {companies_count}
-                            </span>{' '}
-                            <span aria-hidden="true">tracked</span>
-                        </span>
-                    </header>
+                <PageHeader
+                    title="Dashboard"
+                    subtitle={`${companies_count} ${companies_count === 1 ? 'company' : 'companies'} on the watch list`}
+                />
 
+                <div className="mt-8">
                     {source_health && <SourceHealthTile summary={source_health} />}
 
                     {active_auto_dismiss_rules.length > 0 && (
@@ -106,46 +126,153 @@ export default function DashboardPage({
                             </Link>
                         </div>
                     ) : (
-                        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                            {companies.map((company) => (
-                                <div
-                                    key={company.id}
-                                    className="group rounded-2xl border border-border bg-card p-5 shadow-sm transition-all hover:-translate-y-1 hover:shadow-xl hover:shadow-teal-500/10"
-                                >
-                                    <div className="mb-3 flex items-start justify-between gap-2">
-                                        <span className="font-semibold text-foreground">{company.name}</span>
-                                        <span
-                                            className={`rounded-full px-2.5 py-0.5 font-mono text-xs font-semibold ${tierPill[company.tier] ?? tierPill.C}`}
-                                        >
-                                            Tier {company.tier}
-                                        </span>
-                                    </div>
-                                    {company.website && (
-                                        <a
-                                            href={company.website}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            aria-label={`${company.name} website (opens in a new tab)`}
-                                            className="focus-visible:ring-ring block truncate rounded text-sm text-muted-foreground hover:text-teal-600 focus-visible:outline-none focus-visible:ring-2 dark:hover:text-teal-400"
-                                        >
-                                            {company.website}
-                                        </a>
+                        <>
+                            <div className="mb-8 grid gap-4 sm:grid-cols-3">
+                                <NeedsYouBlock title="Follow-ups due" count={follow_ups_due.count} href="/follow-ups">
+                                    {follow_ups_due.top.length === 0 ? (
+                                        <p className="text-sm text-muted-foreground">Nothing due right now.</p>
+                                    ) : (
+                                        <ul className="space-y-2">
+                                            {follow_ups_due.top.map((due, index) => (
+                                                <li key={index} className="text-sm">
+                                                    <span className="font-medium text-foreground">
+                                                        {due.contact_name}
+                                                    </span>
+                                                    {due.company_name && (
+                                                        <span className="text-muted-foreground">
+                                                            {' '}
+                                                            · {due.company_name}
+                                                        </span>
+                                                    )}
+                                                    <span className="text-muted-foreground">
+                                                        {' '}
+                                                        —{' '}
+                                                        {due.days_overdue === null
+                                                            ? 'never contacted'
+                                                            : `${due.days_overdue}d overdue`}
+                                                    </span>
+                                                </li>
+                                            ))}
+                                        </ul>
                                     )}
-                                    <div className="mt-4 flex items-center justify-between border-t border-border pt-3">
-                                        <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                                            {company.status}
-                                        </span>
-                                        {company.ats_type && (
-                                            <span className="rounded-md bg-muted px-2 py-0.5 text-xs text-muted-foreground">
-                                                {company.ats_type}
-                                            </span>
-                                        )}
-                                    </div>
+                                </NeedsYouBlock>
+
+                                <NeedsYouBlock
+                                    title="Pipeline"
+                                    count={pipeline_summary.total_active}
+                                    href="/pipeline"
+                                >
+                                    {activeStages.every((stage) => stage.count === 0) ? (
+                                        <p className="text-sm text-muted-foreground">No active applications.</p>
+                                    ) : (
+                                        <ul className="space-y-1.5">
+                                            {activeStages
+                                                .filter((stage) => stage.count > 0)
+                                                .map((stage) => (
+                                                    <li
+                                                        key={stage.status}
+                                                        className="flex items-center justify-between text-sm"
+                                                    >
+                                                        <span className="text-muted-foreground">{stage.label}</span>
+                                                        <span className="font-mono tabular-nums text-foreground">
+                                                            {stage.count}
+                                                        </span>
+                                                    </li>
+                                                ))}
+                                        </ul>
+                                    )}
+                                </NeedsYouBlock>
+
+                                <NeedsYouBlock
+                                    title="New in Discover"
+                                    count={discover_new_count}
+                                    href="/discover"
+                                    linkLabel="Review"
+                                >
+                                    <p className="text-sm text-muted-foreground">
+                                        {discover_new_count === 0
+                                            ? 'Nothing new since your last check.'
+                                            : `${discover_new_count} ${discover_new_count === 1 ? 'listing' : 'listings'} waiting for review.`}
+                                    </p>
+                                </NeedsYouBlock>
+                            </div>
+
+                            <div className="rounded-2xl border border-border bg-card shadow-sm">
+                                <div className="flex items-center justify-between px-5 py-4">
+                                    <h2 className="text-sm font-semibold text-foreground">Watch list</h2>
+                                    <Link
+                                        href="/companies"
+                                        className="text-xs font-semibold text-teal-700 hover:underline dark:text-teal-300"
+                                    >
+                                        View all
+                                    </Link>
                                 </div>
-                            ))}
-                        </div>
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>Name</TableHead>
+                                            <TableHead>Tier</TableHead>
+                                            <TableHead>Open roles</TableHead>
+                                            <TableHead>Last checked</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {companies.map((company) => (
+                                            <TableRow key={company.id}>
+                                                <TableCell>
+                                                    <Link
+                                                        href={`/companies/${company.id}`}
+                                                        className="font-medium text-foreground hover:underline"
+                                                    >
+                                                        {company.name}
+                                                    </Link>
+                                                </TableCell>
+                                                <TableCell>
+                                                    <Badge variant={tierVariant[company.tier] ?? 'secondary'}>
+                                                        Tier {company.tier}
+                                                    </Badge>
+                                                </TableCell>
+                                                <TableCell className="font-mono tabular-nums text-muted-foreground">
+                                                    {company.open_roles}
+                                                </TableCell>
+                                                <TableCell className="text-muted-foreground">
+                                                    <RelativeDate iso={company.last_checked_at} />
+                                                </TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                            </div>
+                        </>
                     )}
+                </div>
             </div>
         </AuthenticatedLayout>
+    );
+}
+
+interface NeedsYouBlockProps {
+    title: string;
+    count: number;
+    href: string;
+    linkLabel?: string;
+    children: ReactNode;
+}
+
+function NeedsYouBlock({ title, count, href, linkLabel = 'View all', children }: NeedsYouBlockProps) {
+    return (
+        <div className="flex flex-col rounded-2xl border border-border bg-card p-5 shadow-sm">
+            <div className="mb-3 flex items-center justify-between gap-2">
+                <h2 className="text-sm font-semibold text-foreground">{title}</h2>
+                <span className="font-mono text-lg tabular-nums text-foreground">{count}</span>
+            </div>
+            <div className="flex-1">{children}</div>
+            <Link
+                href={href}
+                className="mt-4 text-xs font-semibold text-teal-700 hover:underline dark:text-teal-300"
+            >
+                {linkLabel}
+            </Link>
+        </div>
     );
 }
