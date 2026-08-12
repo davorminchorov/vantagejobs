@@ -19,10 +19,19 @@ interface Props {
     data: TrendPoint[];
     showListings?: boolean;
     height?: number;
+    /** Render the empty state as a single slim line instead of a full-height box. */
+    compact?: boolean;
 }
 
-export default function HiringTrendChart({ data, showListings = true, height = 240 }: Props) {
+export default function HiringTrendChart({ data, showListings = true, height = 240, compact = false }: Props) {
     if (data.length === 0) {
+        if (compact) {
+            return (
+                <p className="text-sm text-muted-foreground">
+                    No snapshots yet. Charts populate after the first daily run.
+                </p>
+            );
+        }
         return (
             <div
                 className="flex items-center justify-center rounded-2xl border border-dashed border-border bg-card text-sm text-muted-foreground"
