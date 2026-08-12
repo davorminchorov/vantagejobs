@@ -942,10 +942,11 @@ Each scraper builds its own Saloon connector (extending `ConfigurableConnector`,
 
 | Source | Cadence | Reason |
 |---|---|---|
-| Greenhouse / Lever / Ashby (tracked companies) | 6 hours | Direct ATS data, want freshness |
+| Greenhouse / Lever / Ashby (tracked companies) | 2 hours (A-tier), 12/24 h (B/C) | Direct ATS data; A-tier polled tightly for early applications |
 | Workable / Personio / Recruitee / Teamtailor | 12 hours | Lower-volume ATS |
 | Pinpoint / BambooHR / Rippling / Gem / Workday | 12 hours | Lower-volume ATS (Workday: paginated fetches are costly, keep cadence modest) |
-| Himalayas / Remotive / RemoteOK / WWR RSS / 4dayweek | 24 hours | Aggregator caching + ToS |
+| Himalayas / Remotive / WWR RSS / Adzuna | 24 hours | Aggregator caching + ToS / rate limits |
+| RemoteOK / 4dayweek / WorkingNomads / LaraJobs / Jobicy / Arbeitnow / Python.org / Django / Elixir Jobs / HexHire | 6 hours | Permissive feeds, nothing strict documented; fresher listings |
 | HN "Who is Hiring" | Monthly + day-5 | Thread posts on the 1st |
 | layoffs.fyi + TrueUp | Weekly | Negative signals don't move fast |
 | GitHub org activity | Weekly | Rate limit + cost vs change rate |
@@ -975,4 +976,4 @@ When a primary source fails:
 
 ---
 
-**Last updated:** May 2026. Update this document whenever a source's API, rate limit, or behavior materially changes.
+**Last updated:** August 2026. Update this document whenever a source's API, rate limit, or behavior materially changes.

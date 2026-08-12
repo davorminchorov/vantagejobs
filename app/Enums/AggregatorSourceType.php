@@ -53,6 +53,12 @@ enum AggregatorSourceType: string
      * Default polling cadence per SOURCES.md guidance. HackerNews's monthly
      * thread is run on the 3rd + 5th of each month via the scheduler; the
      * cadence value here is the inter-run floor between manual triggers.
+     *
+     * Daily group: sources with documented rate limits, server-side caches,
+     * or ToS that make more frequent polling pointless or hostile (Remotive
+     * ≤4 polls/day, Himalayas 24h cache, WWR RSS-only ToS, Adzuna metered
+     * quota). Six-hourly group: permissive feeds with nothing strict
+     * documented, where fresher listings help early applications.
      */
     public function defaultCadenceMinutes(): int
     {
@@ -61,17 +67,17 @@ enum AggregatorSourceType: string
             self::REMOTIVE,
             self::HIMALAYAS,
             self::WEWORKREMOTELY,
+            self::ADZUNA => 60 * 24,
             self::REMOTEOK,
             self::FOURDAYWEEK,
             self::WORKINGNOMADS,
-            self::ADZUNA,
             self::LARAJOBS,
             self::JOBICY,
             self::ARBEITNOW,
             self::PYTHON_ORG,
             self::DJANGO_NEWS,
             self::ELIXIR_JOBS,
-            self::HEXHIRE => 60 * 24,
+            self::HEXHIRE => 60 * 6,
         };
     }
 }

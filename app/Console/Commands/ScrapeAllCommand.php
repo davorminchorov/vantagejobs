@@ -18,11 +18,15 @@ use Illuminate\Database\Eloquent\Collection;
 final class ScrapeAllCommand extends Command
 {
     /**
-     * Tier -> hours between attempts (PRD §6.2). `graveyard` never reaches
-     * this map: Company::scrapeable() already excludes inactive companies.
+     * Tier -> hours between attempts. A-tier runs tighter than the PRD §6.2
+     * baseline of 6h: being an early applicant at top-priority companies is
+     * the whole point of tracking them, and the ATS APIs involved (Greenhouse
+     * Job Board, Lever, Ashby) document tolerance for polite frequent polling.
+     * `graveyard` never reaches this map: Company::scrapeable() already
+     * excludes inactive companies.
      */
     private const array TIER_INTERVAL_HOURS = [
-        'A' => 6,
+        'A' => 2,
         'B' => 12,
         'C' => 24,
     ];

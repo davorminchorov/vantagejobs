@@ -202,7 +202,7 @@ final class ScrapeCommandsTest extends TestCase
     }
 
     #[Test]
-    public function scrape_all_queue_skips_a_tier_company_scraped_within_the_last_six_hours(): void
+    public function scrape_all_queue_skips_a_tier_company_scraped_within_the_last_two_hours(): void
     {
         Queue::fake();
 
@@ -212,7 +212,7 @@ final class ScrapeCommandsTest extends TestCase
             'source' => 'greenhouse',
             'source_kind' => 'ats',
             'status' => 'completed',
-            'started_at' => now()->subHours(3),
+            'started_at' => now()->subHour(),
         ]);
 
         app(TenantContext::class)->setCurrent(null);
@@ -223,7 +223,7 @@ final class ScrapeCommandsTest extends TestCase
     }
 
     #[Test]
-    public function scrape_all_queue_dispatches_an_a_tier_company_scraped_more_than_six_hours_ago(): void
+    public function scrape_all_queue_dispatches_an_a_tier_company_scraped_more_than_two_hours_ago(): void
     {
         Queue::fake();
 
@@ -233,7 +233,7 @@ final class ScrapeCommandsTest extends TestCase
             'source' => 'greenhouse',
             'source_kind' => 'ats',
             'status' => 'completed',
-            'started_at' => now()->subHours(7),
+            'started_at' => now()->subHours(3),
         ]);
 
         app(TenantContext::class)->setCurrent(null);

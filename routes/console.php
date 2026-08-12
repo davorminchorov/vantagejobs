@@ -43,11 +43,11 @@ $tenantSlug = static fn (): ?string => Tenant::query()->orderBy('id')->value('sl
 | running the orchestrator inline in the scheduler process, so one slow or
 | crashing company can't stall — or take down — the rest of the sweep.
 |
-| Tier-aware cadence (A/B/C-tier PRD §6.2): A every 6h, B every 12h, C every
-| 24h, computed from each company's latest scrape_runs.started_at. The tick
-| runs hourly so every tier's window is checked promptly; ScrapeAllCommand
-| itself skips companies that aren't due yet, so most ticks queue nothing
-| for most companies.
+| Tier-aware cadence (A/B/C-tier PRD §6.2, A tightened for early-applicant
+| freshness): A every 2h, B every 12h, C every 24h, computed from each
+| company's latest scrape_runs.started_at. The tick runs hourly so every
+| tier's window is checked promptly; ScrapeAllCommand itself skips companies
+| that aren't due yet, so most ticks queue nothing for most companies.
 */
 Schedule::call(static function () use ($tenantSlug): void {
     $slug = $tenantSlug();
@@ -103,9 +103,10 @@ $aggregatorTenantSlugs = static function (): array {
 // rather than a hardcoded per-source cron entry: this sweep dispatches
 // RunAggregatorScrapeJob (ShouldBeUnique-guarded) for every enabled source
 // whose next_run_at has elapsed. AggregatorOrchestrator already advances
-// next_run_at by cadence_minutes on every run; seeded cadence_minutes for
-// these types is 1440 (daily), matching the cadence this replaces. HackerNews
-// keeps its explicit monthly entries above — see AggregatorDispatchDueCommand.
+// next_run_at by cadence_minutes on every run; seeded cadence_minutes comes
+// from AggregatorSourceType::defaultCadenceMinutes() (6h for permissive
+// feeds, daily for rate-limited/cached/ToS-bound ones). HackerNews keeps its
+// explicit monthly entries above — see AggregatorDispatchDueCommand.
 Schedule::command('aggregator:dispatch-due')->everyFifteenMinutes()->withoutOverlapping();
 
 Schedule::command('bookmarks:warn-expiring')->dailyAt('06:00');
