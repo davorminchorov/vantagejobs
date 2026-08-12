@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { SectionLabel } from '@/components/ui/section-label';
 import { cn } from '@/lib/utils';
 
 export interface CompanyFormValues {
@@ -128,7 +129,7 @@ export default function CompanyForm({ mode, initial, options, action, method = '
     return (
         <form onSubmit={submit} className="space-y-6">
             <section className="space-y-4">
-                <h2 className="font-mono text-sm font-semibold uppercase tracking-wide text-muted-foreground">Identity</h2>
+                <SectionLabel>Identity</SectionLabel>
 
                 <Field id="name" label="Name" error={form.errors.name} required>
                     <Input
@@ -181,7 +182,7 @@ export default function CompanyForm({ mode, initial, options, action, method = '
 
             <section className="space-y-4">
                 <div className="flex items-baseline justify-between">
-                    <h2 className="font-mono text-sm font-semibold uppercase tracking-wide text-muted-foreground">ATS</h2>
+                    <SectionLabel>ATS</SectionLabel>
                     {detecting ? (
                         <span className="text-sm text-muted-foreground">Detecting…</span>
                     ) : detectionHint ? (
@@ -214,7 +215,7 @@ export default function CompanyForm({ mode, initial, options, action, method = '
             </section>
 
             <section className="space-y-4">
-                <h2 className="font-mono text-sm font-semibold uppercase tracking-wide text-muted-foreground">Classification</h2>
+                <SectionLabel>Classification</SectionLabel>
 
                 <div className="grid gap-4 sm:grid-cols-2">
                     <Field id="tier" label="Tier" error={form.errors.tier}>

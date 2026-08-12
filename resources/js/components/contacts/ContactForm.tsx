@@ -3,6 +3,7 @@ import { useForm } from '@inertiajs/react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { SectionLabel } from '@/components/ui/section-label';
 import { cn } from '@/lib/utils';
 
 export interface ContactFormValues {
@@ -59,7 +60,7 @@ export default function ContactForm({ mode, initial, companies, action, method =
     return (
         <form onSubmit={submit} className="space-y-6">
             <section className="space-y-4">
-                <h2 className="font-mono text-sm font-semibold uppercase tracking-wide text-muted-foreground">Identity</h2>
+                <SectionLabel>Identity</SectionLabel>
 
                 <Field id="name" label="Name" error={form.errors.name} required>
                     <Input id="name" value={form.data.name} onChange={(e) => form.setData('name', e.target.value)} autoFocus />
@@ -87,7 +88,7 @@ export default function ContactForm({ mode, initial, companies, action, method =
             </section>
 
             <section className="space-y-4">
-                <h2 className="font-mono text-sm font-semibold uppercase tracking-wide text-muted-foreground">Reach</h2>
+                <SectionLabel>Reach</SectionLabel>
 
                 <div className="grid gap-4 sm:grid-cols-2">
                     <Field id="email" label="Email" error={form.errors.email}>
@@ -113,7 +114,7 @@ export default function ContactForm({ mode, initial, companies, action, method =
             </section>
 
             <section className="space-y-4">
-                <h2 className="font-mono text-sm font-semibold uppercase tracking-wide text-muted-foreground">Notes</h2>
+                <SectionLabel>Notes</SectionLabel>
 
                 <Field id="notes" label="Notes" error={form.errors.notes}>
                     <textarea

@@ -5,6 +5,7 @@ import { Head, useForm } from '@inertiajs/react';
 import SettingsLayout from '@/Layouts/SettingsLayout';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { formatDateTime } from '@/lib/dates';
 
 type ExportStatus = 'pending' | 'running' | 'completed' | 'failed' | 'expired';
 
@@ -39,17 +40,6 @@ const STATUS_LABEL: Record<ExportStatus, string> = {
     failed: 'Failed',
     expired: 'Expired',
 };
-
-function formatDate(value: string | null): string {
-    if (!value) {
-        return '—';
-    }
-
-    return new Date(value).toLocaleString(undefined, {
-        dateStyle: 'medium',
-        timeStyle: 'short',
-    });
-}
 
 function totalRows(counts: Record<string, number> | null): number | null {
     if (!counts) {
@@ -128,9 +118,9 @@ export default function DataPage({ exports }: Props) {
                                                     </span>
                                                 </div>
                                                 <p className="text-xs text-muted-foreground">
-                                                    Requested {formatDate(job.createdAt)}
+                                                    Requested {formatDateTime(job.createdAt)}
                                                     {job.status === 'completed' && job.expiresAt && (
-                                                        <> · expires {formatDate(job.expiresAt)}</>
+                                                        <> · expires {formatDateTime(job.expiresAt)}</>
                                                     )}
                                                     {rows !== null && <> · {rows.toLocaleString()} rows</>}
                                                 </p>

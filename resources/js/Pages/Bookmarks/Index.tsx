@@ -3,6 +3,7 @@ import { Head, Link, router } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { RelativeDate } from '@/lib/dates';
 
 interface BookmarkListing {
     id: number;
@@ -144,7 +145,6 @@ function BookmarkCard({ row, onRemove }: { row: BookmarkRow; onRemove: () => voi
         );
     }
 
-    const expiresAt = row.expires_at ? new Date(row.expires_at) : null;
     const isWarning = row.expires_warned_at !== null;
 
     return (
@@ -181,9 +181,9 @@ function BookmarkCard({ row, onRemove }: { row: BookmarkRow; onRemove: () => voi
                                 </span>
                             )}
                         </div>
-                        {expiresAt && (
+                        {row.expires_at && (
                             <p className="text-xs text-muted-foreground">
-                                Expires <span className="font-mono tabular-nums">{expiresAt.toLocaleDateString()}</span>
+                                Expires <RelativeDate iso={row.expires_at} className="font-mono tabular-nums" />
                             </p>
                         )}
                     </div>

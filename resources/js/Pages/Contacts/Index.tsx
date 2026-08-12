@@ -9,6 +9,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { RelativeDate } from '@/lib/dates';
 import { cn } from '@/lib/utils';
 
 interface ContactRow {
@@ -208,9 +209,16 @@ export default function ContactsIndexPage({ contacts, filters, options }: Props)
                                                         )}
                                                     </TableCell>
                                                     <TableCell>
-                                                        <span className="font-mono text-xs tabular-nums text-muted-foreground">
-                                                            {contact.last_touch ? new Date(contact.last_touch).toLocaleDateString() : 'Never'}
-                                                        </span>
+                                                        {contact.last_touch ? (
+                                                            <RelativeDate
+                                                                iso={contact.last_touch}
+                                                                className="font-mono text-xs tabular-nums text-muted-foreground"
+                                                            />
+                                                        ) : (
+                                                            <span className="font-mono text-xs tabular-nums text-muted-foreground">
+                                                                Never
+                                                            </span>
+                                                        )}
                                                     </TableCell>
                                                     <TableCell className="text-right">
                                                         <Link
@@ -255,6 +263,16 @@ function FilterPanel({ local, options, patchFilters, onClear, hasAny }: FilterPa
                             Clear
                         </Button>
                     ) : null}
+                </div>
+
+                <div className="space-y-1.5">
+                    <label className="font-mono text-xs font-medium uppercase tracking-wide text-muted-foreground">Search</label>
+                    <Input
+                        type="search"
+                        placeholder="Name, email, role…"
+                        value={local.q ?? ''}
+                        onChange={(e) => patchFilters({ q: e.target.value === '' ? null : e.target.value })}
+                    />
                 </div>
 
                 <div className="flex flex-col gap-1.5">
@@ -302,16 +320,6 @@ function FilterPanel({ local, options, patchFilters, onClear, hasAny }: FilterPa
                         placeholder="Engineering Manager"
                         value={local.role_title ?? ''}
                         onChange={(e) => patchFilters({ role_title: e.target.value === '' ? null : e.target.value })}
-                    />
-                </div>
-
-                <div className="space-y-1.5">
-                    <label className="font-mono text-xs font-medium uppercase tracking-wide text-muted-foreground">Search</label>
-                    <Input
-                        type="search"
-                        placeholder="Name, email, role…"
-                        value={local.q ?? ''}
-                        onChange={(e) => patchFilters({ q: e.target.value === '' ? null : e.target.value })}
                     />
                 </div>
             </CardContent>

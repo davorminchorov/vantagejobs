@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { formatDateTime } from '@/lib/dates';
 import { cn } from '@/lib/utils';
 
 export interface OutreachLogEntry {
@@ -29,23 +30,6 @@ interface OutreachLogPanelProps {
 
 function humanize(value: string): string {
     return value.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
-}
-
-function formatTimestamp(value: string | null): string {
-    if (!value) {
-        return '';
-    }
-
-    const date = new Date(value);
-
-    if (Number.isNaN(date.getTime())) {
-        return value;
-    }
-
-    return date.toLocaleString(undefined, {
-        dateStyle: 'medium',
-        timeStyle: 'short',
-    });
 }
 
 export default function OutreachLogPanel({ contactId, entries, channels }: OutreachLogPanelProps) {
@@ -141,7 +125,7 @@ export default function OutreachLogPanel({ contactId, entries, channels }: Outre
                                             {humanize(entry.channel)}
                                         </span>
                                         <span className="text-xs text-muted-foreground">
-                                            {formatTimestamp(entry.occurred_at)}
+                                            {formatDateTime(entry.occurred_at)}
                                         </span>
                                     </div>
                                     {entry.subject ? (

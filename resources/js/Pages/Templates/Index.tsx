@@ -13,6 +13,7 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
+import { RelativeDate } from '@/lib/dates';
 
 interface TemplateRow {
     id: number;
@@ -101,7 +102,7 @@ export default function TemplatesIndexPage({ templates, categories }: Props) {
                                                     <CardTitle className="text-base">{template.name}</CardTitle>
                                                     {template.updated_at ? (
                                                         <p className="font-mono text-xs tabular-nums text-muted-foreground">
-                                                            Updated {new Date(template.updated_at).toLocaleDateString()}
+                                                            Updated <RelativeDate iso={template.updated_at} />
                                                         </p>
                                                     ) : null}
                                                 </div>

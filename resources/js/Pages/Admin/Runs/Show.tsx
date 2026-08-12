@@ -4,6 +4,7 @@ import { useState } from 'react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { formatDateTime, RelativeDate } from '@/lib/dates';
 
 interface RunSummary {
     id: number;
@@ -144,11 +145,11 @@ export default function RunsShow({ run, errors, artifacts }: Props) {
                         <dl className="grid grid-cols-2 gap-4 text-sm sm:grid-cols-4">
                             <div>
                                 <dt className="text-muted-foreground text-xs">Started</dt>
-                                <dd className="font-mono tabular-nums">{run.started_at ? new Date(run.started_at).toLocaleString() : '—'}</dd>
+                                <dd className="font-mono tabular-nums">{formatDateTime(run.started_at)}</dd>
                             </div>
                             <div>
                                 <dt className="text-muted-foreground text-xs">Finished</dt>
-                                <dd className="font-mono tabular-nums">{run.finished_at ? new Date(run.finished_at).toLocaleString() : '—'}</dd>
+                                <dd className="font-mono tabular-nums">{formatDateTime(run.finished_at)}</dd>
                             </div>
                             <div>
                                 <dt className="text-muted-foreground text-xs">Duration</dt>
@@ -228,7 +229,7 @@ export default function RunsShow({ run, errors, artifacts }: Props) {
                                         {artifacts.map((artifact) => (
                                             <tr key={artifact.id} className={artifact.expired ? 'opacity-50' : ''}>
                                                 <td className="px-4 py-2 whitespace-nowrap font-mono text-xs tabular-nums">
-                                                    {artifact.fetched_at ? new Date(artifact.fetched_at).toLocaleString() : '—'}
+                                                    {artifact.fetched_at ? <RelativeDate iso={artifact.fetched_at} /> : '—'}
                                                 </td>
                                                 <td className="px-4 py-2 font-mono text-xs">{artifact.connector}</td>
                                                 <td className="px-4 py-2 font-mono text-xs" title={artifact.request_endpoint}>
@@ -237,7 +238,7 @@ export default function RunsShow({ run, errors, artifacts }: Props) {
                                                 <td className="px-4 py-2 text-right font-mono tabular-nums">{artifact.http_status ?? '—'}</td>
                                                 <td className="px-4 py-2 text-right font-mono tabular-nums">{formatBytes(artifact.size_bytes)}</td>
                                                 <td className="px-4 py-2 whitespace-nowrap font-mono text-xs tabular-nums">
-                                                    {artifact.retained_until ? new Date(artifact.retained_until).toLocaleString() : '—'}
+                                                    {artifact.retained_until ? <RelativeDate iso={artifact.retained_until} /> : '—'}
                                                 </td>
                                                 <td className="px-4 py-2 text-right">
                                                     {artifact.expired ? (

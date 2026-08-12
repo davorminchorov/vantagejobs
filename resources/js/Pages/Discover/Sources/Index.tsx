@@ -3,6 +3,7 @@ import { Head, router } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { RelativeDate } from '@/lib/dates';
 
 interface Source {
     id: number;
@@ -98,8 +99,19 @@ export default function SourcesIndex({ sources, rules }: Props) {
                                         </div>
                                         <p className="text-sm text-muted-foreground">
                                             Cadence: every <span className="font-mono tabular-nums">{Math.round(source.cadence_minutes / 60)}</span>h ·
-                                            Last run: <span className="font-mono tabular-nums">{source.last_run_at ? new Date(source.last_run_at).toLocaleString() : 'never'}</span> ·
-                                            Next: <span className="font-mono tabular-nums">{source.next_run_at ? new Date(source.next_run_at).toLocaleString() : '—'}</span>
+                                            Last run:{' '}
+                                            {source.last_run_at ? (
+                                                <RelativeDate iso={source.last_run_at} className="font-mono tabular-nums" />
+                                            ) : (
+                                                <span className="font-mono tabular-nums">never</span>
+                                            )}{' '}
+                                            ·
+                                            Next:{' '}
+                                            {source.next_run_at ? (
+                                                <RelativeDate iso={source.next_run_at} className="font-mono tabular-nums" />
+                                            ) : (
+                                                <span className="font-mono tabular-nums">—</span>
+                                            )}
                                         </p>
                                         {source.last_error && (
                                             <p className="text-sm text-amber-700 dark:text-amber-300">{source.last_error}</p>
@@ -136,10 +148,11 @@ export default function SourcesIndex({ sources, rules }: Props) {
                                             <span className="font-medium text-foreground">{rule.display_name}</span>
                                             <span className="ml-2 text-sm text-muted-foreground">
                                                 <span className="font-mono tabular-nums">{rule.dismiss_count}</span> dismissals
-                                                {rule.last_dismissed_at &&
-                                                    ` · last `}
                                                 {rule.last_dismissed_at && (
-                                                    <span className="font-mono tabular-nums">{new Date(rule.last_dismissed_at).toLocaleDateString()}</span>
+                                                    <>
+                                                        {' · last '}
+                                                        <RelativeDate iso={rule.last_dismissed_at} className="font-mono tabular-nums" />
+                                                    </>
                                                 )}
                                             </span>
                                         </div>

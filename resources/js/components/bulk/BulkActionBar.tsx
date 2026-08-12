@@ -196,7 +196,7 @@ export default function BulkActionBar({ entity, selectedIds, onClear, only }: Pr
 
                     {pending?.tier ? (
                         <div className="space-y-1.5">
-                            <label className="font-mono text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                            <label className="font-mono text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                                 Tier
                             </label>
                             <select
@@ -218,7 +218,7 @@ export default function BulkActionBar({ entity, selectedIds, onClear, only }: Pr
 
                     {pending?.tag ? (
                         <div className="space-y-1.5">
-                            <label className="font-mono text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                            <label className="font-mono text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                                 Tag
                             </label>
                             <input

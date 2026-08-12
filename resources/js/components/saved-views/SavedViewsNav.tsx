@@ -7,6 +7,7 @@ import { useMemo, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { SectionLabel } from '@/components/ui/section-label';
 import { cn } from '@/lib/utils';
 import type { PageProps, SharedSavedView } from '@/types';
 
@@ -122,7 +123,7 @@ function SavedViewsGroup({ entity, label, views, onNavigate }: SavedViewsGroupPr
 
     return (
         <div>
-            <div className="px-3 pb-1 font-mono text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</div>
+            <SectionLabel className="px-3 pb-1 font-medium">{label}</SectionLabel>
             <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
                 <SortableContext items={items.map((v) => v.id)} strategy={verticalListSortingStrategy}>
                     <ul className="flex flex-col">

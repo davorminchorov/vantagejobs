@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { RelativeDate } from '@/lib/dates';
 
 interface RunRow {
     id: number;
@@ -446,7 +447,7 @@ export default function RunsIndex({ runs, filters, options, health, triggerOptio
                                         {runs.data.map((run) => (
                                             <tr key={run.id} className="hover:bg-accent/40">
                                                 <td className="px-4 py-2 font-mono tabular-nums whitespace-nowrap">
-                                                    {run.started_at ? new Date(run.started_at).toLocaleString() : '—'}
+                                                    {run.started_at ? <RelativeDate iso={run.started_at} /> : '—'}
                                                 </td>
                                                 <td className="px-4 py-2 font-mono tabular-nums">{formatDuration(run.duration_seconds)}</td>
                                                 <td className="px-4 py-2">

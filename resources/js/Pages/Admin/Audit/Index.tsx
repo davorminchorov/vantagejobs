@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { RelativeDate } from '@/lib/dates';
 
 interface Actor {
     id: number;
@@ -191,7 +192,7 @@ export default function AuditIndex({ logs, filters, options }: Props) {
                                             <Fragment key={log.id}>
                                                 <tr className="hover:bg-accent/40">
                                                     <td className="px-4 py-2 font-mono tabular-nums whitespace-nowrap">
-                                                        {log.created_at ? new Date(log.created_at).toLocaleString() : '—'}
+                                                        {log.created_at ? <RelativeDate iso={log.created_at} /> : '—'}
                                                     </td>
                                                     <td className="px-4 py-2 font-mono text-xs">{log.action}</td>
                                                     <td className="px-4 py-2">

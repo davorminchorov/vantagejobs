@@ -3,6 +3,7 @@ import { useForm } from '@inertiajs/react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { SectionLabel } from '@/components/ui/section-label';
 import { cn } from '@/lib/utils';
 
 export interface CalendarEventFormValues {
@@ -85,7 +86,7 @@ export default function CalendarEventForm({
     return (
         <form onSubmit={submit} className="space-y-6">
             <section className="space-y-4">
-                <h2 className="font-mono text-sm font-semibold uppercase tracking-wide text-muted-foreground">Event</h2>
+                <SectionLabel>Event</SectionLabel>
 
                 <Field id="title" label="Title" error={form.errors.title} required>
                     <Input
@@ -128,7 +129,7 @@ export default function CalendarEventForm({
             </section>
 
             <section className="space-y-4">
-                <h2 className="font-mono text-sm font-semibold uppercase tracking-wide text-muted-foreground">Link</h2>
+                <SectionLabel>Link</SectionLabel>
 
                 <div className="grid gap-4 sm:grid-cols-2">
                     <Field
@@ -191,7 +192,7 @@ export default function CalendarEventForm({
             </section>
 
             <section className="space-y-4">
-                <h2 className="font-mono text-sm font-semibold uppercase tracking-wide text-muted-foreground">Notes</h2>
+                <SectionLabel>Notes</SectionLabel>
 
                 <Field id="notes" label="Notes" error={form.errors.notes}>
                     <textarea

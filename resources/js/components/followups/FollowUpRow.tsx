@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { TableCell, TableRow } from '@/components/ui/table';
+import { RelativeDate } from '@/lib/dates';
 
 export interface FollowUpContact {
     id: number;
@@ -70,9 +71,11 @@ export default function FollowUpRow({ contact, onLogTouch, pending }: Props) {
                 </Badge>
             </TableCell>
             <TableCell>
-                <span className="font-mono text-xs tabular-nums text-muted-foreground">
-                    {contact.last_touch ? new Date(contact.last_touch).toLocaleDateString() : 'Never'}
-                </span>
+                {contact.last_touch ? (
+                    <RelativeDate iso={contact.last_touch} className="font-mono text-xs tabular-nums text-muted-foreground" />
+                ) : (
+                    <span className="font-mono text-xs tabular-nums text-muted-foreground">Never</span>
+                )}
             </TableCell>
             <TableCell className="text-right">
                 {confirming ? (

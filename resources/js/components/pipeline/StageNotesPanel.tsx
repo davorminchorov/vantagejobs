@@ -2,6 +2,7 @@ import { router } from '@inertiajs/react';
 import { useState } from 'react';
 
 import { Button } from '@/components/ui/button';
+import { RelativeDate } from '@/lib/dates';
 import { cn } from '@/lib/utils';
 
 export type PipelineStage =
@@ -50,19 +51,6 @@ const STAGE_ORDER: PipelineStage[] = [
     'rejected',
     'withdrawn',
 ];
-
-function formatTimestamp(value: string): string {
-    const date = new Date(value);
-    if (Number.isNaN(date.getTime())) {
-        return value;
-    }
-    return date.toLocaleString(undefined, {
-        month: 'short',
-        day: 'numeric',
-        hour: 'numeric',
-        minute: '2-digit',
-    });
-}
 
 export default function StageNotesPanel({ roleId, notes, activeStage, className }: StageNotesPanelProps) {
     const [body, setBody] = useState('');
@@ -126,9 +114,10 @@ export default function StageNotesPanel({ roleId, notes, activeStage, className 
                                         <p className="whitespace-pre-wrap text-sm text-zinc-800 dark:text-zinc-200">
                                             {note.body}
                                         </p>
-                                        <p className="mt-2 font-mono text-xs tabular-nums text-zinc-400 dark:text-zinc-500">
-                                            {formatTimestamp(note.created_at)}
-                                        </p>
+                                        <RelativeDate
+                                            iso={note.created_at}
+                                            className="mt-2 block font-mono text-xs tabular-nums text-zinc-400 dark:text-zinc-500"
+                                        />
                                     </li>
                                 ))}
                             </ul>

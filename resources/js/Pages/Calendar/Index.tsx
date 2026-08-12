@@ -13,6 +13,7 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
+import { EmptyState } from '@/components/ui/empty-state';
 
 interface CalendarEventRow {
     id: number;
@@ -129,12 +130,10 @@ export default function CalendarIndexPage({ events, filters, options }: Props) {
                 </header>
 
                 {rows.length === 0 ? (
-                    <Card className="rounded-2xl border-border">
-                        <CardContent className="px-6 py-12 text-center text-sm text-muted-foreground">
-                            Add interviews, deadlines, and reminders. Subscribe to the feed from settings to see them in your own
-                            calendar app.
-                        </CardContent>
-                    </Card>
+                    <EmptyState>
+                        Add interviews, deadlines, and reminders. Subscribe to the feed from settings to see them in your own
+                        calendar app.
+                    </EmptyState>
                 ) : (
                     <div className="grid gap-4 sm:grid-cols-2">
                         {rows.map((event) => (

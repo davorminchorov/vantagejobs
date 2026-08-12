@@ -1,6 +1,7 @@
 import { Link } from '@inertiajs/react';
 
 import { Badge } from '@/components/ui/badge';
+import { formatDate } from '@/lib/dates';
 import { cn } from '@/lib/utils';
 
 export interface PipelineRole {
@@ -37,7 +38,7 @@ export default function PipelineCard({ role, dragging, onDragStart, onDragEnd }:
         >
             <div className="flex items-start justify-between gap-2">
                 <Link
-                    href={`/companies/${role.company_id}`}
+                    href={`/pipeline/roles/${role.id}`}
                     className="text-sm font-medium leading-snug hover:underline"
                 >
                     {role.title}
@@ -50,23 +51,26 @@ export default function PipelineCard({ role, dragging, onDragStart, onDragEnd }:
             </div>
 
             {role.company_name ? (
-                <p className="mt-1 text-xs text-muted-foreground">{role.company_name}</p>
+                <Link
+                    href={`/companies/${role.company_id}`}
+                    className="mt-1 block text-xs text-muted-foreground hover:underline"
+                >
+                    {role.company_name}
+                </Link>
             ) : null}
 
             {role.next_action ? (
                 <p className="mt-2 line-clamp-2 text-xs text-muted-foreground">
                     <span className="font-medium text-foreground">Next:</span> {role.next_action}
                     {role.next_action_date ? (
-                        <span className="ml-1 font-mono tabular-nums">
-                            ({new Date(role.next_action_date).toLocaleDateString()})
-                        </span>
+                        <span className="ml-1 font-mono tabular-nums">({formatDate(role.next_action_date)})</span>
                     ) : null}
                 </p>
             ) : null}
 
             {role.applied_at ? (
                 <p className="mt-2 font-mono text-[11px] tabular-nums text-muted-foreground">
-                    Applied {new Date(role.applied_at).toLocaleDateString()}
+                    Applied {formatDate(role.applied_at)}
                 </p>
             ) : null}
         </article>

@@ -2,6 +2,7 @@ import { Head, router } from '@inertiajs/react';
 import { useMemo, useState } from 'react';
 
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import PageHeader from '@/components/PageHeader';
 import PipelineColumn from '@/components/pipeline/PipelineColumn';
 import { type PipelineRole } from '@/components/pipeline/PipelineCard';
 
@@ -46,43 +47,49 @@ export default function PipelineIndexPage({ columns, statuses, follow_up_thresho
             <Head title="Pipeline" />
 
             <div className="text-foreground">
-                <header className="mb-6 flex flex-wrap items-end justify-between gap-4">
-                    <div>
-                        <h1 className="bg-gradient-to-r from-teal-600 to-emerald-500 bg-clip-text text-3xl font-semibold tracking-tight text-transparent dark:from-teal-400 dark:to-emerald-300">
-                            Pipeline
-                        </h1>
-                        <p className="mt-1 text-sm text-muted-foreground">
+                <PageHeader
+                    title="Pipeline"
+                    subtitle={
+                        <>
                             {totals.total > 0
                                 ? `${totals.total} ${totals.total === 1 ? 'application' : 'applications'} in flight`
                                 : 'No applications in the pipeline yet.'}
                             {totals.followUps > 0
                                 ? ` · ${totals.followUps} need a follow-up after ${follow_up_threshold_days} days`
                                 : ''}
-                        </p>
-                    </div>
-                    <span className="rounded-full bg-teal-600 px-4 py-1.5 text-sm font-semibold text-white shadow-lg shadow-teal-600/25">
-                        <span className="font-mono tabular-nums">{totals.total}</span> in pipeline
-                    </span>
-                </header>
+                        </>
+                    }
+                    actions={
+                        <span className="text-sm text-muted-foreground">
+                            <span className="font-mono tabular-nums">{totals.total}</span> in pipeline
+                        </span>
+                    }
+                />
 
                 {totals.total === 0 ? (
-                    <div className="rounded-2xl border border-dashed border-border px-6 py-16 text-center text-sm text-muted-foreground">
+                    <div className="mt-6 rounded-2xl border border-dashed border-border px-6 py-16 text-center text-sm text-muted-foreground">
                         Add a role to the pipeline from a company page to start tracking it here.
                     </div>
                 ) : (
-                    <div className="flex gap-4 overflow-x-auto pb-4">
-                        {statuses.map((status) => (
-                            <PipelineColumn
-                                key={status.value}
-                                label={status.label}
-                                status={status.value}
-                                roles={columns[status.value] ?? []}
-                                draggingId={dragging?.id ?? null}
-                                onDragStart={setDragging}
-                                onDragEnd={() => setDragging(null)}
-                                onDrop={handleDrop}
-                            />
-                        ))}
+                    <div className="relative mt-6">
+                        <div className="flex snap-x gap-4 overflow-x-auto pb-4 [&>section]:snap-start">
+                            {statuses.map((status) => (
+                                <PipelineColumn
+                                    key={status.value}
+                                    label={status.label}
+                                    status={status.value}
+                                    roles={columns[status.value] ?? []}
+                                    draggingId={dragging?.id ?? null}
+                                    onDragStart={setDragging}
+                                    onDragEnd={() => setDragging(null)}
+                                    onDrop={handleDrop}
+                                />
+                            ))}
+                        </div>
+                        <div
+                            className="pointer-events-none absolute right-0 top-0 bottom-4 w-12 bg-gradient-to-l from-background to-transparent"
+                            aria-hidden="true"
+                        />
                     </div>
                 )}
             </div>

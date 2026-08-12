@@ -5,6 +5,7 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import ComposeFromTemplatePanel, { type TemplateOption } from '@/components/contacts/ComposeFromTemplatePanel';
 import ContactForm, { type ContactCompanyOption } from '@/components/contacts/ContactForm';
 import OutreachLogPanel, { type OutreachLogEntry } from '@/components/contacts/OutreachLogPanel';
+import { formatDateTime } from '@/lib/dates';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -152,7 +153,12 @@ export default function ContactShowPage({ contact, outreach, templates, channels
                                 </DetailRow>
                                 <DetailRow label="LinkedIn">
                                     {contact.linkedin_url ? (
-                                        <a href={contact.linkedin_url} target="_blank" rel="noreferrer" className="hover:underline">
+                                        <a
+                                            href={contact.linkedin_url}
+                                            target="_blank"
+                                            rel="noreferrer"
+                                            className="text-teal-700 hover:underline dark:text-teal-400"
+                                        >
                                             {contact.linkedin_url}
                                         </a>
                                     ) : (
@@ -161,7 +167,7 @@ export default function ContactShowPage({ contact, outreach, templates, channels
                                 </DetailRow>
                                 <DetailRow label="Last touch">
                                     <span className="font-mono tabular-nums text-muted-foreground">
-                                        {contact.last_touch ? new Date(contact.last_touch).toLocaleString() : 'Never'}
+                                        {contact.last_touch ? formatDateTime(contact.last_touch) : 'Never'}
                                     </span>
                                 </DetailRow>
                                 {contact.notes ? (
