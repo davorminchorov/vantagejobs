@@ -43,8 +43,11 @@ $tenantSlug = static fn (): ?string => Tenant::query()->orderBy('id')->value('sl
 | running the orchestrator inline in the scheduler process, so one slow or
 | crashing company can't stall — or take down — the rest of the sweep.
 |
-| Uniform 6h cadence for every eligible company; tier-aware cadence
-| (A/B/C-tier PRD §6.2) is a deliberate follow-up, not implemented here.
+| Tier-aware cadence (A/B/C-tier PRD §6.2): A every 6h, B every 12h, C every
+| 24h, computed from each company's latest scrape_runs.started_at. The tick
+| runs hourly so every tier's window is checked promptly; ScrapeAllCommand
+| itself skips companies that aren't due yet, so most ticks queue nothing
+| for most companies.
 */
 Schedule::call(static function () use ($tenantSlug): void {
     $slug = $tenantSlug();
@@ -52,7 +55,7 @@ Schedule::call(static function () use ($tenantSlug): void {
         return;
     }
     Artisan::call('scrape:all', ['--tenant' => $slug, '--queue' => true]);
-})->name('scrape:all')->everySixHours()->withoutOverlapping();
+})->name('scrape:all')->hourly()->withoutOverlapping();
 
 Schedule::call(static function () use ($tenantSlug): void {
     $slug = $tenantSlug();

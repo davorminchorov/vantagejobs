@@ -6,14 +6,18 @@ namespace App\Http\Controllers\Companies;
 
 use App\Enums\EventType;
 use App\Http\Requests\Companies\StoreCompanyRequest;
+use App\Jobs\RunCompanyScrapeJob;
 use App\Models\Company;
 use App\Models\Event;
+use App\Tenancy\TenantContext;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\DB;
 
 final readonly class StoreCompanyController
 {
+    public function __construct(private TenantContext $context) {}
+
     public function __invoke(StoreCompanyRequest $request): RedirectResponse
     {
         /** @var array<string, mixed> $data */
@@ -37,6 +41,12 @@ final readonly class StoreCompanyController
 
             return $company;
         });
+
+        // Dispatched after the transaction commits so the job can never pick
+        // up the company before its row is visible to other connections.
+        if ($company->refresh()->ats_type !== null && $company->ats_slug !== null) {
+            RunCompanyScrapeJob::dispatch((int) $this->context->currentOrFail()->id, (int) $company->id);
+        }
 
         return redirect()
             ->route('companies.index')

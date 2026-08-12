@@ -6,12 +6,14 @@ namespace Tests\Feature\Companies;
 
 use App\Enums\AtsType;
 use App\Enums\EventType;
+use App\Jobs\RunCompanyScrapeJob;
 use App\Models\Company;
 use App\Models\Event;
 use App\Models\User;
 use App\Tenancy\Tenant;
 use App\Tenancy\TenantContext;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Queue;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
@@ -64,6 +66,36 @@ final class CompanyFormsTest extends TestCase
         $this->assertSame('A', $company->tier);
 
         $this->assertSame(1, Event::query()->where('type', EventType::COMPANY_ADDED->value)->where('company_id', $company->id)->count());
+    }
+
+    #[Test]
+    public function store_dispatches_an_initial_scrape_when_ats_fields_are_set(): void
+    {
+        Queue::fake();
+
+        $this->actingAs($this->user)
+            ->post('/companies', [
+                'name' => 'Acme Robotics',
+                'ats_type' => 'greenhouse',
+                'ats_slug' => 'acme',
+            ])
+            ->assertRedirect('/companies');
+
+        $company = Company::query()->where('name', 'Acme Robotics')->sole();
+
+        Queue::assertPushed(RunCompanyScrapeJob::class, static fn (RunCompanyScrapeJob $job): bool => $job->companyId === $company->id);
+    }
+
+    #[Test]
+    public function store_does_not_dispatch_a_scrape_without_ats_fields(): void
+    {
+        Queue::fake();
+
+        $this->actingAs($this->user)
+            ->post('/companies', ['name' => 'No Ats Inc'])
+            ->assertRedirect('/companies');
+
+        Queue::assertNotPushed(RunCompanyScrapeJob::class);
     }
 
     #[Test]

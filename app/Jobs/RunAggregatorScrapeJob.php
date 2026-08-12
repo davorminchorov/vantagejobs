@@ -35,7 +35,13 @@ final class RunAggregatorScrapeJob implements ShouldBeUnique, ShouldQueue
     public function __construct(
         public int $tenantId,
         public int $sourceId,
-    ) {}
+    ) {
+        // Set via onQueue() rather than redeclaring $queue: Queueable's
+        // untyped `public $queue;` has a null default, and PHP treats a
+        // class property redeclaration with a different default as an
+        // incompatible trait composition (fatal error), not an override.
+        $this->onQueue('scrape');
+    }
 
     public function handle(TenantContext $context, AggregatorOrchestrator $orchestrator): void
     {

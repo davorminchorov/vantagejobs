@@ -17,10 +17,21 @@ use Illuminate\Database\Eloquent\Collection;
 
 final class ScrapeAllCommand extends Command
 {
+    /**
+     * Tier -> hours between attempts (PRD §6.2). `graveyard` never reaches
+     * this map: Company::scrapeable() already excludes inactive companies.
+     */
+    private const array TIER_INTERVAL_HOURS = [
+        'A' => 6,
+        'B' => 12,
+        'C' => 24,
+    ];
+
     protected $signature = 'scrape:all
         {--tenant= : Tenant slug}
         {--source= : Restrict to a single ATS type (e.g. greenhouse, lever, ashby, workable, smartrecruiters, personio, recruitee, teamtailor)}
-        {--queue : Dispatch one RunCompanyScrapeJob per company instead of running inline. Isolates failures and reuses the job uniqueness lock; use for the scheduled sweep.}';
+        {--queue : Dispatch one RunCompanyScrapeJob per company instead of running inline. Isolates failures and reuses the job uniqueness lock; use for the scheduled sweep.}
+        {--all : With --queue, dispatch every eligible company regardless of tier cadence. Used for on-demand admin triggers.}';
 
     protected $description = 'Run ATS scrapers across every eligible company for a tenant. Cron-friendly: JSON summary on stdout.';
 
@@ -82,7 +93,9 @@ final class ScrapeAllCommand extends Command
         ?AtsType $sourceFilter,
         CarbonImmutable $startedAt,
     ): int {
-        foreach ($companies as $company) {
+        $due = $this->option('all') ? $companies : $this->filterDue($companies, $startedAt);
+
+        foreach ($due as $company) {
             RunCompanyScrapeJob::dispatch((int) $tenant->id, (int) $company->id);
         }
 
@@ -90,11 +103,53 @@ final class ScrapeAllCommand extends Command
             'command' => 'scrape:all',
             'tenant' => $tenant->slug,
             'source' => $sourceFilter?->value,
-            'queued' => $companies->count(),
+            'queued' => $due->count(),
+            'skipped_not_due' => $companies->count() - $due->count(),
             'started_at' => $startedAt->toIso8601String(),
         ], JSON_THROW_ON_ERROR));
 
         return self::SUCCESS;
+    }
+
+    /**
+     * Filters to companies whose tier interval has elapsed since their last
+     * ATS scrape attempt.
+     *
+     * `last_checked_at` is only written on a successful poll (200/304, see
+     * each scraper's run()) — a company that has been erroring every sweep
+     * would never update it, and would then look permanently "not due" (or
+     * worse, always due, depending on the initial value). scrape_runs.started_at
+     * records every attempt regardless of outcome, so it is the only column
+     * that can drive due-ness safely. A company with no runs yet is always due.
+     *
+     * @param  Collection<int, Company>  $companies
+     * @return Collection<int, Company>
+     */
+    private function filterDue(Collection $companies, CarbonImmutable $now): Collection
+    {
+        if ($companies->isEmpty()) {
+            return $companies;
+        }
+
+        /** @var array<int, string> $lastStartedAtByCompanyId */
+        $lastStartedAtByCompanyId = ScrapeRun::query()
+            ->whereIn('company_id', $companies->pluck('id'))
+            ->where('source_kind', 'ats')
+            ->selectRaw('company_id, MAX(started_at) as last_started_at')
+            ->groupBy('company_id')
+            ->pluck('last_started_at', 'company_id')
+            ->all();
+
+        return $companies->filter(function (Company $company) use ($lastStartedAtByCompanyId, $now): bool {
+            $lastStartedAt = $lastStartedAtByCompanyId[$company->id] ?? null;
+            if (! is_string($lastStartedAt)) {
+                return true;
+            }
+
+            $hours = self::TIER_INTERVAL_HOURS[$company->tier] ?? self::TIER_INTERVAL_HOURS['C'];
+
+            return CarbonImmutable::parse($lastStartedAt)->addHours($hours)->lessThanOrEqualTo($now);
+        })->values();
     }
 
     private function resolveTenant(): ?Tenant

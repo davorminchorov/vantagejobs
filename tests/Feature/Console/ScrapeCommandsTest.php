@@ -188,7 +188,7 @@ final class ScrapeCommandsTest extends TestCase
     }
 
     #[Test]
-    public function scrape_all_is_scheduled_every_six_hours(): void
+    public function scrape_all_is_scheduled_hourly(): void
     {
         /** @var Schedule $schedule */
         $schedule = $this->app->make(Schedule::class);
@@ -198,7 +198,126 @@ final class ScrapeCommandsTest extends TestCase
         );
 
         $this->assertCount(1, $matching, 'scrape:all should be scheduled exactly once.');
-        $this->assertSame('0 */6 * * *', $matching->first()->expression);
+        $this->assertSame('0 * * * *', $matching->first()->expression);
+    }
+
+    #[Test]
+    public function scrape_all_queue_skips_a_tier_company_scraped_within_the_last_six_hours(): void
+    {
+        Queue::fake();
+
+        $company = Company::factory()->create(['ats_type' => 'greenhouse', 'ats_slug' => 'gh-a', 'tier' => 'A']);
+        ScrapeRun::factory()->create([
+            'company_id' => $company->id,
+            'source' => 'greenhouse',
+            'source_kind' => 'ats',
+            'status' => 'completed',
+            'started_at' => now()->subHours(3),
+        ]);
+
+        app(TenantContext::class)->setCurrent(null);
+
+        $this->artisan('scrape:all', ['--tenant' => 'primary', '--queue' => true])->assertExitCode(0);
+
+        Queue::assertNotPushed(RunCompanyScrapeJob::class);
+    }
+
+    #[Test]
+    public function scrape_all_queue_dispatches_an_a_tier_company_scraped_more_than_six_hours_ago(): void
+    {
+        Queue::fake();
+
+        $company = Company::factory()->create(['ats_type' => 'greenhouse', 'ats_slug' => 'gh-a', 'tier' => 'A']);
+        ScrapeRun::factory()->create([
+            'company_id' => $company->id,
+            'source' => 'greenhouse',
+            'source_kind' => 'ats',
+            'status' => 'completed',
+            'started_at' => now()->subHours(7),
+        ]);
+
+        app(TenantContext::class)->setCurrent(null);
+
+        $this->artisan('scrape:all', ['--tenant' => 'primary', '--queue' => true])->assertExitCode(0);
+
+        Queue::assertPushed(RunCompanyScrapeJob::class, 1);
+    }
+
+    #[Test]
+    public function scrape_all_queue_keeps_a_c_tier_company_that_ran_ten_hours_ago_not_due(): void
+    {
+        Queue::fake();
+
+        $company = Company::factory()->create(['ats_type' => 'greenhouse', 'ats_slug' => 'gh-c', 'tier' => 'C']);
+        ScrapeRun::factory()->create([
+            'company_id' => $company->id,
+            'source' => 'greenhouse',
+            'source_kind' => 'ats',
+            'status' => 'completed',
+            'started_at' => now()->subHours(10),
+        ]);
+
+        app(TenantContext::class)->setCurrent(null);
+
+        $this->artisan('scrape:all', ['--tenant' => 'primary', '--queue' => true])->assertExitCode(0);
+
+        Queue::assertNotPushed(RunCompanyScrapeJob::class);
+    }
+
+    #[Test]
+    public function scrape_all_queue_dispatches_a_c_tier_company_that_ran_more_than_a_day_ago(): void
+    {
+        Queue::fake();
+
+        $company = Company::factory()->create(['ats_type' => 'greenhouse', 'ats_slug' => 'gh-c', 'tier' => 'C']);
+        ScrapeRun::factory()->create([
+            'company_id' => $company->id,
+            'source' => 'greenhouse',
+            'source_kind' => 'ats',
+            'status' => 'completed',
+            'started_at' => now()->subHours(25),
+        ]);
+
+        app(TenantContext::class)->setCurrent(null);
+
+        $this->artisan('scrape:all', ['--tenant' => 'primary', '--queue' => true])->assertExitCode(0);
+
+        Queue::assertPushed(RunCompanyScrapeJob::class, 1);
+    }
+
+    #[Test]
+    public function scrape_all_queue_always_dispatches_a_company_with_no_prior_runs(): void
+    {
+        Queue::fake();
+
+        Company::factory()->create(['ats_type' => 'greenhouse', 'ats_slug' => 'gh-new', 'tier' => 'C']);
+
+        app(TenantContext::class)->setCurrent(null);
+
+        $this->artisan('scrape:all', ['--tenant' => 'primary', '--queue' => true])->assertExitCode(0);
+
+        Queue::assertPushed(RunCompanyScrapeJob::class, 1);
+    }
+
+    #[Test]
+    public function scrape_all_queue_with_all_bypasses_the_due_filter(): void
+    {
+        Queue::fake();
+
+        $company = Company::factory()->create(['ats_type' => 'greenhouse', 'ats_slug' => 'gh-c', 'tier' => 'C']);
+        ScrapeRun::factory()->create([
+            'company_id' => $company->id,
+            'source' => 'greenhouse',
+            'source_kind' => 'ats',
+            'status' => 'completed',
+            'started_at' => now()->subHour(),
+        ]);
+
+        app(TenantContext::class)->setCurrent(null);
+
+        $this->artisan('scrape:all', ['--tenant' => 'primary', '--queue' => true, '--all' => true])->assertExitCode(0);
+
+        Queue::assertPushed(RunCompanyScrapeJob::class, 1);
     }
 
     private function fakeScraper(AtsType $type, ScraperRunResult $result): void
