@@ -82,13 +82,20 @@ final readonly class LeverScraper implements AtsScraperInterface
                 );
             }
 
-            /** @var array<int, array<string, mixed>> $body */
             $body = $response->json();
 
             if (! is_array($body)) {
-                $body = [];
+                return new ScraperRunResult(
+                    fetched: 0,
+                    newCount: 0,
+                    closedCount: 0,
+                    errors: [[
+                        'message' => "Lever postings returned a malformed (non-array) payload for site [{$company->ats_slug}].",
+                    ]],
+                );
             }
 
+            /** @var array<int, array<string, mixed>> $body */
             $parsed = [];
             foreach ($body as $posting) {
                 if (! is_array($posting)) {
@@ -97,7 +104,20 @@ final readonly class LeverScraper implements AtsScraperInterface
                 $parsed[] = $this->toParsedRole($posting);
             }
 
-            $plan = $this->differ->plan($company->roles()->where('source', AtsType::LEVER->value)->get(), $parsed);
+            $existing = $company->roles()->where('source', AtsType::LEVER->value)->get();
+
+            if ($this->differ->wouldMassClose($existing, $parsed)) {
+                return new ScraperRunResult(
+                    fetched: 0,
+                    newCount: 0,
+                    closedCount: 0,
+                    errors: [[
+                        'message' => "Lever postings returned zero postings for site [{$company->ats_slug}] but open roles exist; refusing to close them.",
+                    ]],
+                );
+            }
+
+            $plan = $this->differ->plan($existing, $parsed);
             $counts = $this->differ->apply($company, AtsType::LEVER, $plan);
 
             $etag = $response->header('ETag') ?: null;

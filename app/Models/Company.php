@@ -7,6 +7,7 @@ namespace App\Models;
 use App\Tenancy\BelongsToTenant;
 use Database\Factories\CompanyFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -19,6 +20,7 @@ use Illuminate\Database\Eloquent\Relations\MorphToMany;
     'domain',
     'ats_type',
     'ats_slug',
+    'ats_host',
     'tier',
     'status',
     'last_checked_at',
@@ -51,6 +53,25 @@ final class Company extends Model
             'ats_consecutive_404s' => 'integer',
             'ats_redetect_attempts' => 'integer',
         ];
+    }
+
+    /**
+     * Companies eligible for an automated ATS scrape: ats_type + ats_slug are
+     * both set, the company hasn't been graveyarded, and redetection hasn't
+     * already given up on it. `needs_redetection` companies stay in scope —
+     * the 404 counter and the redetect sweep both depend on scrapes still
+     * running against them.
+     *
+     * @param  Builder<Company>  $query
+     * @return Builder<Company>
+     */
+    public function scopeScrapeable(Builder $query): Builder
+    {
+        return $query
+            ->whereNotNull('ats_type')
+            ->whereNotNull('ats_slug')
+            ->where('is_active', true)
+            ->where('ats_status', '!=', 'redetect_failed');
     }
 
     /**

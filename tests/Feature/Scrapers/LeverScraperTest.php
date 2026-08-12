@@ -230,4 +230,38 @@ final class LeverScraperTest extends TestCase
         $this->assertSame('"unchanged"', $company->etag);
         $this->assertSame('Mon, 01 Jan 2024 00:00:00 GMT', $company->last_modified);
     }
+
+    #[Test]
+    public function malformed_non_array_payload_returns_error_without_touching_roles(): void
+    {
+        MockClient::global([
+            PostingsRequest::class => MockResponse::make('not-an-array', 200),
+        ]);
+
+        $result = $this->scraper()->run($this->company);
+
+        $this->assertNotEmpty($result->errors);
+        $this->assertSame(0, $result->fetched);
+        $this->assertSame(0, Role::query()->count());
+    }
+
+    #[Test]
+    public function zero_fetch_with_open_roles_refuses_to_mass_close(): void
+    {
+        $openRole = Role::factory()->create([
+            'company_id' => $this->company->id,
+            'source' => AtsType::LEVER->value,
+            'is_open' => true,
+        ]);
+
+        MockClient::global([
+            PostingsRequest::class => MockResponse::make([], 200),
+        ]);
+
+        $result = $this->scraper()->run($this->company);
+
+        $this->assertNotEmpty($result->errors);
+        $this->assertSame(0, $result->closedCount);
+        $this->assertTrue($openRole->fresh()->is_open);
+    }
 }

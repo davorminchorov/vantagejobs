@@ -16,8 +16,9 @@ use Illuminate\Support\Facades\DB;
 /**
  * Diffs fetched-vs-existing roles for one (company, source) pair, then
  * applies the resulting plan inside a transaction. Emits Event rows for
- * new / closed / reopened roles. Touches (still-open seen again) only
- * update last_seen_at — no event.
+ * new / closed / reopened roles. Touches (still-open seen again) refresh
+ * the mutable fields (title, comp, location, ...) plus last_seen_at — no
+ * event; detail changes are silent by design.
  *
  * Idempotency contract: applying twice against the same fetched list
  * produces zero new Events on the second call.
@@ -67,6 +68,26 @@ final class RoleDiffer
         }
 
         return new RoleDiffPlan($toInsert, $toReopen, $toClose, $toTouch);
+    }
+
+    /**
+     * Guards against applying a diff that would close every open role for a
+     * source on the strength of an empty fetch alone. A truly empty board
+     * closes zero currently-open roles anyway (there's nothing to close),
+     * so this only fires when the fetch would otherwise wipe out roles that
+     * were open a moment ago — the signature of a malformed/truncated
+     * response rather than a genuinely empty board. Callers should surface
+     * this as a run error instead of calling {@see apply()}.
+     *
+     * @param  list<ParsedRole>  $parsed
+     */
+    public function wouldMassClose(Collection $existing, array $parsed): bool
+    {
+        if ($parsed !== []) {
+            return false;
+        }
+
+        return $existing->contains(fn (Role $role): bool => $role->is_open);
     }
 
     /**
@@ -126,7 +147,26 @@ final class RoleDiffer
             }
 
             foreach ($plan->toTouch as $touch) {
-                Role::query()->whereKey($touch['id'])->update([
+                /** @var ParsedRole $parsed */
+                $parsed = $touch['parsed'];
+
+                // Instance-level update (not a query-builder mass update) so
+                // the array/enum casts on `raw` and `workplace_type` actually
+                // serialize correctly.
+                Role::query()->whereKey($touch['id'])->first()?->update([
+                    'title' => $parsed->title,
+                    'url' => $parsed->url,
+                    'location' => $parsed->location,
+                    'is_remote' => $parsed->isRemote,
+                    'workplace_type' => $parsed->workplaceType->value,
+                    'department' => $parsed->department,
+                    'team' => $parsed->team,
+                    'comp_min' => $parsed->compMin,
+                    'comp_max' => $parsed->compMax,
+                    'comp_currency' => $parsed->compCurrency,
+                    'comp_interval' => $parsed->compInterval,
+                    'raw' => $parsed->raw,
+                    'posted_at' => $parsed->postedAt,
                     'last_seen_at' => $now,
                 ]);
             }

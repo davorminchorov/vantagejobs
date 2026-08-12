@@ -209,4 +209,38 @@ final class RecruiteeScraperTest extends TestCase
         $this->assertEquals($originalLastChecked, $fresh->last_checked_at);
         $this->assertSame(0, Role::query()->count());
     }
+
+    #[Test]
+    public function malformed_payload_missing_offers_key_returns_error_without_touching_roles(): void
+    {
+        Saloon::fake([
+            OffersRequest::class => MockResponse::make(body: ['notOffers' => []], status: 200),
+        ]);
+
+        $result = $this->scraper->run($this->company);
+
+        $this->assertTrue($result->hasErrors());
+        $this->assertSame(0, $result->fetched);
+        $this->assertSame(0, Role::query()->count());
+    }
+
+    #[Test]
+    public function zero_fetch_with_open_roles_refuses_to_mass_close(): void
+    {
+        $openRole = Role::factory()->create([
+            'company_id' => $this->company->id,
+            'source' => AtsType::RECRUITEE->value,
+            'is_open' => true,
+        ]);
+
+        Saloon::fake([
+            OffersRequest::class => MockResponse::make(body: ['offers' => []], status: 200),
+        ]);
+
+        $result = $this->scraper->run($this->company);
+
+        $this->assertTrue($result->hasErrors());
+        $this->assertSame(0, $result->closedCount);
+        $this->assertTrue($openRole->fresh()->is_open);
+    }
 }

@@ -180,4 +180,79 @@ XML;
         $this->assertSame(0, $result->fetched);
         $this->assertSame(0, Role::query()->count());
     }
+
+    #[Test]
+    public function zero_fetch_with_open_roles_refuses_to_mass_close(): void
+    {
+        $openRole = Role::factory()->create([
+            'company_id' => $this->company->id,
+            'source' => AtsType::PERSONIO->value,
+            'is_open' => true,
+        ]);
+
+        Saloon::fake([
+            JobsXmlRequest::class => MockResponse::make(
+                body: '<?xml version="1.0" encoding="UTF-8"?><workzag-jobs></workzag-jobs>',
+                status: 200,
+            ),
+        ]);
+
+        $result = $this->scraper->run($this->company);
+
+        $this->assertTrue($result->hasErrors());
+        $this->assertSame(0, $result->closedCount);
+        $this->assertTrue($openRole->fresh()->is_open);
+    }
+
+    #[Test]
+    public function successful_run_persists_the_resolved_host(): void
+    {
+        Saloon::fake([
+            JobsXmlRequest::class => MockResponse::make(body: $this->xmlFixture(), status: 200),
+        ]);
+
+        $this->scraper->run($this->company);
+
+        $this->assertSame('https://acme.jobs.personio.de', $this->company->fresh()->ats_host);
+    }
+
+    #[Test]
+    public function cached_com_host_is_used_directly_without_probing_de_first(): void
+    {
+        $this->company->forceFill(['ats_host' => 'https://acme.jobs.personio.com'])->save();
+
+        Saloon::fake([
+            JobsXmlRequest::class => MockResponse::make(body: $this->xmlFixture(), status: 200),
+        ]);
+
+        $result = $this->scraper->run($this->company);
+
+        $this->assertFalse($result->hasErrors());
+        $this->assertSame(3, $result->fetched);
+        $this->assertSame('https://acme.jobs.personio.com', $this->company->fresh()->ats_host);
+    }
+
+    #[Test]
+    public function stale_cached_host_falls_back_to_the_other_tld_on_404(): void
+    {
+        $this->company->forceFill(['ats_host' => 'https://acme.jobs.personio.com'])->save();
+
+        // The cached (.com) host now 404s; only .de responds. The scraper
+        // must fall back rather than trust the stale cache forever.
+        Saloon::fake([
+            JobsXmlRequest::class => function (PendingRequest $request): MockResponse {
+                if (str_contains($request->getUrl(), '.personio.com')) {
+                    return MockResponse::make(body: '', status: 404);
+                }
+
+                return MockResponse::make(body: $this->xmlFixture(), status: 200);
+            },
+        ]);
+
+        $result = $this->scraper->run($this->company);
+
+        $this->assertFalse($result->hasErrors());
+        $this->assertSame(3, $result->fetched);
+        $this->assertSame('https://acme.jobs.personio.de', $this->company->fresh()->ats_host);
+    }
 }

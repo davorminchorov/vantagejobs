@@ -20,8 +20,12 @@ use Throwable;
  * Personio XML-feed scraper (one company per run).
  *
  * SOURCES.md §3.3 — anonymous GET against {slug}.jobs.personio.{de|com}/xml.
- * The .de host is tried first; on HTTP 404 we retry against .com because
- * some customers are provisioned on the .com TLD.
+ * The resolved host is cached on `Company::$ats_host` after the first
+ * successful fetch, so subsequent scrapes skip straight to the right TLD
+ * instead of re-probing .de on every run. Without a cache, .de is tried
+ * first; on HTTP 404 we retry against .com because some customers are
+ * provisioned on the .com TLD. A 404 against a cached host still falls
+ * back to the other TLD, so a stale cache degrades rather than sticks.
  */
 final readonly class PersonioScraper implements AtsScraperInterface
 {
@@ -41,12 +45,17 @@ final readonly class PersonioScraper implements AtsScraperInterface
     {
         try {
             $slug = (string) $company->ats_slug;
-            $host = "https://{$slug}.jobs.personio.de";
+            $deHost = "https://{$slug}.jobs.personio.de";
+            $comHost = "https://{$slug}.jobs.personio.com";
+            $cachedHost = is_string($company->ats_host) && $company->ats_host !== '' ? $company->ats_host : null;
 
+            $host = $cachedHost ?? $deHost;
             $response = (new PersonioConnector($host))->send(new JobsXmlRequest());
 
             if ($response->status() === 404) {
-                $host = "https://{$slug}.jobs.personio.com";
+                // Either the guess (.de) or a stale cached host missed —
+                // fall back to whichever TLD we haven't tried yet.
+                $host = $host === $comHost ? $deHost : $comHost;
                 $response = (new PersonioConnector($host))->send(new JobsXmlRequest());
             }
 
@@ -87,10 +96,23 @@ final readonly class PersonioScraper implements AtsScraperInterface
             }
 
             $existing = $company->roles()->where('source', AtsType::PERSONIO->value)->get();
+
+            if ($this->differ->wouldMassClose($existing, $parsed)) {
+                return new ScraperRunResult(
+                    fetched: 0,
+                    newCount: 0,
+                    closedCount: 0,
+                    errors: [[
+                        'message' => "Personio feed returned zero postings for slug [{$company->ats_slug}] but open roles exist; refusing to close them.",
+                    ]],
+                );
+            }
+
             $plan = $this->differ->plan($existing, $parsed);
             $counts = $this->differ->apply($company, AtsType::PERSONIO, $plan);
 
             $company->last_checked_at = CarbonImmutable::now();
+            $company->ats_host = $host;
             $company->save();
 
             return new ScraperRunResult(

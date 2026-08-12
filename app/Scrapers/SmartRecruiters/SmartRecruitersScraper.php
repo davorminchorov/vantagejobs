@@ -21,7 +21,9 @@ use Throwable;
  * SOURCES.md §3.2 — anonymous GET against the public postings endpoint.
  * Paginates via offset until either the response `content` is empty or the
  * cumulative offset reaches `totalFound`. A hard 10-page safety cap protects
- * against runaway pagination on misconfigured slugs.
+ * against runaway pagination on misconfigured slugs; if the cap is hit while
+ * `totalFound` indicates more postings remain, the run reports a truncation
+ * error instead of a clean `completed` status.
  */
 final readonly class SmartRecruitersScraper implements AtsScraperInterface
 {
@@ -50,6 +52,7 @@ final readonly class SmartRecruitersScraper implements AtsScraperInterface
             $parsed = [];
             $offset = 0;
             $totalFound = null;
+            $pageCapHit = true;
 
             for ($page = 0; $page < self::MAX_PAGES; $page++) {
                 $request = new CompanyPostingsRequest(
@@ -74,10 +77,23 @@ final readonly class SmartRecruitersScraper implements AtsScraperInterface
                 }
 
                 $payload = $response->json();
-                $content = is_array($payload['content'] ?? null) ? $payload['content'] : [];
+                if (! is_array($payload) || ! array_key_exists('content', $payload) || ! is_array($payload['content'])) {
+                    return new ScraperRunResult(
+                        fetched: 0,
+                        newCount: 0,
+                        closedCount: 0,
+                        errors: [[
+                            'message' => "SmartRecruiters postings returned a malformed payload (missing or non-array 'content' key) for slug [{$company->ats_slug}].",
+                        ]],
+                    );
+                }
+
+                $content = $payload['content'];
                 $totalFound = isset($payload['totalFound']) ? (int) $payload['totalFound'] : $totalFound;
 
                 if ($content === []) {
+                    $pageCapHit = false;
+
                     break;
                 }
 
@@ -88,11 +104,32 @@ final readonly class SmartRecruitersScraper implements AtsScraperInterface
                 $offset += count($content);
 
                 if ($totalFound !== null && $offset >= $totalFound) {
+                    $pageCapHit = false;
+
                     break;
                 }
             }
 
+            $errors = [];
+            if ($pageCapHit && $totalFound !== null && $offset < $totalFound) {
+                $errors[] = [
+                    'message' => "SmartRecruiters postings truncated at {$offset} of {$totalFound} for slug [{$company->ats_slug}] (hit the ".self::MAX_PAGES.'-page safety cap).',
+                ];
+            }
+
             $existing = $company->roles()->where('source', AtsType::SMARTRECRUITERS->value)->get();
+
+            if ($this->differ->wouldMassClose($existing, $parsed)) {
+                return new ScraperRunResult(
+                    fetched: 0,
+                    newCount: 0,
+                    closedCount: 0,
+                    errors: [[
+                        'message' => "SmartRecruiters postings returned zero postings for slug [{$company->ats_slug}] but open roles exist; refusing to close them.",
+                    ]],
+                );
+            }
+
             $plan = $this->differ->plan($existing, $parsed);
             $counts = $this->differ->apply($company, AtsType::SMARTRECRUITERS, $plan);
 
@@ -103,7 +140,7 @@ final readonly class SmartRecruitersScraper implements AtsScraperInterface
                 fetched: count($parsed),
                 newCount: $counts['new'] + $counts['reopened'],
                 closedCount: $counts['closed'],
-                errors: [],
+                errors: $errors,
             );
         } catch (Throwable $e) {
             return new ScraperRunResult(

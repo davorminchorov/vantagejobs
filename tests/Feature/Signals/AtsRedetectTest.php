@@ -7,6 +7,7 @@ namespace Tests\Feature\Signals;
 use App\Enums\AtsType;
 use App\Models\Company;
 use App\Models\Event;
+use App\Models\Role;
 use App\Scrapers\Contracts\AtsScraperInterface;
 use App\Scrapers\ScrapeOrchestrator;
 use App\Scrapers\ScraperRegistry;
@@ -177,6 +178,101 @@ final class AtsRedetectTest extends TestCase
         // is a no-op.
         Artisan::call('signals:ats:redetect', ['--tenant' => 'primary']);
         $this->assertSame(3, (int) $company->fresh()->ats_redetect_attempts);
+    }
+
+    #[Test]
+    public function redetecting_the_identical_ats_pair_counts_as_a_failed_attempt(): void
+    {
+        // The redetector re-checking the company's own (unchanged)
+        // careers_url can "detect" the exact pair that just racked up
+        // seven 404s. That must count as a failure, not a fix — otherwise
+        // the failure counters reset forever and the company never
+        // reaches redetect_failed for a human to notice.
+        $company = Company::factory()->create([
+            'ats_type' => 'greenhouse',
+            'ats_slug' => 'acme-new',
+            'careers_url' => 'https://acme.example.com/careers',
+            'ats_status' => 'needs_redetection',
+            'ats_consecutive_404s' => 7,
+            'ats_redetect_attempts' => 0,
+        ]);
+
+        Http::fake([
+            'acme.example.com/careers' => Http::response(
+                '<html><body><iframe src="https://boards.greenhouse.io/acme-new"></iframe></body></html>',
+                200,
+            ),
+        ]);
+
+        Artisan::call('signals:ats:redetect', ['--tenant' => 'primary']);
+
+        $reloaded = $company->fresh();
+        $this->assertSame('needs_redetection', $reloaded->ats_status);
+        $this->assertSame(1, (int) $reloaded->ats_redetect_attempts);
+        $this->assertSame(
+            0,
+            Event::query()->where('company_id', $company->id)->where('type', 'ats_redetected')->count(),
+        );
+    }
+
+    #[Test]
+    public function successful_switch_closes_open_roles_from_the_previous_source(): void
+    {
+        $flagged = Company::factory()->create([
+            'ats_type' => 'greenhouse',
+            'ats_slug' => 'oldslug',
+            'careers_url' => 'https://acme.example.com/careers',
+            'ats_status' => 'needs_redetection',
+            'ats_consecutive_404s' => 7,
+            'ats_redetect_attempts' => 0,
+            'ats_host' => 'https://oldslug.jobs.personio.de',
+        ]);
+
+        $staleRole = Role::factory()->create([
+            'company_id' => $flagged->id,
+            'source' => 'greenhouse',
+            'is_open' => true,
+        ]);
+        $alreadyClosedRole = Role::factory()->create([
+            'company_id' => $flagged->id,
+            'source' => 'greenhouse',
+            'is_open' => false,
+        ]);
+
+        Http::fake([
+            'acme.example.com/careers' => Http::response(
+                '<html><body><iframe src="https://boards.greenhouse.io/acme-new"></iframe></body></html>',
+                200,
+            ),
+        ]);
+
+        Artisan::call('signals:ats:redetect', ['--tenant' => 'primary']);
+
+        $reloaded = $flagged->fresh();
+        $this->assertSame('acme-new', $reloaded->ats_slug);
+        $this->assertNull($reloaded->ats_host);
+
+        $this->assertFalse($staleRole->fresh()->is_open);
+        $this->assertFalse($alreadyClosedRole->fresh()->is_open);
+
+        $this->assertSame(
+            1,
+            Event::query()
+                ->where('company_id', $flagged->id)
+                ->where('role_id', $staleRole->id)
+                ->where('type', 'role_closed')
+                ->count(),
+        );
+        // The role that was already closed before the switch must not get
+        // a duplicate close event.
+        $this->assertSame(
+            0,
+            Event::query()
+                ->where('company_id', $flagged->id)
+                ->where('role_id', $alreadyClosedRole->id)
+                ->where('type', 'role_closed')
+                ->count(),
+        );
     }
 
     private function fourOhFourScraper(AtsType $type): AtsScraperInterface

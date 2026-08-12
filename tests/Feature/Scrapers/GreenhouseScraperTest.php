@@ -178,4 +178,38 @@ final class GreenhouseScraperTest extends TestCase
         $this->assertFalse((bool) $onsite->is_remote);
         $this->assertSame(WorkplaceType::UNSPECIFIED, $onsite->workplace_type);
     }
+
+    #[Test]
+    public function malformed_payload_missing_jobs_key_returns_error_without_touching_roles(): void
+    {
+        Saloon::fake([
+            BoardJobsRequest::class => MockResponse::make(body: ['notJobs' => []], status: 200),
+        ]);
+
+        $result = $this->scraper->run($this->company);
+
+        $this->assertTrue($result->hasErrors());
+        $this->assertSame(0, $result->fetched);
+        $this->assertSame(0, Role::query()->count());
+    }
+
+    #[Test]
+    public function zero_fetch_with_open_roles_refuses_to_mass_close(): void
+    {
+        $openRole = Role::factory()->create([
+            'company_id' => $this->company->id,
+            'source' => AtsType::GREENHOUSE->value,
+            'is_open' => true,
+        ]);
+
+        Saloon::fake([
+            BoardJobsRequest::class => MockResponse::make(body: ['jobs' => []], status: 200),
+        ]);
+
+        $result = $this->scraper->run($this->company);
+
+        $this->assertTrue($result->hasErrors());
+        $this->assertSame(0, $result->closedCount);
+        $this->assertTrue($openRole->fresh()->is_open);
+    }
 }

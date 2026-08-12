@@ -83,6 +83,18 @@ final readonly class TeamtailorScraper implements AtsScraperInterface
             }
 
             $existing = $company->roles()->where('source', AtsType::TEAMTAILOR->value)->get();
+
+            if ($this->differ->wouldMassClose($existing, $parsed)) {
+                return new ScraperRunResult(
+                    fetched: 0,
+                    newCount: 0,
+                    closedCount: 0,
+                    errors: [[
+                        'message' => "Teamtailor feed returned zero postings for slug [{$company->ats_slug}] but open roles exist; refusing to close them.",
+                    ]],
+                );
+            }
+
             $plan = $this->differ->plan($existing, $parsed);
             $counts = $this->differ->apply($company, AtsType::TEAMTAILOR, $plan);
 

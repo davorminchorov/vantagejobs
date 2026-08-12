@@ -81,16 +81,40 @@ final class AshbyScraper implements AtsScraperInterface
                 );
             }
 
-            /** @var array{jobs?: list<array<string, mixed>>} $body */
             $body = $response->json();
-            $jobs = $body['jobs'] ?? [];
+            if (! is_array($body) || ! array_key_exists('jobs', $body) || ! is_array($body['jobs'])) {
+                return new ScraperRunResult(
+                    fetched: 0,
+                    newCount: 0,
+                    closedCount: 0,
+                    errors: [[
+                        'message' => "Ashby job board returned a malformed payload (missing or non-array 'jobs' key) for name [{$company->ats_slug}].",
+                    ]],
+                );
+            }
+
+            /** @var list<array<string, mixed>> $jobs */
+            $jobs = $body['jobs'];
 
             $parsed = [];
             foreach ($jobs as $job) {
                 $parsed[] = $this->parseJob($job);
             }
 
-            $plan = $this->differ->plan($company->roles()->get(), $parsed);
+            $existing = $company->roles()->where('source', AtsType::ASHBY->value)->get();
+
+            if ($this->differ->wouldMassClose($existing, $parsed)) {
+                return new ScraperRunResult(
+                    fetched: 0,
+                    newCount: 0,
+                    closedCount: 0,
+                    errors: [[
+                        'message' => "Ashby job board returned zero postings for name [{$company->ats_slug}] but open roles exist; refusing to close them.",
+                    ]],
+                );
+            }
+
+            $plan = $this->differ->plan($existing, $parsed);
             $counts = $this->differ->apply($company, AtsType::ASHBY, $plan);
 
             $etag = $response->header('ETag') ?: null;

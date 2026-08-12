@@ -59,7 +59,18 @@ final readonly class WorkableScraper implements AtsScraperInterface
             }
 
             $payload = $response->json();
-            $jobs = is_array($payload['jobs'] ?? null) ? $payload['jobs'] : [];
+            if (! is_array($payload) || ! array_key_exists('jobs', $payload) || ! is_array($payload['jobs'])) {
+                return new ScraperRunResult(
+                    fetched: 0,
+                    newCount: 0,
+                    closedCount: 0,
+                    errors: [[
+                        'message' => "Workable widget returned a malformed payload (missing or non-array 'jobs' key) for slug [{$company->ats_slug}].",
+                    ]],
+                );
+            }
+
+            $jobs = $payload['jobs'];
 
             $parsed = [];
             foreach ($jobs as $job) {
@@ -67,6 +78,18 @@ final readonly class WorkableScraper implements AtsScraperInterface
             }
 
             $existing = $company->roles()->where('source', AtsType::WORKABLE->value)->get();
+
+            if ($this->differ->wouldMassClose($existing, $parsed)) {
+                return new ScraperRunResult(
+                    fetched: 0,
+                    newCount: 0,
+                    closedCount: 0,
+                    errors: [[
+                        'message' => "Workable widget returned zero postings for slug [{$company->ats_slug}] but open roles exist; refusing to close them.",
+                    ]],
+                );
+            }
+
             $plan = $this->differ->plan($existing, $parsed);
             $counts = $this->differ->apply($company, AtsType::WORKABLE, $plan);
 

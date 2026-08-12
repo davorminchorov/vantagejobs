@@ -163,4 +163,62 @@ final class SmartRecruitersScraperTest extends TestCase
         $this->assertSame(0, $result->newCount);
         $this->assertSame(0, Role::query()->count());
     }
+
+    #[Test]
+    public function malformed_payload_missing_content_key_returns_error_without_touching_roles(): void
+    {
+        Saloon::fake([
+            CompanyPostingsRequest::class => MockResponse::make(body: ['notContent' => []], status: 200),
+        ]);
+
+        $result = $this->scraper->run($this->company);
+
+        $this->assertTrue($result->hasErrors());
+        $this->assertSame(0, $result->fetched);
+        $this->assertSame(0, Role::query()->count());
+    }
+
+    #[Test]
+    public function zero_fetch_with_open_roles_refuses_to_mass_close(): void
+    {
+        $openRole = Role::factory()->create([
+            'company_id' => $this->company->id,
+            'source' => AtsType::SMARTRECRUITERS->value,
+            'is_open' => true,
+        ]);
+
+        Saloon::fake([
+            CompanyPostingsRequest::class => MockResponse::make(body: ['content' => [], 'totalFound' => 0], status: 200),
+        ]);
+
+        $result = $this->scraper->run($this->company);
+
+        $this->assertTrue($result->hasErrors());
+        $this->assertSame(0, $result->closedCount);
+        $this->assertTrue($openRole->fresh()->is_open);
+    }
+
+    #[Test]
+    public function hitting_the_page_cap_with_more_results_remaining_reports_truncation(): void
+    {
+        // Every page returns a full 100-row page and totalFound claims far
+        // more exist than 10 pages (1,000 rows) can ever reach.
+        $page = [
+            'totalFound' => 5000,
+            'content' => array_map(
+                static fn (int $i): array => ['id' => "sr-{$i}", 'name' => "Role {$i}"],
+                range(1, 100),
+            ),
+        ];
+
+        Saloon::fake([
+            CompanyPostingsRequest::class => MockResponse::make(body: $page, status: 200),
+        ]);
+
+        $result = $this->scraper->run($this->company);
+
+        $this->assertTrue($result->hasErrors(), 'A truncated fetch must surface as a run error, not a clean completion.');
+        $this->assertSame(1000, $result->fetched);
+        $this->assertStringContainsString('truncated', $result->errors[0]['message']);
+    }
 }

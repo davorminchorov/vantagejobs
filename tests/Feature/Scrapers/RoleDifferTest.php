@@ -170,4 +170,87 @@ final class RoleDifferTest extends TestCase
         $this->assertSame(['new' => 1, 'reopened' => 0, 'closed' => 1, 'touched' => 1], $counts);
         $this->assertFalse((bool) $closing->fresh()->is_open);
     }
+
+    #[Test]
+    public function touch_refreshes_mutable_fields_from_the_latest_fetch(): void
+    {
+        $role = Role::factory()->create([
+            'company_id' => $this->company->id,
+            'source' => 'greenhouse',
+            'external_id' => 'gh-changed',
+            'title' => 'Old Title',
+            'location' => 'Old Location',
+            'comp_min' => 100000,
+            'comp_max' => 120000,
+            'is_open' => true,
+        ]);
+
+        $plan = $this->differ->plan($this->company->roles()->get(), [
+            new ParsedRole(
+                externalId: 'gh-changed',
+                title: 'New Title',
+                location: 'Remote - US',
+                isRemote: true,
+                workplaceType: WorkplaceType::REMOTE,
+                compMin: 150000,
+                compMax: 180000,
+                compCurrency: 'USD',
+                compInterval: 'per-year',
+                raw: ['posting' => 'updated'],
+            ),
+        ]);
+
+        $counts = $this->differ->apply($this->company, AtsType::GREENHOUSE, $plan);
+
+        $this->assertSame(['new' => 0, 'reopened' => 0, 'closed' => 0, 'touched' => 1], $counts);
+
+        $fresh = $role->fresh();
+        $this->assertSame('New Title', $fresh->title);
+        $this->assertSame('Remote - US', $fresh->location);
+        $this->assertTrue((bool) $fresh->is_remote);
+        $this->assertSame(WorkplaceType::REMOTE, $fresh->workplace_type);
+        $this->assertSame(150000, $fresh->comp_min);
+        $this->assertSame(180000, $fresh->comp_max);
+        $this->assertSame('USD', $fresh->comp_currency);
+        $this->assertSame(['posting' => 'updated'], $fresh->raw);
+        $this->assertSame(0, Event::query()->count(), 'Detail refresh must not emit any event.');
+    }
+
+    #[Test]
+    public function would_mass_close_is_false_when_the_fetch_is_non_empty(): void
+    {
+        $existing = $this->company->roles()->get();
+
+        $this->assertFalse($this->differ->wouldMassClose($existing, [
+            new ParsedRole(externalId: 'gh-1', title: 'Backend Engineer'),
+        ]));
+    }
+
+    #[Test]
+    public function would_mass_close_is_false_for_an_empty_fetch_with_no_open_roles(): void
+    {
+        Role::factory()->create([
+            'company_id' => $this->company->id,
+            'source' => 'greenhouse',
+            'is_open' => false,
+        ]);
+
+        $existing = $this->company->roles()->get();
+
+        $this->assertFalse($this->differ->wouldMassClose($existing, []));
+    }
+
+    #[Test]
+    public function would_mass_close_is_true_for_an_empty_fetch_with_an_open_role(): void
+    {
+        Role::factory()->create([
+            'company_id' => $this->company->id,
+            'source' => 'greenhouse',
+            'is_open' => true,
+        ]);
+
+        $existing = $this->company->roles()->get();
+
+        $this->assertTrue($this->differ->wouldMassClose($existing, []));
+    }
 }

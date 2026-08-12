@@ -59,7 +59,18 @@ final readonly class RecruiteeScraper implements AtsScraperInterface
             }
 
             $payload = $response->json();
-            $offers = is_array($payload['offers'] ?? null) ? $payload['offers'] : [];
+            if (! is_array($payload) || ! array_key_exists('offers', $payload) || ! is_array($payload['offers'])) {
+                return new ScraperRunResult(
+                    fetched: 0,
+                    newCount: 0,
+                    closedCount: 0,
+                    errors: [[
+                        'message' => "Recruitee offers endpoint returned a malformed payload (missing or non-array 'offers' key) for slug [{$company->ats_slug}].",
+                    ]],
+                );
+            }
+
+            $offers = $payload['offers'];
 
             $parsed = [];
             foreach ($offers as $offer) {
@@ -67,6 +78,18 @@ final readonly class RecruiteeScraper implements AtsScraperInterface
             }
 
             $existing = $company->roles()->where('source', AtsType::RECRUITEE->value)->get();
+
+            if ($this->differ->wouldMassClose($existing, $parsed)) {
+                return new ScraperRunResult(
+                    fetched: 0,
+                    newCount: 0,
+                    closedCount: 0,
+                    errors: [[
+                        'message' => "Recruitee offers endpoint returned zero postings for slug [{$company->ats_slug}] but open roles exist; refusing to close them.",
+                    ]],
+                );
+            }
+
             $plan = $this->differ->plan($existing, $parsed);
             $counts = $this->differ->apply($company, AtsType::RECRUITEE, $plan);
 

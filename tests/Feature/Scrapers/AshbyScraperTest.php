@@ -217,4 +217,63 @@ final class AshbyScraperTest extends TestCase
         $this->assertSame($originalEtag, $this->company->etag);
         $this->assertEquals($originalLastChecked, $this->company->last_checked_at);
     }
+
+    #[Test]
+    public function does_not_close_roles_that_belong_to_a_different_source(): void
+    {
+        // Regression for the bug where Ashby diffed against every Role on
+        // the company (no `source` scope), so a stale Greenhouse-sourced
+        // role would get swept into Ashby's "existing" set and closed even
+        // though Ashby's fetch never mentioned it.
+        $foreignRole = Role::factory()->create([
+            'company_id' => $this->company->id,
+            'source' => AtsType::GREENHOUSE->value,
+            'external_id' => 'gh-123',
+            'is_open' => true,
+        ]);
+
+        Saloon::fake([
+            JobBoardRequest::class => MockResponse::make(body: $this->happyFixture(), status: 200),
+        ]);
+
+        $result = $this->scraper()->run($this->company);
+
+        $this->assertSame(0, $result->closedCount);
+        $this->assertTrue($foreignRole->fresh()->is_open);
+    }
+
+    #[Test]
+    public function malformed_payload_missing_jobs_key_returns_error_without_touching_roles(): void
+    {
+        Saloon::fake([
+            JobBoardRequest::class => MockResponse::make(body: ['notJobs' => []], status: 200),
+        ]);
+
+        $result = $this->scraper()->run($this->company);
+
+        $this->assertNotSame([], $result->errors);
+        $this->assertSame(0, $result->fetched);
+        $this->assertSame(0, Role::query()->count());
+    }
+
+    #[Test]
+    public function zero_fetch_with_open_roles_refuses_to_mass_close(): void
+    {
+        $openRole = Role::factory()->create([
+            'company_id' => $this->company->id,
+            'source' => AtsType::ASHBY->value,
+            'external_id' => 'ashby-uuid-remote',
+            'is_open' => true,
+        ]);
+
+        Saloon::fake([
+            JobBoardRequest::class => MockResponse::make(body: ['jobs' => []], status: 200),
+        ]);
+
+        $result = $this->scraper()->run($this->company);
+
+        $this->assertNotSame([], $result->errors);
+        $this->assertSame(0, $result->closedCount);
+        $this->assertTrue($openRole->fresh()->is_open);
+    }
 }

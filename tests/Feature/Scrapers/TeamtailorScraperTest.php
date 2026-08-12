@@ -162,4 +162,27 @@ XML;
         $this->assertSame(0, $result->fetched);
         $this->assertSame(0, Role::query()->count());
     }
+
+    #[Test]
+    public function zero_fetch_with_open_roles_refuses_to_mass_close(): void
+    {
+        $openRole = Role::factory()->create([
+            'company_id' => $this->company->id,
+            'source' => AtsType::TEAMTAILOR->value,
+            'is_open' => true,
+        ]);
+
+        Saloon::fake([
+            JobsRssRequest::class => MockResponse::make(
+                body: '<?xml version="1.0"?><rss version="2.0"><channel></channel></rss>',
+                status: 200,
+            ),
+        ]);
+
+        $result = $this->scraper->run($this->company);
+
+        $this->assertTrue($result->hasErrors());
+        $this->assertSame(0, $result->closedCount);
+        $this->assertTrue($openRole->fresh()->is_open);
+    }
 }
