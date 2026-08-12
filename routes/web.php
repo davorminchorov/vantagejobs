@@ -241,7 +241,7 @@ Route::middleware(['auth'])->group(function (): void {
 
     Route::get('/health', HealthController::class)->name('health');
 
-    Route::prefix('admin')->name('admin.')->group(function (): void {
+    Route::prefix('admin')->name('admin.')->middleware('admin')->group(function (): void {
         Route::get('/runs', AdminRunsIndexController::class)->name('runs.index');
         Route::post('/runs/trigger', TriggerController::class)->name('runs.trigger');
         Route::get('/runs/artifacts/{artifact}/download', DownloadArtifactController::class)

@@ -24,7 +24,7 @@ final class ReparseAllControllerTest extends TestCase
 
         $tenant = Tenant::factory()->create();
         app(TenantContext::class)->setCurrent($tenant);
-        $this->user = User::factory()->create();
+        $this->user = User::factory()->admin()->create();
     }
 
     #[Test]

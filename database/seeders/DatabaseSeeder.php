@@ -13,6 +13,7 @@ final class DatabaseSeeder extends Seeder
     {
         $this->call([
             CreateInitialTenantSeeder::class,
+            AuthRolesSeeder::class,
             CreateAdminUserSeeder::class,
             ExampleCompaniesSeeder::class,
             AggregatorSourcesSeeder::class,

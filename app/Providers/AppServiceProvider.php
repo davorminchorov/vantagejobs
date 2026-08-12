@@ -8,7 +8,9 @@ use App\Models\AggregatorListing;
 use App\Models\Company;
 use App\Models\Contact;
 use App\Models\Role;
+use App\Models\User;
 use Illuminate\Database\Eloquent\Relations\Relation;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -41,5 +43,9 @@ class AppServiceProvider extends ServiceProvider
             'aggregator_listing' => AggregatorListing::class,
             'contact' => Contact::class,
         ]);
+
+        // Stateless closure (no request/config capture) so it is Octane-safe
+        // without a container-flush entry.
+        Gate::define('admin', fn (User $user): bool => $user->hasRole('admin'));
     }
 }

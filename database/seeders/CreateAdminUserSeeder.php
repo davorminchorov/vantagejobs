@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Database\Seeders;
 
+use App\Models\AuthRole;
 use App\Models\User;
 use App\Tenancy\TenantContext;
 use Illuminate\Database\Seeder;
@@ -46,6 +47,9 @@ final class CreateAdminUserSeeder extends Seeder
             $user = $existing;
             $verb = 'updated';
         }
+
+        $adminRole = AuthRole::firstOrCreate(['name' => 'admin']);
+        $user->authRoles()->syncWithoutDetaching([$adminRole->id]);
 
         $this->command?->getOutput()->writeln(
             "  <info>Admin user {$verb}:</info> {$user->email} (id={$user->id})"

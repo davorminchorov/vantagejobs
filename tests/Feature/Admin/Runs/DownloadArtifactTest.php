@@ -30,7 +30,7 @@ final class DownloadArtifactTest extends TestCase
 
         $this->tenant = Tenant::factory()->create();
         app(TenantContext::class)->setCurrent($this->tenant);
-        $this->user = User::factory()->create();
+        $this->user = User::factory()->admin()->create();
 
         Storage::fake('local');
     }

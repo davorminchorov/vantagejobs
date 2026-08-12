@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Database\Factories;
 
+use App\Models\AuthRole;
 use App\Models\User;
 use App\Tenancy\Tenant;
 use App\Tenancy\TenantContext;
@@ -49,5 +50,13 @@ final class UserFactory extends Factory
         return $this->state(fn (array $attributes): array => [
             'tenant_id' => $tenant->id,
         ]);
+    }
+
+    public function admin(): static
+    {
+        return $this->afterCreating(function (User $user): void {
+            $role = AuthRole::firstOrCreate(['name' => 'admin']);
+            $user->authRoles()->syncWithoutDetaching([$role->id]);
+        });
     }
 }

@@ -27,7 +27,7 @@ final class AuditViewerTest extends TestCase
 
         $this->tenant = Tenant::factory()->create();
         app(TenantContext::class)->setCurrent($this->tenant);
-        $this->user = User::factory()->create(['tenant_id' => $this->tenant->id]);
+        $this->user = User::factory()->admin()->create(['tenant_id' => $this->tenant->id]);
     }
 
     #[Test]

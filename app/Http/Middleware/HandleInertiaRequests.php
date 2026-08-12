@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Middleware;
 
 use App\Models\SavedView;
+use App\Models\User;
 use App\Tenancy\TenantContext;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
@@ -31,7 +32,7 @@ final class HandleInertiaRequests extends Middleware
         return [
             ...parent::share($request),
             'auth' => fn () => [
-                'user' => $request->user(),
+                'user' => $this->userFor($request),
             ],
             'tenant' => $tenant === null ? null : [
                 'id' => $tenant->id,
@@ -45,6 +46,24 @@ final class HandleInertiaRequests extends Middleware
             ],
             'savedViews' => fn (): array => $this->savedViewsFor($request),
             'debug' => app()->environment('local'),
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function userFor(Request $request): ?array
+    {
+        $user = $request->user();
+
+        if ($user === null) {
+            return null;
+        }
+
+        /** @var User $user */
+        return [
+            ...$user->toArray(),
+            'is_admin' => $user->hasRole('admin'),
         ];
     }
 

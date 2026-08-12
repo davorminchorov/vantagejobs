@@ -30,7 +30,7 @@ final class TriggerTest extends TestCase
         parent::setUp();
         $this->tenant = Tenant::factory()->create();
         app(TenantContext::class)->setCurrent($this->tenant);
-        $this->user = User::factory()->create();
+        $this->user = User::factory()->admin()->create();
     }
 
     #[Test]

@@ -262,12 +262,14 @@ export default function AuthenticatedLayout({ children, header }: AuthenticatedL
                                         Bookmarks
                                     </MobileNavLink>
 
-                                    <MobileNavSection
-                                        label="Admin"
-                                        items={ADMIN_ITEMS}
-                                        currentUrl={currentUrl}
-                                        onNavigate={closeMobile}
-                                    />
+                                    {user?.is_admin ? (
+                                        <MobileNavSection
+                                            label="Admin"
+                                            items={ADMIN_ITEMS}
+                                            currentUrl={currentUrl}
+                                            onNavigate={closeMobile}
+                                        />
+                                    ) : null}
                                 </nav>
                                 <Separator className="my-4" />
                                 <div className="text-muted-foreground px-2 pb-1 font-mono text-xs font-medium uppercase tracking-wide">
@@ -357,15 +359,19 @@ export default function AuthenticatedLayout({ children, header }: AuthenticatedL
                                     <DropdownMenuLabel className="truncate">
                                         {user.name ?? user.email}
                                     </DropdownMenuLabel>
-                                    <DropdownMenuSeparator />
-                                    <DropdownMenuLabel className="font-mono text-xs font-normal uppercase tracking-wide text-muted-foreground">
-                                        Admin
-                                    </DropdownMenuLabel>
-                                    {ADMIN_ITEMS.map((item) => (
-                                        <DropdownMenuItem key={item.href} asChild>
-                                            <Link href={item.href}>{item.name}</Link>
-                                        </DropdownMenuItem>
-                                    ))}
+                                    {user.is_admin ? (
+                                        <>
+                                            <DropdownMenuSeparator />
+                                            <DropdownMenuLabel className="font-mono text-xs font-normal uppercase tracking-wide text-muted-foreground">
+                                                Admin
+                                            </DropdownMenuLabel>
+                                            {ADMIN_ITEMS.map((item) => (
+                                                <DropdownMenuItem key={item.href} asChild>
+                                                    <Link href={item.href}>{item.name}</Link>
+                                                </DropdownMenuItem>
+                                            ))}
+                                        </>
+                                    ) : null}
                                     <DropdownMenuSeparator />
                                     <DropdownMenuItem onSelect={handleSignOut}>Sign out</DropdownMenuItem>
                                 </DropdownMenuContent>

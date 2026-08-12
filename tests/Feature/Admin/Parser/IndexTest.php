@@ -15,7 +15,6 @@ use App\Tenancy\Tenant;
 use App\Tenancy\TenantContext;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
@@ -37,7 +36,7 @@ final class IndexTest extends TestCase
         $this->tenant = Tenant::factory()->create();
         app(TenantContext::class)->setCurrent($this->tenant);
 
-        $this->user = User::factory()->create();
+        $this->user = User::factory()->admin()->create();
         $this->remotive = AggregatorSource::factory()->ofType(AggregatorSourceType::REMOTIVE)->create();
     }
 

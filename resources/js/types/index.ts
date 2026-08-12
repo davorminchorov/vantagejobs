@@ -7,6 +7,7 @@ export interface User {
     email: string;
     timezone: string;
     two_factor_enabled?: boolean;
+    is_admin: boolean;
 }
 
 export interface SharedFlash {
