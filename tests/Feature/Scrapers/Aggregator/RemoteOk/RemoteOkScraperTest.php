@@ -237,6 +237,41 @@ final class RemoteOkScraperTest extends TestCase
     }
 
     #[Test]
+    public function double_encoded_utf8_from_the_upstream_api_is_repaired_before_persisting(): void
+    {
+        // RemoteOK occasionally serves double-encoded UTF-8 (see
+        // MojibakeRepairer) - confirmed against the live API on real rows
+        // like "Universia MÃ©xico" / "MÃ©xico" instead of "México".
+        $payload = [
+            [
+                'id' => 'rok-99001',
+                'company' => 'Universia MÃ©xico',
+                'position' => 'Auxiliar de OperaciÃ³n',
+                'tags' => ['soporte'],
+                'description' => '<p>RÃ³l de soporte remoto.</p>',
+                'location' => 'CoyoacÃ¡n, Ciudad de MÃ©xico',
+                'apply_url' => 'https://remoteok.com/remote-jobs/rok-99001/apply',
+                'url' => 'https://remoteok.com/remote-jobs/rok-99001',
+                'date' => '2026-05-13T12:00:00+00:00',
+            ],
+        ];
+
+        Saloon::fake([
+            JobsRequest::class => MockResponse::make($payload, 200),
+        ]);
+
+        $result = $this->scraper->run($this->source);
+
+        $this->assertFalse($result->hasErrors());
+
+        $row = AggregatorListing::query()->where('external_id', 'rok-99001')->firstOrFail();
+        $this->assertSame('Universia México', $row->parsed_company_name);
+        $this->assertSame('Auxiliar de Operación', $row->parsed_role_title);
+        $this->assertSame('Coyoacán, Ciudad de México', $row->raw['location']);
+        $this->assertSame('Ról de soporte remoto.', trim(strip_tags((string) $row->raw['description'])));
+    }
+
+    #[Test]
     public function network_exception_returns_errors_without_persisting(): void
     {
         Saloon::fake([

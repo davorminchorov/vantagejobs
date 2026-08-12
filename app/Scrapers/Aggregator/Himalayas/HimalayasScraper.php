@@ -10,6 +10,7 @@ use App\Scrapers\Aggregator\AggregatorListingPersister;
 use App\Scrapers\Aggregator\AggregatorRunResult;
 use App\Scrapers\Aggregator\Contracts\AggregatorScraperInterface;
 use App\Scrapers\Aggregator\Himalayas\Requests\JobsSearchRequest;
+use App\Scrapers\Support\MojibakeRepairer;
 use Throwable;
 
 /**
@@ -100,6 +101,11 @@ final readonly class HimalayasScraper implements AggregatorScraperInterface
                 if (! is_array($job)) {
                     continue;
                 }
+
+                // Himalayas occasionally serves double-encoded UTF-8 the
+                // same way RemoteOK does — repair before it's stored.
+                $job = MojibakeRepairer::repairArray($job);
+
                 $externalId = isset($job['guid']) && is_string($job['guid']) ? $job['guid'] : '';
                 if ($externalId === '' || isset($seenGuids[$externalId])) {
                     continue;

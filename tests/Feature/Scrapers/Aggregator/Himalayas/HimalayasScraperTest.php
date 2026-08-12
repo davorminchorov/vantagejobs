@@ -174,6 +174,51 @@ final class HimalayasScraperTest extends TestCase
     }
 
     #[Test]
+    public function double_encoded_utf8_from_the_upstream_api_is_repaired_before_persisting(): void
+    {
+        // Himalayas occasionally serves the same double-encoded UTF-8 as
+        // RemoteOK (see MojibakeRepairer) - confirmed against real rows
+        // like "GlÃ¼ckliche GÃ¤ste GmbH" instead of "Glückliche Gäste GmbH".
+        $payload = [
+            'jobs' => [
+                [
+                    'guid' => 'gluckliche-gaste-support-engineer',
+                    'title' => 'Support Engineer',
+                    'companyName' => 'GlÃ¼ckliche GÃ¤ste GmbH',
+                    'companySlug' => 'gluckliche-gaste',
+                    'applicationLink' => 'https://example.com/jobs/support',
+                    'locationRestrictions' => ['GÃ¤nsemarkt, GÃ¶ttingen'],
+                    'timezoneRestrictions' => [],
+                    'categories' => ['Customer Support'],
+                    'seniority' => ['Mid-Level'],
+                    'employmentType' => ['Full-Time'],
+                    'salaryMin' => 50000,
+                    'salaryMedian' => 55000,
+                    'salaryMax' => 60000,
+                    'salaryCurrency' => 'EUR',
+                    'description' => '<p>Support role.</p>',
+                    'publishedDate' => '2026-05-12T00:00:00Z',
+                ],
+            ],
+            'totalCount' => 1,
+            'offset' => 0,
+            'limit' => 20,
+        ];
+
+        Saloon::fake([
+            JobsSearchRequest::class => MockResponse::make($payload, 200),
+        ]);
+
+        $result = $this->scraper->run($this->source);
+
+        $this->assertFalse($result->hasErrors());
+
+        $row = AggregatorListing::query()->where('external_id', 'gluckliche-gaste-support-engineer')->firstOrFail();
+        $this->assertSame('Glückliche Gäste GmbH', $row->parsed_company_name);
+        $this->assertSame('Gänsemarkt, Göttingen', $row->raw['locationRestrictions'][0]);
+    }
+
+    #[Test]
     public function network_exception_returns_errors_without_persisting(): void
     {
         Saloon::fake([

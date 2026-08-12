@@ -10,6 +10,7 @@ use App\Scrapers\Aggregator\AggregatorListingPersister;
 use App\Scrapers\Aggregator\AggregatorRunResult;
 use App\Scrapers\Aggregator\Contracts\AggregatorScraperInterface;
 use App\Scrapers\Aggregator\RemoteOk\Requests\JobsRequest;
+use App\Scrapers\Support\MojibakeRepairer;
 use Throwable;
 
 /**
@@ -85,6 +86,12 @@ final readonly class RemoteOkScraper implements AggregatorScraperInterface
             if ($index === 0 && ! array_key_exists('id', $item)) {
                 continue;
             }
+
+            // RemoteOK serves some rows double-encoded UTF-8 (e.g. "MÃ©xico"
+            // instead of "México") — repair before either the raw payload or
+            // the parsed fields derived from it get persisted.
+            $item = MojibakeRepairer::repairArray($item);
+
             $externalId = isset($item['id']) ? (string) $item['id'] : '';
             if ($externalId === '') {
                 continue;
