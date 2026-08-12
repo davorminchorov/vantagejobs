@@ -127,6 +127,19 @@ final class TriggerTest extends TestCase
     }
 
     #[Test]
+    public function scope_ats_skips_inactive_and_redetect_failed_companies(): void
+    {
+        Queue::fake();
+        Company::factory()->create(['ats_type' => 'greenhouse', 'ats_slug' => 'gh-good']);
+        Company::factory()->create(['ats_type' => 'greenhouse', 'ats_slug' => 'gh-graveyard', 'is_active' => false]);
+        Company::factory()->create(['ats_type' => 'greenhouse', 'ats_slug' => 'gh-gaveup', 'ats_status' => 'redetect_failed']);
+
+        $this->actingAs($this->user)->post('/admin/runs/trigger', ['scope' => 'ats']);
+
+        Queue::assertPushed(RunCompanyScrapeJob::class, 1);
+    }
+
+    #[Test]
     public function it_does_not_dispatch_other_tenants_companies(): void
     {
         Queue::fake();

@@ -18,7 +18,8 @@ final class AggregatorSourceFactory extends Factory
      */
     public function definition(): array
     {
-        $type = fake()->randomElement(AggregatorSourceType::cases());
+        /** @var AggregatorSourceType $type Unique per test: the table has a (tenant_id, type) unique key, so random duplicates flake under parallel runs. */
+        $type = fake()->unique()->randomElement(AggregatorSourceType::cases());
 
         return [
             'type' => $type,

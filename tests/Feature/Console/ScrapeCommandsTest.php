@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Feature\Console;
 
 use App\Enums\AtsType;
+use App\Jobs\RunCompanyScrapeJob;
 use App\Models\Company;
 use App\Models\ScrapeRun;
 use App\Scrapers\Contracts\AtsScraperInterface;
@@ -12,7 +13,9 @@ use App\Scrapers\ScraperRegistry;
 use App\Scrapers\ScraperRunResult;
 use App\Tenancy\Tenant;
 use App\Tenancy\TenantContext;
+use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Queue;
 use PHPUnit\Framework\Attributes\Test;
 use RuntimeException;
 use Tests\TestCase;
@@ -150,6 +153,52 @@ final class ScrapeCommandsTest extends TestCase
         $this->artisan('scrape:all', ['--tenant' => 'primary', '--source' => 'bamboohr'])
             ->expectsOutputToContain('Unknown --source')
             ->assertExitCode(1);
+    }
+
+    #[Test]
+    public function scrape_all_queue_dispatches_one_job_per_company_instead_of_running_inline(): void
+    {
+        Queue::fake();
+
+        Company::factory()->create(['ats_type' => 'greenhouse', 'ats_slug' => 'gh-a']);
+        Company::factory()->create(['ats_type' => 'lever', 'ats_slug' => 'lv-a']);
+
+        app(TenantContext::class)->setCurrent(null);
+
+        $this->artisan('scrape:all', ['--tenant' => 'primary', '--queue' => true])->assertExitCode(0);
+
+        Queue::assertPushed(RunCompanyScrapeJob::class, 2);
+        $this->assertSame(0, ScrapeRun::query()->count(), 'Queued mode dispatches jobs; it does not run the orchestrator inline.');
+    }
+
+    #[Test]
+    public function scrape_all_skips_graveyarded_and_redetect_failed_companies(): void
+    {
+        $this->fakeScraper(AtsType::GREENHOUSE, new ScraperRunResult(fetched: 1, newCount: 0, closedCount: 0));
+
+        Company::factory()->create(['ats_type' => 'greenhouse', 'ats_slug' => 'gh-good']);
+        Company::factory()->create(['ats_type' => 'greenhouse', 'ats_slug' => 'gh-graveyard', 'is_active' => false]);
+        Company::factory()->create(['ats_type' => 'greenhouse', 'ats_slug' => 'gh-gaveup', 'ats_status' => 'redetect_failed']);
+
+        app(TenantContext::class)->setCurrent(null);
+
+        $this->artisan('scrape:all', ['--tenant' => 'primary'])->assertExitCode(0);
+
+        $this->assertSame(1, ScrapeRun::query()->count());
+    }
+
+    #[Test]
+    public function scrape_all_is_scheduled_every_six_hours(): void
+    {
+        /** @var Schedule $schedule */
+        $schedule = $this->app->make(Schedule::class);
+
+        $matching = collect($schedule->events())->filter(
+            static fn ($event): bool => $event->description === 'scrape:all',
+        );
+
+        $this->assertCount(1, $matching, 'scrape:all should be scheduled exactly once.');
+        $this->assertSame('0 */6 * * *', $matching->first()->expression);
     }
 
     private function fakeScraper(AtsType $type, ScraperRunResult $result): void

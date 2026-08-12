@@ -32,6 +32,28 @@ Artisan::command('inspire', function () {
 
 $tenantSlug = static fn (): ?string => Tenant::query()->orderBy('id')->value('slug');
 
+/*
+|--------------------------------------------------------------------------
+| ATS company scraping
+|--------------------------------------------------------------------------
+|
+| Polls every tracked company's Greenhouse/Lever/Ashby/Workable/
+| SmartRecruiters/Personio/Recruitee/Teamtailor board. --queue dispatches
+| one RunCompanyScrapeJob per company (ShouldBeUnique-guarded) instead of
+| running the orchestrator inline in the scheduler process, so one slow or
+| crashing company can't stall — or take down — the rest of the sweep.
+|
+| Uniform 6h cadence for every eligible company; tier-aware cadence
+| (A/B/C-tier PRD §6.2) is a deliberate follow-up, not implemented here.
+*/
+Schedule::call(static function () use ($tenantSlug): void {
+    $slug = $tenantSlug();
+    if (! is_string($slug) || $slug === '') {
+        return;
+    }
+    Artisan::call('scrape:all', ['--tenant' => $slug, '--queue' => true]);
+})->name('scrape:all')->everySixHours()->withoutOverlapping();
+
 Schedule::call(static function () use ($tenantSlug): void {
     $slug = $tenantSlug();
     if (! is_string($slug) || $slug === '') {
@@ -72,18 +94,16 @@ $aggregatorTenantSlugs = static function (): array {
         ->all();
 };
 
-foreach ([
-    'remotive', 'himalayas', 'weworkremotely', 'remoteok',
-    'fourdayweek', 'workingnomads', 'adzuna', 'larajobs',
-    'jobicy', 'arbeitnow',
-    'python_org', 'django_news', 'elixir_jobs', 'hexhire',
-] as $type) {
-    Schedule::call(static function () use ($aggregatorTenantSlugs, $type): void {
-        foreach ($aggregatorTenantSlugs() as $slug) {
-            Artisan::call('aggregator:run', ['source' => $type, '--tenant' => $slug]);
-        }
-    })->name("aggregator:{$type}:daily")->dailyAt('06:30')->withoutOverlapping();
-}
+// Every other aggregator type (remotive, himalayas, weworkremotely, remoteok,
+// fourdayweek, workingnomads, adzuna, larajobs, jobicy, arbeitnow, python_org,
+// django_news, elixir_jobs, hexhire) is driven by AggregatorSource.next_run_at
+// rather than a hardcoded per-source cron entry: this sweep dispatches
+// RunAggregatorScrapeJob (ShouldBeUnique-guarded) for every enabled source
+// whose next_run_at has elapsed. AggregatorOrchestrator already advances
+// next_run_at by cadence_minutes on every run; seeded cadence_minutes for
+// these types is 1440 (daily), matching the cadence this replaces. HackerNews
+// keeps its explicit monthly entries above — see AggregatorDispatchDueCommand.
+Schedule::command('aggregator:dispatch-due')->everyFifteenMinutes()->withoutOverlapping();
 
 Schedule::command('bookmarks:warn-expiring')->dailyAt('06:00');
 Schedule::command('bookmarks:expire')->dailyAt('06:05');
@@ -236,6 +256,19 @@ Schedule::call(static function () use ($aggregatorTenantSlugs): void {
 
 // Source-health monitor: hourly sweep across all tenants.
 Schedule::command('monitor:source-health')->hourly()->withoutOverlapping();
+
+// Stale scrape_runs reaper: a worker that dies mid-run (OOM, hard restart)
+// leaves its row at status='running' forever with nothing to notice.
+// Tenant-agnostic — the command sweeps the global scrape_runs table.
+Schedule::command('scrape-runs:reap')->hourly()->withoutOverlapping();
+
+// Snooze wake-up: flips SNOOZED aggregator listings back to NEW once
+// snoozed_until elapses. Tenant-agnostic global sweep.
+Schedule::command('listings:wake-snoozed')->hourly()->withoutOverlapping();
+
+// Dismissed-listing retention (PRD §6.4.9): hard-deletes DISMISSED aggregator
+// listings past each tenant's configured retention window.
+Schedule::command('listings:prune-dismissed')->dailyAt('06:20')->withoutOverlapping();
 
 // Export-job retention: prune expired export archives. Tenant-agnostic — the
 // command sweeps the global export_jobs table.

@@ -56,9 +56,7 @@ final readonly class TriggerController
 
     private function dispatchAts(int $tenantId, ?AtsType $type): int
     {
-        $query = Company::query()
-            ->whereNotNull('ats_type')
-            ->whereNotNull('ats_slug');
+        $query = Company::query()->scrapeable();
 
         if ($type instanceof AtsType) {
             $query->where('ats_type', $type->value);

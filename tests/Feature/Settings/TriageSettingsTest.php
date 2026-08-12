@@ -41,7 +41,7 @@ final class TriageSettingsTest extends TestCase
             ->assertInertia(fn ($page) => $page
                 ->component('Settings/Triage')
                 ->where('settings.auto_dismiss_threshold', 70)
-                ->where('settings.dismissed_retention_days', 30)
+                ->where('settings.dismissed_retention_days', 90)
             );
     }
 

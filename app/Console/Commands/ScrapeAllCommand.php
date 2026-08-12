@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Console\Commands;
 
 use App\Enums\AtsType;
+use App\Jobs\RunCompanyScrapeJob;
 use App\Models\Company;
 use App\Models\ScrapeRun;
 use App\Scrapers\ScrapeOrchestrator;
@@ -12,12 +13,14 @@ use App\Tenancy\Tenant;
 use App\Tenancy\TenantContext;
 use Carbon\CarbonImmutable;
 use Illuminate\Console\Command;
+use Illuminate\Database\Eloquent\Collection;
 
 final class ScrapeAllCommand extends Command
 {
     protected $signature = 'scrape:all
         {--tenant= : Tenant slug}
-        {--source= : Restrict to a single ATS type (e.g. greenhouse, lever, ashby, workable, smartrecruiters, personio, recruitee, teamtailor)}';
+        {--source= : Restrict to a single ATS type (e.g. greenhouse, lever, ashby, workable, smartrecruiters, personio, recruitee, teamtailor)}
+        {--queue : Dispatch one RunCompanyScrapeJob per company instead of running inline. Isolates failures and reuses the job uniqueness lock; use for the scheduled sweep.}';
 
     protected $description = 'Run ATS scrapers across every eligible company for a tenant. Cron-friendly: JSON summary on stdout.';
 
@@ -37,12 +40,16 @@ final class ScrapeAllCommand extends Command
 
         $startedAt = CarbonImmutable::now();
 
-        $query = Company::query()->whereNotNull('ats_type')->whereNotNull('ats_slug');
+        $query = Company::query()->scrapeable();
         if ($sourceFilter instanceof AtsType) {
             $query->where('ats_type', $sourceFilter->value);
         }
 
         $companies = $query->orderBy('id')->get();
+
+        if ($this->option('queue')) {
+            return $this->dispatchQueued($tenant, $companies, $sourceFilter, $startedAt);
+        }
 
         $runs = [];
         foreach ($companies as $company) {
@@ -64,6 +71,30 @@ final class ScrapeAllCommand extends Command
         ], JSON_THROW_ON_ERROR));
 
         return $this->anyErrors($runs) ? self::FAILURE : self::SUCCESS;
+    }
+
+    /**
+     * @param  Collection<int, Company>  $companies
+     */
+    private function dispatchQueued(
+        Tenant $tenant,
+        Collection $companies,
+        ?AtsType $sourceFilter,
+        CarbonImmutable $startedAt,
+    ): int {
+        foreach ($companies as $company) {
+            RunCompanyScrapeJob::dispatch((int) $tenant->id, (int) $company->id);
+        }
+
+        $this->line((string) json_encode([
+            'command' => 'scrape:all',
+            'tenant' => $tenant->slug,
+            'source' => $sourceFilter?->value,
+            'queued' => $companies->count(),
+            'started_at' => $startedAt->toIso8601String(),
+        ], JSON_THROW_ON_ERROR));
+
+        return self::SUCCESS;
     }
 
     private function resolveTenant(): ?Tenant

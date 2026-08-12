@@ -225,6 +225,49 @@ final class SourceHealthTest extends TestCase
     }
 
     #[Test]
+    public function the_monitor_command_writes_its_own_recovery_row_and_re_alerts(): void
+    {
+        Mail::fake();
+
+        $source = AggregatorSource::factory()->ofType(AggregatorSourceType::REMOTIVE)->create([
+            'consecutive_failures' => 4,
+            'last_run_at' => CarbonImmutable::now()->subHour(),
+        ]);
+
+        // First sweep: red, alerts.
+        Artisan::call('monitor:source-health', ['--tenant' => 'primary']);
+        Mail::assertQueued(SourceHealthMail::class, 1);
+
+        // The source recovers on its own — no manual NotificationLogEntry.
+        $source->fill([
+            'consecutive_failures' => 0,
+            'last_run_at' => CarbonImmutable::now(),
+        ])->save();
+
+        Artisan::call('monitor:source-health', ['--tenant' => 'primary']);
+
+        $this->assertDatabaseHas('notification_log', [
+            'kind' => NotificationKind::SOURCE_HEALTH->value,
+            'company_id' => null,
+            'context->source_key' => $source->type->value,
+            'context->recovered' => true,
+        ]);
+        // Recovery is log-only: still exactly one email sent so far.
+        Mail::assertQueued(SourceHealthMail::class, 1);
+
+        // Source degrades again: this time it alerts, because the sweep
+        // itself re-armed alreadyAlerted() via the recovery row above.
+        $source->fill([
+            'consecutive_failures' => 4,
+            'last_run_at' => CarbonImmutable::now()->subHour(),
+        ])->save();
+
+        Artisan::call('monitor:source-health', ['--tenant' => 'primary']);
+
+        Mail::assertQueued(SourceHealthMail::class, 2);
+    }
+
+    #[Test]
     public function the_monitor_command_prefers_the_notification_email_setting(): void
     {
         Mail::fake();

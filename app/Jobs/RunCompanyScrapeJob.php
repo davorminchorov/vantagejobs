@@ -28,6 +28,13 @@ final class RunCompanyScrapeJob implements ShouldBeUnique, ShouldQueue
 
     public int $uniqueFor = 1800;
 
+    /**
+     * Paginated ATS boards can take longer than Horizon's default 60s job
+     * timeout. Keep below queue.php's redis `retry_after` to avoid a second
+     * worker picking the job up while the first is still running.
+     */
+    public int $timeout = 120;
+
     public function __construct(
         public int $tenantId,
         public int $companyId,

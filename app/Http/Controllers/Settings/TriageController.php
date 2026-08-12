@@ -32,7 +32,7 @@ final readonly class TriageController
                 ),
                 'dismissed_retention_days' => (int) $this->settings->get(
                     SettingKey::DISMISSED_RETENTION_DAYS,
-                    30,
+                    90,
                 ),
             ],
         ]);

@@ -27,9 +27,14 @@ use Illuminate\Database\Eloquent\Collection;
  * Deduped via the notification_log ledger: a NotificationLogEntry with
  * kind=SOURCE_HEALTH, company_id=NULL, and context.source_key carrying the
  * source identifier records each alert. A source only alerts again once it has
- * recovered out of RED and back in — i.e. while a source stays red across runs
- * it does not re-alert, because the most recent SOURCE_HEALTH log row for that
- * source key is still an alert rather than a recovery.
+ * recovered out of RED and back in.
+ *
+ * That recovery half of the loop is written here too: when a source that
+ * previously alerted (its latest SOURCE_HEALTH log row has context.recovered
+ * === false) is no longer RED, this sweep writes a recovery row
+ * (context.recovered === true, no email). Without it, alreadyAlerted() would
+ * see that same un-recovered row forever and a source that degrades, recovers,
+ * then degrades again would only ever alert once in its lifetime.
  *
  * Runs per tenant: --tenant=<slug> targets one tenant; omitting it sweeps every
  * tenant. The Mailable implements ShouldQueue, so the queue worker performs the
@@ -79,6 +84,8 @@ final class MonitorSourceHealthCommand extends Command
     /**
      * Alert on every red source in the active tenant that is not already in an
      * un-recovered alert state, recording a notification_log row per send.
+     * Also re-arms any source that has come back out of red since its last
+     * alert by writing a recovery row.
      */
     private function sweepTenant(CarbonImmutable $now): int
     {
@@ -87,6 +94,10 @@ final class MonitorSourceHealthCommand extends Command
 
         foreach ($this->sourceHealth->perSource($now) as $source) {
             if ($source['status'] !== 'red') {
+                if ($this->alreadyAlerted($source['key'])) {
+                    $this->recordRecovery($source, $now);
+                }
+
                 continue;
             }
 
@@ -156,6 +167,30 @@ final class MonitorSourceHealthCommand extends Command
             'reasons' => $source['reasons'],
             'consecutive_failures' => $source['consecutive_failures'],
             'recovered' => false,
+        ]);
+        $entry->setAttribute('sent_at', $now);
+        $entry->save();
+    }
+
+    /**
+     * Log-only — no email. Marks the source's un-recovered alert as resolved
+     * so alreadyAlerted() lets the next red episode alert again.
+     *
+     * @param  array<string, mixed>  $source
+     */
+    private function recordRecovery(array $source, CarbonImmutable $now): void
+    {
+        $entry = new NotificationLogEntry;
+        $entry->setAttribute('kind', NotificationKind::SOURCE_HEALTH);
+        $entry->setAttribute('company_id', null);
+        $entry->setAttribute('recipient', 'unset');
+        $entry->setAttribute('subject', 'Source health: '.$source['name'].' recovered');
+        $entry->setAttribute('context', [
+            'source_key' => $source['key'],
+            'source_id' => $source['source_id'],
+            'reasons' => [],
+            'consecutive_failures' => $source['consecutive_failures'],
+            'recovered' => true,
         ]);
         $entry->setAttribute('sent_at', $now);
         $entry->save();
