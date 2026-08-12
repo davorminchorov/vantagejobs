@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
+import { cn } from '@/lib/utils';
 import type { PageProps } from '@/types';
 
 interface SourceRef {
@@ -112,7 +113,7 @@ export default function DiscoverIndex({ listings, filters, counts, options }: Pr
     const [focusIndex, setFocusIndex] = useState<number>(-1);
     const [editing, setEditing] = useState<{ listingId: number; field: EditableField } | null>(null);
     const [selectedIds, setSelectedIds] = useState<number[]>([]);
-    const cardRefs = useRef<Array<HTMLDivElement | null>>([]);
+    const cardRefs = useRef<Array<HTMLLIElement | null>>([]);
     const itemsRef = useRef<HTMLUListElement | null>(null);
 
     // Drop any selection that points at listings no longer on the page.
@@ -129,9 +130,18 @@ export default function DiscoverIndex({ listings, filters, counts, options }: Pr
     useEffect(() => {
         function onKey(e: KeyboardEvent) {
             // Suppress global handler when typing in an input / textarea /
-            // contenteditable — the correction editor lives inside cards.
+            // contenteditable (the correction editor lives inside rows) or
+            // while focus sits inside an open menu (Radix moves focus onto
+            // div[role=menuitem]s, which would otherwise let k/x/s/b fall
+            // through to the row underneath).
             const target = e.target as HTMLElement | null;
-            if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) {
+            if (
+                target &&
+                (target.tagName === 'INPUT' ||
+                    target.tagName === 'TEXTAREA' ||
+                    target.isContentEditable ||
+                    target.closest('[role="menu"], [role="menuitem"]') !== null)
+            ) {
                 return;
             }
 
@@ -348,28 +358,30 @@ export default function DiscoverIndex({ listings, filters, counts, options }: Pr
                                 Nothing left on this page. Load more below.
                             </p>
                         )}
-                        <ul ref={itemsRef} className="space-y-3">
+                        <ul
+                            ref={itemsRef}
+                            className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-card"
+                        >
                             {listings.data.map((listing, idx) => (
-                                <li key={listing.id}>
-                                    <ListingCard
-                                        ref={(el) => {
-                                            cardRefs.current[idx] = el;
-                                        }}
-                                        listing={listing}
-                                        debug={debug}
-                                        isFocused={idx === focusIndex}
-                                        isSelected={selectedIds.includes(listing.id)}
-                                        onToggleSelect={() => toggleSelected(listing.id)}
-                                        editingField={editing?.listingId === listing.id ? editing.field : null}
-                                        onFocus={() => setFocusIndex(idx)}
-                                        onAction={(verb) => actOn(listing, verb)}
-                                        onEdit={(field) => setEditing({ listingId: listing.id, field })}
-                                        onCancelEdit={() => setEditing(null)}
-                                        onSave={(field, value) => saveCorrection(listing, field, value)}
-                                        onSaveFixture={() => saveFixture(listing)}
-                                        onReparse={(force) => reparse(listing, force)}
-                                    />
-                                </li>
+                                <ListingRow
+                                    key={listing.id}
+                                    ref={(el) => {
+                                        cardRefs.current[idx] = el;
+                                    }}
+                                    listing={listing}
+                                    debug={debug}
+                                    isFocused={idx === focusIndex}
+                                    isSelected={selectedIds.includes(listing.id)}
+                                    onToggleSelect={() => toggleSelected(listing.id)}
+                                    editingField={editing?.listingId === listing.id ? editing.field : null}
+                                    onFocus={() => setFocusIndex(idx)}
+                                    onAction={(verb) => actOn(listing, verb)}
+                                    onEdit={(field) => setEditing({ listingId: listing.id, field })}
+                                    onCancelEdit={() => setEditing(null)}
+                                    onSave={(field, value) => saveCorrection(listing, field, value)}
+                                    onSaveFixture={() => saveFixture(listing)}
+                                    onReparse={(force) => reparse(listing, force)}
+                                />
                             ))}
                         </ul>
                     </InfiniteScroll>
@@ -501,7 +513,7 @@ function FilterBar({
     );
 }
 
-interface ListingCardProps {
+interface ListingRowProps {
     listing: Listing;
     debug: boolean;
     isFocused: boolean;
@@ -515,10 +527,10 @@ interface ListingCardProps {
     onSave: (field: EditableField, value: CorrectionValue) => void;
     onSaveFixture: () => void;
     onReparse: (force: boolean) => void;
-    ref?: React.Ref<HTMLDivElement>;
+    ref?: React.Ref<HTMLLIElement>;
 }
 
-function ListingCard({
+function ListingRow({
     listing,
     debug,
     isFocused,
@@ -533,122 +545,143 @@ function ListingCard({
     onSaveFixture,
     onReparse,
     ref,
-}: ListingCardProps) {
-    const [menuOpen, setMenuOpen] = useState(false);
+}: ListingRowProps) {
     return (
-        <Card
+        <li
             ref={ref}
             tabIndex={0}
             onClick={onFocus}
             aria-label={`Listing: ${listing.parsed_role_title ?? 'unknown role'} at ${listing.parsed_company_name ?? 'unknown company'}`}
-            className={
-                'focus-visible:ring-ring rounded-2xl transition-all hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 ' +
-                (isSelected ? 'border-primary ring-1 ring-primary/40 ' : '') +
-                (isFocused ? 'border-primary ring-1 ring-ring/30' : '')
-            }
+            className={cn(
+                // group/row is named so the pill-level plain `group` (hover
+                // pencil reveal) doesn't also fire on row hover.
+                'group/row relative outline-none transition-colors',
+                'hover:bg-muted/40',
+                'focus-within:bg-primary/5 focus-within:ring-1 focus-within:ring-inset focus-within:ring-primary/30',
+                isSelected && 'bg-primary/5 ring-1 ring-inset ring-primary/40',
+                isFocused && 'bg-primary/5 ring-1 ring-inset ring-primary/30',
+            )}
         >
-            <CardContent className="space-y-2 p-4">
-                <div className="flex flex-col gap-4 sm:flex-row sm:items-baseline sm:justify-between">
-                    <div className="flex min-w-0 items-start gap-3">
-                        <input
-                            type="checkbox"
-                            className="mt-1 size-4 shrink-0 rounded border-input"
-                            aria-label={`Select ${listing.parsed_role_title ?? 'listing'}`}
-                            checked={isSelected}
-                            onClick={(e) => e.stopPropagation()}
-                            onChange={(e) => {
-                                e.stopPropagation();
-                                onToggleSelect();
-                            }}
-                        />
-                    <div className="min-w-0 space-y-1">
-                        <div className="flex flex-wrap items-baseline gap-2">
-                            <h3 className="text-base font-semibold">
-                                {listing.url ? (
-                                    <a
-                                        href={listing.url}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        onClick={(e) => e.stopPropagation()}
-                                        className="hover:underline"
-                                    >
-                                        {listing.parsed_role_title ?? '(role unknown)'}
-                                    </a>
-                                ) : (
-                                    <span>{listing.parsed_role_title ?? '(role unknown)'}</span>
-                                )}
-                                <button
-                                    type="button"
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        onEdit('role_title');
-                                    }}
-                                    className="focus-visible:ring-ring ml-1 rounded text-xs text-muted-foreground/40 hover:text-foreground focus-visible:outline-none focus-visible:ring-2"
-                                    aria-label="Edit role title"
-                                    title="Edit role title"
+            <div className="grid grid-cols-[auto_1fr] items-start gap-3 p-3 sm:grid-cols-[auto_1fr_auto] sm:p-4">
+                <input
+                    type="checkbox"
+                    className="mt-0.5 size-4 rounded border-input"
+                    aria-label={`Select ${listing.parsed_role_title ?? 'listing'}`}
+                    checked={isSelected}
+                    onClick={(e) => e.stopPropagation()}
+                    onChange={(e) => {
+                        e.stopPropagation();
+                        onToggleSelect();
+                    }}
+                />
+                <div className="min-w-0">
+                    <div className="flex flex-wrap items-baseline gap-2 sm:flex-nowrap">
+                        <h3 className="min-w-0 text-sm font-medium sm:truncate">
+                            {listing.url ? (
+                                <a
+                                    href={listing.url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    onClick={(e) => e.stopPropagation()}
+                                    className="hover:underline"
                                 >
-                                    <span aria-hidden="true">✎</span>
-                                </button>
-                            </h3>
+                                    {listing.parsed_role_title ?? '(role unknown)'}
+                                </a>
+                            ) : (
+                                <span>{listing.parsed_role_title ?? '(role unknown)'}</span>
+                            )}
+                        </h3>
+                        <button
+                            type="button"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                onEdit('role_title');
+                            }}
+                            className={cn(
+                                'focus-visible:ring-ring invisible shrink-0 rounded text-xs text-muted-foreground/40 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 group-hover/row:visible',
+                                isFocused && 'visible',
+                            )}
+                            aria-label="Edit role title"
+                            title="Edit role title"
+                        >
+                            <span aria-hidden="true">✎</span>
+                        </button>
+                        <EditablePill
+                            listing={listing}
+                            field="seniority"
+                            label={listing.parsed_seniority ?? 'add seniority'}
+                            emphasis="muted"
+                            placeholder={listing.parsed_seniority == null}
+                            revealed={isFocused}
+                            className="shrink-0"
+                            onEdit={onEdit}
+                        />
+                        <EditablePill
+                            listing={listing}
+                            field="comp_min_usd"
+                            label={
+                                listing.has_comp && listing.parsed_comp_min_usd != null
+                                    ? `$${(listing.parsed_comp_min_usd / 1000).toFixed(0)}k${
+                                          listing.parsed_comp_max_usd != null
+                                              ? `-$${(listing.parsed_comp_max_usd / 1000).toFixed(0)}k`
+                                              : ''
+                                      }`
+                                    : 'comp?'
+                            }
+                            emphasis="muted"
+                            placeholder={!listing.has_comp || listing.parsed_comp_min_usd == null}
+                            revealed={isFocused}
+                            className="shrink-0"
+                            onEdit={onEdit}
+                        />
+                    </div>
+                    <div className="mt-0.5 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                        <span className="font-medium text-foreground">
                             <EditablePill
                                 listing={listing}
-                                field="seniority"
-                                label={listing.parsed_seniority ?? 'add seniority'}
-                                emphasis="muted"
-                                placeholder={listing.parsed_seniority == null}
+                                field="company_name"
+                                label={listing.parsed_company_name ?? '(company unknown)'}
                                 onEdit={onEdit}
                             />
-                        </div>
-                        <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-                            <span className="font-medium text-foreground">
-                                <EditablePill
-                                    listing={listing}
-                                    field="company_name"
-                                    label={listing.parsed_company_name ?? '(company unknown)'}
-                                    onEdit={onEdit}
-                                />
-                            </span>
-                            {listing.source && (
-                                <span className="rounded-full bg-secondary px-2 py-0.5 font-mono text-xs uppercase tracking-wide text-secondary-foreground">
+                        </span>
+                        {listing.source &&
+                            (listing.url ? (
+                                <a
+                                    href={listing.url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    title={hostnameFromUrl(listing.url)}
+                                    onClick={(e) => e.stopPropagation()}
+                                    className="rounded-full bg-secondary px-2 py-0.5 font-mono text-[10px] uppercase tracking-wide text-secondary-foreground hover:underline"
+                                >
+                                    {listing.source.type}
+                                </a>
+                            ) : (
+                                <span className="rounded-full bg-secondary px-2 py-0.5 font-mono text-[10px] uppercase tracking-wide text-secondary-foreground">
                                     {listing.source.type}
                                 </span>
-                            )}
-                            <EditablePill
-                                listing={listing}
-                                field="remote_type"
-                                label={listing.parsed_remote_type?.replace('_', ' ') ?? 'add remote type'}
-                                emphasis="muted"
-                                placeholder={listing.parsed_remote_type == null}
-                                onEdit={onEdit}
-                            />
-                            <EditablePill
-                                listing={listing}
-                                field="region"
-                                label={listing.location_bucket ?? 'add region'}
-                                emphasis="muted"
-                                placeholder={listing.location_bucket == null}
-                                onEdit={onEdit}
-                            />
-                            <EditablePill
-                                listing={listing}
-                                field="comp_min_usd"
-                                label={
-                                    listing.has_comp && listing.parsed_comp_min_usd != null
-                                        ? `$${(listing.parsed_comp_min_usd / 1000).toFixed(0)}k${
-                                              listing.parsed_comp_max_usd != null
-                                                  ? `-$${(listing.parsed_comp_max_usd / 1000).toFixed(0)}k`
-                                                  : ''
-                                          }`
-                                        : 'comp?'
-                                }
-                                emphasis="muted"
-                                placeholder={!listing.has_comp || listing.parsed_comp_min_usd == null}
-                                onEdit={onEdit}
-                            />
-                        </div>
+                            ))}
+                        <EditablePill
+                            listing={listing}
+                            field="remote_type"
+                            label={listing.parsed_remote_type?.replace('_', ' ') ?? 'add remote type'}
+                            emphasis="muted"
+                            placeholder={listing.parsed_remote_type == null}
+                            revealed={isFocused}
+                            onEdit={onEdit}
+                        />
+                        <EditablePill
+                            listing={listing}
+                            field="region"
+                            label={listing.location_bucket ?? 'add region'}
+                            emphasis="muted"
+                            placeholder={listing.location_bucket == null}
+                            revealed={isFocused}
+                            onEdit={onEdit}
+                        />
                         {listing.stack_tags && listing.stack_tags.length > 0 && (
                             <div
-                                className="focus-visible:ring-ring flex flex-wrap gap-1 rounded pt-1 focus-visible:outline-none focus-visible:ring-2"
+                                className="focus-visible:ring-ring flex flex-wrap items-center gap-1 rounded focus-visible:outline-none focus-visible:ring-2"
                                 onClick={(e) => {
                                     e.stopPropagation();
                                     onEdit('stack_tags');
@@ -667,97 +700,129 @@ function ListingCard({
                                 {listing.stack_tags.slice(0, 8).map((tag) => (
                                     <span
                                         key={tag}
-                                        className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground"
+                                        className="rounded-full bg-muted px-2 py-0.5 text-[11px] text-muted-foreground"
                                     >
                                         {tag}
                                     </span>
                                 ))}
-                                <span className="text-xs text-muted-foreground/60 hover:text-foreground">edit</span>
+                                <span
+                                    className={cn(
+                                        'invisible text-[10px] text-muted-foreground/60 hover:text-foreground group-hover/row:visible',
+                                        isFocused && 'visible',
+                                    )}
+                                >
+                                    edit
+                                </span>
                             </div>
                         )}
-                        {debug && listing.parser_version != null && (
-                            <p className="pt-1 font-mono text-[10px] uppercase tracking-wide text-muted-foreground/60">
-                                parsed by v<span className="tabular-nums">{listing.parser_version}</span>
-                            </p>
-                        )}
-                    </div>
-                    </div>
-                    <div className="flex shrink-0 flex-wrap gap-1 sm:flex-nowrap">
-                        {listing.url && (
-                            <Button
-                                size="sm"
-                                variant="outline"
-                                className="min-h-11 sm:min-h-9"
-                                asChild
-                            >
-                                <a
-                                    href={listing.url}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    onClick={(e) => e.stopPropagation()}
-                                >
-                                    Open ↗
-                                </a>
-                            </Button>
-                        )}
-                        <Button
-                            size="sm"
-                            variant="default"
-                            className="min-h-11 sm:min-h-9"
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                onAction('keep');
-                            }}
-                        >
-                            Keep
-                        </Button>
-                        <Button
-                            size="sm"
-                            variant="outline"
-                            className="min-h-11 sm:min-h-9"
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                onAction('bookmark');
-                            }}
-                        >
-                            Bookmark
-                        </Button>
-                        <Button
-                            size="sm"
-                            variant="outline"
-                            className="min-h-11 sm:min-h-9"
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                onAction('snooze');
-                            }}
-                        >
-                            Snooze
-                        </Button>
-                        <Button
-                            size="sm"
-                            variant="ghost"
-                            className="min-h-11 sm:min-h-9"
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                onAction('dismiss');
-                            }}
-                        >
-                            Dismiss
-                        </Button>
                     </div>
                 </div>
-                {listing.url && (
-                    <a
-                        href={listing.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-xs text-muted-foreground hover:text-foreground"
-                        onClick={(e) => e.stopPropagation()}
+                <div
+                    className={cn(
+                        // visibility (not opacity/display) keeps the cluster's
+                        // width reserved so rows never shift, and drops hidden
+                        // buttons out of tab order and hit-testing. Below sm
+                        // nothing hides (touch needs always-visible targets)
+                        // and the cluster wraps onto its own full-width row.
+                        'col-span-2 flex flex-wrap items-center gap-1 sm:col-span-1 sm:flex-nowrap',
+                        'sm:invisible group-hover/row:sm:visible group-focus-within/row:sm:visible',
+                        isFocused && 'sm:visible',
+                    )}
+                >
+                    {listing.url && (
+                        <Button
+                            size="sm"
+                            variant="outline"
+                            className="min-h-11 sm:min-h-9"
+                            asChild
+                        >
+                            <a
+                                href={listing.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                onClick={(e) => e.stopPropagation()}
+                            >
+                                Open ↗
+                            </a>
+                        </Button>
+                    )}
+                    <Button
+                        size="sm"
+                        variant="default"
+                        className="min-h-11 sm:min-h-9"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            onAction('keep');
+                        }}
                     >
-                        {hostnameFromUrl(listing.url)}
-                    </a>
-                )}
-                {editingField !== null && (
+                        Keep
+                    </Button>
+                    <Button
+                        size="sm"
+                        variant="outline"
+                        className="min-h-11 sm:min-h-9"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            onAction('bookmark');
+                        }}
+                    >
+                        Bookmark
+                    </Button>
+                    <Button
+                        size="sm"
+                        variant="outline"
+                        className="min-h-11 sm:min-h-9"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            onAction('snooze');
+                        }}
+                    >
+                        Snooze
+                    </Button>
+                    <Button
+                        size="sm"
+                        variant="ghost"
+                        className="min-h-11 sm:min-h-9"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            onAction('dismiss');
+                        }}
+                    >
+                        Dismiss
+                    </Button>
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button
+                                size="sm"
+                                variant="ghost"
+                                aria-label="More actions"
+                                className="min-h-11 px-2 data-[state=open]:sm:visible sm:min-h-9"
+                                onClick={(e) => e.stopPropagation()}
+                            >
+                                <span aria-hidden="true">⋯</span>
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                            <DropdownMenuItem onSelect={() => onReparse(false)}>
+                                Re-parse (keep corrections)
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onSelect={() => onReparse(true)}>
+                                Re-parse (force, drop corrections)
+                            </DropdownMenuItem>
+                            {debug && (
+                                <DropdownMenuItem onSelect={onSaveFixture}>Save as fixture</DropdownMenuItem>
+                            )}
+                            {debug && listing.parser_version != null && (
+                                <div className="px-2 py-1.5 font-mono text-[10px] uppercase tracking-wide text-muted-foreground">
+                                    parsed by v<span className="tabular-nums">{listing.parser_version}</span>
+                                </div>
+                            )}
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                </div>
+            </div>
+            {editingField !== null && (
+                <div className="px-3 pb-3 sm:px-4">
                     <CorrectionEditor
                         listing={listing}
                         field={editingField}
@@ -766,67 +831,9 @@ function ListingCard({
                         onCancel={onCancelEdit}
                         onSaveFixture={onSaveFixture}
                     />
-                )}
-                <div className="relative flex items-center justify-end gap-3">
-                    {debug && (
-                        <button
-                            type="button"
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                onSaveFixture();
-                            }}
-                            className="font-mono text-[10px] uppercase tracking-wide text-muted-foreground/60 hover:text-foreground"
-                            title="Save as test fixture"
-                        >
-                            save fixture
-                        </button>
-                    )}
-                    <button
-                        type="button"
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            setMenuOpen((v) => !v);
-                        }}
-                        className="focus-visible:ring-ring rounded font-mono text-[10px] uppercase tracking-wide text-muted-foreground/60 hover:text-foreground focus-visible:outline-none focus-visible:ring-2"
-                        title="More actions"
-                        aria-label="More actions"
-                        aria-haspopup="menu"
-                        aria-expanded={menuOpen}
-                    >
-                        ⌄ more
-                    </button>
-                    {menuOpen && (
-                        <div
-                            role="menu"
-                            aria-label="More actions"
-                            className="absolute right-0 top-full z-10 mt-1 flex flex-col gap-1 rounded-md border border-border bg-popover p-1 text-xs text-popover-foreground shadow-md"
-                            onClick={(e) => e.stopPropagation()}
-                        >
-                            <button
-                                type="button"
-                                onClick={() => {
-                                    setMenuOpen(false);
-                                    onReparse(false);
-                                }}
-                                className="rounded px-2 py-1 text-left hover:bg-muted"
-                            >
-                                Re-parse (keep corrections)
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => {
-                                    setMenuOpen(false);
-                                    onReparse(true);
-                                }}
-                                className="rounded px-2 py-1 text-left hover:bg-muted"
-                            >
-                                Re-parse (force — drop corrections)
-                            </button>
-                        </div>
-                    )}
                 </div>
-            </CardContent>
-        </Card>
+            )}
+        </li>
     );
 }
 
@@ -836,10 +843,26 @@ interface EditablePillProps {
     label: string;
     emphasis?: 'default' | 'muted';
     placeholder?: boolean;
+    /**
+     * Placeholder pills always reserve their width (so revealing them never
+     * shifts the row) but only paint when the row is focused (`revealed`) or
+     * hovered. Real-value pills always paint.
+     */
+    revealed?: boolean;
+    className?: string;
     onEdit: (field: EditableField) => void;
 }
 
-function EditablePill({ listing, field, label, emphasis = 'default', placeholder = false, onEdit }: EditablePillProps) {
+function EditablePill({
+    listing,
+    field,
+    label,
+    emphasis = 'default',
+    placeholder = false,
+    revealed = false,
+    className,
+    onEdit,
+}: EditablePillProps) {
     const slot = listing.parsed?.[PARSED_SLOT_FOR_FIELD[field]] ?? null;
     const confidence = slot?.confidence;
     const muted = emphasis === 'muted';
@@ -857,7 +880,12 @@ function EditablePill({ listing, field, label, emphasis = 'default', placeholder
                 e.stopPropagation();
                 onEdit(field);
             }}
-            className={`group inline-flex items-center gap-1 rounded px-1 hover:bg-muted/60 ${toneClass}`}
+            className={cn(
+                'group inline-flex items-center gap-1 rounded px-1 hover:bg-muted/60',
+                toneClass,
+                placeholder && cn('invisible group-hover/row:visible', revealed && 'visible'),
+                className,
+            )}
             title={placeholder ? `Add ${field.replace('_', ' ')}` : `Edit ${field.replace('_', ' ')}`}
         >
             <span className={isNumeric ? 'font-mono tabular-nums' : undefined}>{label}</span>
