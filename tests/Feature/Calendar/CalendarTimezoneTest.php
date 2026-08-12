@@ -90,6 +90,8 @@ final class CalendarTimezoneTest extends TestCase
     #[Test]
     public function resource_emits_utc_iso_string_with_original_zone(): void
     {
+        $this->travelTo(CarbonImmutable::parse('2026-06-01T00:00', 'UTC'));
+
         CalendarEvent::factory()->create([
             'title' => 'Wire shape',
             'starts_at' => CarbonImmutable::parse('2026-06-10T09:30', 'America/New_York')->utc(),
