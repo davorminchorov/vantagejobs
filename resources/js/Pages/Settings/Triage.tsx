@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label';
 interface TriageSettings {
     auto_dismiss_threshold: number;
     dismissed_retention_days: number;
+    listing_expiry_days: number;
 }
 
 interface Props {
@@ -21,6 +22,7 @@ export default function TriagePage({ settings }: Props) {
         useForm<TriageSettings>({
             auto_dismiss_threshold: settings.auto_dismiss_threshold,
             dismissed_retention_days: settings.dismissed_retention_days,
+            listing_expiry_days: settings.listing_expiry_days,
         });
 
     const submit: FormEventHandler = (event) => {
@@ -88,6 +90,29 @@ export default function TriagePage({ settings }: Props) {
                             <p className="text-sm text-destructive">
                                 {errors.dismissed_retention_days}
                             </p>
+                        )}
+                    </div>
+
+                    <div className="space-y-2">
+                        <Label htmlFor="listing_expiry_days">New listing expiry (days)</Label>
+                        <Input
+                            id="listing_expiry_days"
+                            type="number"
+                            min={1}
+                            max={365}
+                            value={data.listing_expiry_days}
+                            onChange={(event) =>
+                                setData('listing_expiry_days', event.target.valueAsNumber)
+                            }
+                            required
+                        />
+                        <p className="text-xs text-muted-foreground">
+                            New listings older than this (by posted date, or first seen when
+                            undated) move to the Expired tab in the daily sweep. Kept, snoozed,
+                            and bookmarked listings never expire.
+                        </p>
+                        {errors.listing_expiry_days && (
+                            <p className="text-sm text-destructive">{errors.listing_expiry_days}</p>
                         )}
                     </div>
 

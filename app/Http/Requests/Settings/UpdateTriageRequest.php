@@ -21,6 +21,7 @@ final class UpdateTriageRequest extends FormRequest
         return [
             'auto_dismiss_threshold' => ['required', 'integer', 'min:0', 'max:100'],
             'dismissed_retention_days' => ['required', 'integer', 'min:1', 'max:365'],
+            'listing_expiry_days' => ['required', 'integer', 'min:1', 'max:365'],
         ];
     }
 }

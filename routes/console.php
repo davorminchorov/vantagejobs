@@ -274,6 +274,11 @@ Schedule::command('scrape-runs:reap')->hourly()->withoutOverlapping();
 // snoozed_until elapses. Tenant-agnostic global sweep.
 Schedule::command('listings:wake-snoozed')->hourly()->withoutOverlapping();
 
+// Listing staleness: moves NEW aggregator listings past each tenant's
+// configured expiry window (posted_at, or created_at when undated) to
+// EXPIRED so the triage queue only holds postings worth a decision.
+Schedule::command('listings:expire-stale')->dailyAt('06:15')->withoutOverlapping();
+
 // Dismissed-listing retention (PRD §6.4.9): hard-deletes DISMISSED aggregator
 // listings past each tenant's configured retention window.
 Schedule::command('listings:prune-dismissed')->dailyAt('06:20')->withoutOverlapping();

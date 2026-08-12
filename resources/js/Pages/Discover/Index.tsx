@@ -89,7 +89,7 @@ type EditableField =
 type CorrectionValue = string | number | string[] | null;
 
 const VISIBLE_STATUS_TABS = ['new', 'kept', 'snoozed', 'dismissed'] as const;
-const MORE_STATUS_TABS = ['linked', 'auto_dismissed', 'overflow', 'duplicate'] as const;
+const MORE_STATUS_TABS = ['linked', 'auto_dismissed', 'overflow', 'duplicate', 'expired'] as const;
 
 function titleCaseStatus(status: string): string {
     return status

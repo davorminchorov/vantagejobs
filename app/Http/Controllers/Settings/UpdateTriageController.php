@@ -25,6 +25,7 @@ final readonly class UpdateTriageController
         $this->settings->setMany([
             SettingKey::AUTO_DISMISS_THRESHOLD => $request->integer('auto_dismiss_threshold'),
             SettingKey::DISMISSED_RETENTION_DAYS => $request->integer('dismissed_retention_days'),
+            SettingKey::LISTING_EXPIRY_DAYS => $request->integer('listing_expiry_days'),
         ]);
 
         return redirect()

@@ -42,6 +42,7 @@ final class TriageSettingsTest extends TestCase
                 ->component('Settings/Triage')
                 ->where('settings.auto_dismiss_threshold', 70)
                 ->where('settings.dismissed_retention_days', 90)
+                ->where('settings.listing_expiry_days', 30)
             );
     }
 
@@ -51,6 +52,7 @@ final class TriageSettingsTest extends TestCase
         app(SettingsRepository::class)->setMany([
             SettingKey::AUTO_DISMISS_THRESHOLD => 55,
             SettingKey::DISMISSED_RETENTION_DAYS => 90,
+            SettingKey::LISTING_EXPIRY_DAYS => 45,
         ]);
 
         $this->actingAs($this->user)
@@ -59,6 +61,7 @@ final class TriageSettingsTest extends TestCase
             ->assertInertia(fn ($page) => $page
                 ->where('settings.auto_dismiss_threshold', 55)
                 ->where('settings.dismissed_retention_days', 90)
+                ->where('settings.listing_expiry_days', 45)
             );
     }
 
@@ -69,6 +72,7 @@ final class TriageSettingsTest extends TestCase
             ->post('/settings/triage', [
                 'auto_dismiss_threshold' => 60,
                 'dismissed_retention_days' => 120,
+                'listing_expiry_days' => 21,
             ])
             ->assertRedirect('/settings/triage')
             ->assertSessionHas('success');
@@ -77,6 +81,7 @@ final class TriageSettingsTest extends TestCase
 
         $this->assertSame(60, $repository->get(SettingKey::AUTO_DISMISS_THRESHOLD));
         $this->assertSame(120, $repository->get(SettingKey::DISMISSED_RETENTION_DAYS));
+        $this->assertSame(21, $repository->get(SettingKey::LISTING_EXPIRY_DAYS));
     }
 
     #[Test]
@@ -87,9 +92,10 @@ final class TriageSettingsTest extends TestCase
             ->post('/settings/triage', [
                 'auto_dismiss_threshold' => 150,
                 'dismissed_retention_days' => 0,
+                'listing_expiry_days' => 0,
             ])
             ->assertRedirect('/settings/triage')
-            ->assertSessionHasErrors(['auto_dismiss_threshold', 'dismissed_retention_days']);
+            ->assertSessionHasErrors(['auto_dismiss_threshold', 'dismissed_retention_days', 'listing_expiry_days']);
 
         $this->assertSame(0, Setting::query()->count());
     }
@@ -102,9 +108,10 @@ final class TriageSettingsTest extends TestCase
             ->post('/settings/triage', [
                 'auto_dismiss_threshold' => 'high',
                 'dismissed_retention_days' => 'forever',
+                'listing_expiry_days' => 'never',
             ])
             ->assertRedirect('/settings/triage')
-            ->assertSessionHasErrors(['auto_dismiss_threshold', 'dismissed_retention_days']);
+            ->assertSessionHasErrors(['auto_dismiss_threshold', 'dismissed_retention_days', 'listing_expiry_days']);
     }
 
     #[Test]
@@ -113,6 +120,7 @@ final class TriageSettingsTest extends TestCase
         $this->actingAs($this->user)->post('/settings/triage', [
             'auto_dismiss_threshold' => 60,
             'dismissed_retention_days' => 120,
+            'listing_expiry_days' => 21,
         ]);
 
         $otherTenant = Tenant::factory()->create(['slug' => 'other-triage-tenant']);

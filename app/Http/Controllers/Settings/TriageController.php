@@ -34,6 +34,10 @@ final readonly class TriageController
                     SettingKey::DISMISSED_RETENTION_DAYS,
                     90,
                 ),
+                'listing_expiry_days' => (int) $this->settings->get(
+                    SettingKey::LISTING_EXPIRY_DAYS,
+                    30,
+                ),
             ],
         ]);
     }

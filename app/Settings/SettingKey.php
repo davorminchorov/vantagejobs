@@ -34,4 +34,6 @@ final class SettingKey
     public const string AUTO_DISMISS_THRESHOLD = 'auto_dismiss_threshold';
 
     public const string DISMISSED_RETENTION_DAYS = 'dismissed_retention_days';
+
+    public const string LISTING_EXPIRY_DAYS = 'listing_expiry_days';
 }

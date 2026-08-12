@@ -8,11 +8,12 @@ namespace App\Enums;
  * Lifecycle states for AggregatorListing.
  *
  * Transitions:
- *   new -> kept | dismissed | snoozed | linked | duplicate
+ *   new -> kept | dismissed | snoozed | linked | duplicate | expired (stale sweep)
  *   snoozed -> new (when snoozed_until elapses) | kept | dismissed
  *   overflow -> new (manual promotion) | dismissed
  *   auto_dismissed -> dismissed (auto-bulk) | new (if rule revoked)
  *   linked -> kept (manual override)
+ *   expired -> kept (manual rescue) | dismissed
  */
 enum AggregatorListingStatus: string
 {
@@ -24,4 +25,5 @@ enum AggregatorListingStatus: string
     case KEPT = 'kept';
     case DISMISSED = 'dismissed';
     case SNOOZED = 'snoozed';
+    case EXPIRED = 'expired';
 }
