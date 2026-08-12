@@ -1,8 +1,8 @@
 import { Link, router, usePage } from '@inertiajs/react';
-import { Menu } from 'lucide-react';
+import { Menu, Search } from 'lucide-react';
 import { useState, type ReactNode } from 'react';
 
-import GlobalCommandPalette from '@/components/search/GlobalCommandPalette';
+import GlobalCommandPalette, { openCommandPalette } from '@/components/search/GlobalCommandPalette';
 import SavedViewsNav from '@/components/saved-views/SavedViewsNav';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -25,38 +25,41 @@ interface AuthenticatedLayoutProps {
     header?: ReactNode;
 }
 
-interface NavItem {
+interface NavLinkItem {
     readonly name: string;
-    readonly href: string | null;
+    readonly href: string;
 }
 
-const NAV_ITEMS: ReadonlyArray<NavItem> = [
-    { name: 'Dashboard', href: '/dashboard' },
-    { name: 'Companies', href: '/companies' },
-    { name: 'Discover', href: '/discover' },
-    { name: 'Insights', href: '/insights/hiring' },
+const TRACKER_ITEMS: ReadonlyArray<NavLinkItem> = [
     { name: 'Pipeline', href: '/pipeline' },
     { name: 'Contacts', href: '/contacts' },
     { name: 'Follow-ups', href: '/follow-ups' },
     { name: 'Templates', href: '/templates' },
     { name: 'Calendar', href: '/calendar' },
-    { name: 'Bookmarks', href: '/bookmarks' },
-    { name: 'Runs', href: '/admin/runs' },
-    { name: 'Audit', href: '/admin/audit' },
-    { name: 'Settings', href: '/settings/profile' },
 ];
 
-function isActive(currentUrl: string, item: NavItem): boolean {
-    if (item.href === null) {
-        return false;
-    }
-    if (item.href === '/settings/profile') {
+const INSIGHTS_ITEMS: ReadonlyArray<NavLinkItem> = [
+    { name: 'Hiring trends', href: '/insights/hiring' },
+    { name: 'Compensation', href: '/insights/comp' },
+    { name: 'Funding candidates', href: '/insights/funding-candidates' },
+];
+
+const ADMIN_ITEMS: ReadonlyArray<NavLinkItem> = [
+    { name: 'Settings', href: '/settings/profile' },
+    { name: 'Runs', href: '/admin/runs' },
+    { name: 'Audit', href: '/admin/audit' },
+    { name: 'Parser', href: '/admin/parser' },
+];
+
+function isActive(currentUrl: string, href: string): boolean {
+    if (href === '/settings/profile') {
         return currentUrl.startsWith('/settings');
     }
-    if (item.href === '/insights/hiring') {
-        return currentUrl.startsWith('/insights');
-    }
-    return currentUrl === item.href || currentUrl.startsWith(`${item.href}/`);
+    return currentUrl === href || currentUrl.startsWith(`${href}/`);
+}
+
+function isGroupActive(currentUrl: string, items: ReadonlyArray<NavLinkItem>): boolean {
+    return items.some((item) => isActive(currentUrl, item.href));
 }
 
 function initialsFor(user: User): string {
@@ -77,12 +80,123 @@ function handleSignOut(): void {
     router.post('/logout');
 }
 
+function TopNavLink({ href, active, children }: { href: string; active: boolean; children: ReactNode }) {
+    return (
+        <Link
+            href={href}
+            aria-current={active ? 'page' : undefined}
+            className={cn(
+                'focus-visible:ring-ring inline-flex h-9 items-center whitespace-nowrap rounded-md px-3 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2',
+                active
+                    ? 'bg-primary text-primary-foreground'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-accent',
+            )}
+        >
+            {children}
+        </Link>
+    );
+}
+
+function TopNavDropdown({
+    label,
+    items,
+    active,
+}: {
+    label: string;
+    items: ReadonlyArray<NavLinkItem>;
+    active: boolean;
+}) {
+    return (
+        <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+                <Button
+                    variant="ghost"
+                    className={cn(
+                        'h-9 px-3 text-sm font-medium whitespace-nowrap',
+                        active
+                            ? 'bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground'
+                            : 'text-muted-foreground hover:text-foreground',
+                    )}
+                >
+                    {label}
+                </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-48">
+                {items.map((item) => (
+                    <DropdownMenuItem key={item.href} asChild>
+                        <Link href={item.href}>{item.name}</Link>
+                    </DropdownMenuItem>
+                ))}
+            </DropdownMenuContent>
+        </DropdownMenu>
+    );
+}
+
+function MobileNavLink({
+    href,
+    active,
+    onNavigate,
+    children,
+}: {
+    href: string;
+    active: boolean;
+    onNavigate: () => void;
+    children: ReactNode;
+}) {
+    return (
+        <Link
+            href={href}
+            onClick={onNavigate}
+            aria-current={active ? 'page' : undefined}
+            className={cn(
+                'focus-visible:ring-ring inline-flex min-h-11 items-center whitespace-nowrap rounded-md px-3 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2',
+                active
+                    ? 'bg-primary text-primary-foreground'
+                    : 'text-foreground hover:bg-accent hover:text-accent-foreground',
+            )}
+        >
+            {children}
+        </Link>
+    );
+}
+
+function MobileNavSection({
+    label,
+    items,
+    currentUrl,
+    onNavigate,
+}: {
+    label: string;
+    items: ReadonlyArray<NavLinkItem>;
+    currentUrl: string;
+    onNavigate: () => void;
+}) {
+    return (
+        <div className="flex flex-col gap-1">
+            <div className="text-muted-foreground px-3 pb-1 pt-3 font-mono text-xs font-medium uppercase tracking-wide">
+                {label}
+            </div>
+            {items.map((item) => (
+                <MobileNavLink
+                    key={item.href}
+                    href={item.href}
+                    active={isActive(currentUrl, item.href)}
+                    onNavigate={onNavigate}
+                >
+                    {item.name}
+                </MobileNavLink>
+            ))}
+        </div>
+    );
+}
+
 export default function AuthenticatedLayout({ children, header }: AuthenticatedLayoutProps): ReactNode {
     const page = usePage<PageProps>();
     const { auth } = page.props;
     const user = auth.user;
     const currentUrl = page.url.split('?')[0] ?? '/';
     const [mobileOpen, setMobileOpen] = useState(false);
+    const closeMobile = () => setMobileOpen(false);
 
     return (
         <div className="bg-background text-foreground flex min-h-svh flex-col">
@@ -105,46 +219,61 @@ export default function AuthenticatedLayout({ children, header }: AuthenticatedL
                                     <SheetTitle>VantageJobs</SheetTitle>
                                 </SheetHeader>
                                 <nav className="mt-6 flex flex-col gap-1" aria-label="Mobile primary">
-                                    {NAV_ITEMS.map((item) => {
-                                        const active = isActive(currentUrl, item);
-                                        const baseClasses =
-                                            'focus-visible:ring-ring inline-flex min-h-11 items-center rounded-md px-3 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2';
+                                    <MobileNavLink
+                                        href="/dashboard"
+                                        active={isActive(currentUrl, '/dashboard')}
+                                        onNavigate={closeMobile}
+                                    >
+                                        Dashboard
+                                    </MobileNavLink>
+                                    <MobileNavLink
+                                        href="/discover"
+                                        active={isActive(currentUrl, '/discover')}
+                                        onNavigate={closeMobile}
+                                    >
+                                        Discover
+                                    </MobileNavLink>
+                                    <MobileNavLink
+                                        href="/companies"
+                                        active={isActive(currentUrl, '/companies')}
+                                        onNavigate={closeMobile}
+                                    >
+                                        Companies
+                                    </MobileNavLink>
 
-                                        if (item.href === null) {
-                                            return (
-                                                <span
-                                                    key={item.name}
-                                                    className={cn(baseClasses, 'text-muted-foreground cursor-not-allowed')}
-                                                    aria-disabled="true"
-                                                >
-                                                    {item.name}
-                                                </span>
-                                            );
-                                        }
+                                    <MobileNavSection
+                                        label="Tracker"
+                                        items={TRACKER_ITEMS}
+                                        currentUrl={currentUrl}
+                                        onNavigate={closeMobile}
+                                    />
+                                    <MobileNavSection
+                                        label="Insights"
+                                        items={INSIGHTS_ITEMS}
+                                        currentUrl={currentUrl}
+                                        onNavigate={closeMobile}
+                                    />
 
-                                        return (
-                                            <Link
-                                                key={item.name}
-                                                href={item.href}
-                                                onClick={() => setMobileOpen(false)}
-                                                aria-current={active ? 'page' : undefined}
-                                                className={cn(
-                                                    baseClasses,
-                                                    active
-                                                        ? 'bg-primary text-primary-foreground'
-                                                        : 'text-foreground hover:bg-accent hover:text-accent-foreground',
-                                                )}
-                                            >
-                                                {item.name}
-                                            </Link>
-                                        );
-                                    })}
+                                    <MobileNavLink
+                                        href="/bookmarks"
+                                        active={isActive(currentUrl, '/bookmarks')}
+                                        onNavigate={closeMobile}
+                                    >
+                                        Bookmarks
+                                    </MobileNavLink>
+
+                                    <MobileNavSection
+                                        label="Admin"
+                                        items={ADMIN_ITEMS}
+                                        currentUrl={currentUrl}
+                                        onNavigate={closeMobile}
+                                    />
                                 </nav>
                                 <Separator className="my-4" />
                                 <div className="text-muted-foreground px-2 pb-1 font-mono text-xs font-medium uppercase tracking-wide">
                                     Views
                                 </div>
-                                <SavedViewsNav variant="compact" onNavigate={() => setMobileOpen(false)} />
+                                <SavedViewsNav variant="compact" onNavigate={closeMobile} />
                             </SheetContent>
                         </Sheet>
 
@@ -156,44 +285,33 @@ export default function AuthenticatedLayout({ children, header }: AuthenticatedL
                         </Link>
 
                         <nav className="ml-6 hidden items-center gap-1 md:flex" aria-label="Primary">
-                            {NAV_ITEMS.map((item) => {
-                                const active = isActive(currentUrl, item);
-                                const baseClasses =
-                                    'focus-visible:ring-ring inline-flex h-9 items-center rounded-md px-3 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2';
-
-                                if (item.href === null) {
-                                    return (
-                                        <span
-                                            key={item.name}
-                                            className={cn(baseClasses, 'text-muted-foreground cursor-not-allowed')}
-                                            aria-disabled="true"
-                                        >
-                                            {item.name}
-                                        </span>
-                                    );
-                                }
-
-                                return (
-                                    <Link
-                                        key={item.name}
-                                        href={item.href}
-                                        aria-current={active ? 'page' : undefined}
-                                        className={cn(
-                                            baseClasses,
-                                            active
-                                                ? 'bg-primary text-primary-foreground'
-                                                : 'text-muted-foreground hover:text-foreground hover:bg-accent',
-                                        )}
-                                    >
-                                        {item.name}
-                                    </Link>
-                                );
-                            })}
+                            <TopNavLink href="/dashboard" active={isActive(currentUrl, '/dashboard')}>
+                                Dashboard
+                            </TopNavLink>
+                            <TopNavLink href="/discover" active={isActive(currentUrl, '/discover')}>
+                                Discover
+                            </TopNavLink>
+                            <TopNavLink href="/companies" active={isActive(currentUrl, '/companies')}>
+                                Companies
+                            </TopNavLink>
+                            <TopNavDropdown
+                                label="Tracker"
+                                items={TRACKER_ITEMS}
+                                active={isGroupActive(currentUrl, TRACKER_ITEMS)}
+                            />
+                            <TopNavDropdown
+                                label="Insights"
+                                items={INSIGHTS_ITEMS}
+                                active={isGroupActive(currentUrl, INSIGHTS_ITEMS)}
+                            />
+                            <TopNavLink href="/bookmarks" active={isActive(currentUrl, '/bookmarks')}>
+                                Bookmarks
+                            </TopNavLink>
                             <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
                                     <Button
                                         variant="ghost"
-                                        className="h-9 px-3 text-sm font-medium text-muted-foreground hover:text-foreground"
+                                        className="h-9 px-3 text-sm font-medium whitespace-nowrap text-muted-foreground hover:text-foreground"
                                     >
                                         Views
                                     </Button>
@@ -206,6 +324,19 @@ export default function AuthenticatedLayout({ children, header }: AuthenticatedL
                     </div>
 
                     <div className="flex items-center gap-2">
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            onClick={openCommandPalette}
+                            aria-label="Search"
+                            className="min-h-11 gap-1.5 px-2.5 text-muted-foreground hover:text-foreground"
+                        >
+                            <Search className="size-4" aria-hidden="true" />
+                            <kbd className="hidden rounded border border-border bg-muted px-1.5 py-0.5 font-mono text-[10px] font-medium text-muted-foreground sm:inline">
+                                ⌘K
+                            </kbd>
+                        </Button>
+
                         {user ? (
                             <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
@@ -226,6 +357,15 @@ export default function AuthenticatedLayout({ children, header }: AuthenticatedL
                                     <DropdownMenuLabel className="truncate">
                                         {user.name ?? user.email}
                                     </DropdownMenuLabel>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuLabel className="font-mono text-xs font-normal uppercase tracking-wide text-muted-foreground">
+                                        Admin
+                                    </DropdownMenuLabel>
+                                    {ADMIN_ITEMS.map((item) => (
+                                        <DropdownMenuItem key={item.href} asChild>
+                                            <Link href={item.href}>{item.name}</Link>
+                                        </DropdownMenuItem>
+                                    ))}
                                     <DropdownMenuSeparator />
                                     <DropdownMenuItem onSelect={handleSignOut}>Sign out</DropdownMenuItem>
                                 </DropdownMenuContent>

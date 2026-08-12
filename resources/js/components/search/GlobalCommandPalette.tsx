@@ -31,6 +31,16 @@ interface SearchResults {
 
 const EMPTY: SearchResults = { companies: [], roles: [] };
 
+const OPEN_EVENT = 'vantagejobs:open-command-palette';
+
+/**
+ * Imperative opener for callers outside the keydown listener (e.g. a header
+ * search button). Dispatches a window event the palette listens for.
+ */
+export function openCommandPalette(): void {
+    window.dispatchEvent(new Event(OPEN_EVENT));
+}
+
 function humanize(value: string): string {
     return value.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 }
@@ -68,8 +78,15 @@ export default function GlobalCommandPalette() {
                 close();
             }
         }
+        function onOpenRequest() {
+            setOpen(true);
+        }
         document.addEventListener('keydown', onKey);
-        return () => document.removeEventListener('keydown', onKey);
+        window.addEventListener(OPEN_EVENT, onOpenRequest);
+        return () => {
+            document.removeEventListener('keydown', onKey);
+            window.removeEventListener(OPEN_EVENT, onOpenRequest);
+        };
     }, [open, close]);
 
     // Focus the input when opening.

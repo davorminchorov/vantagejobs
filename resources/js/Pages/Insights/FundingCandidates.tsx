@@ -1,9 +1,11 @@
 import { Head, Link, router } from '@inertiajs/react';
 
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import InsightsNav from '@/components/insights/InsightsNav';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { EmptyState } from '@/components/ui/empty-state';
 
 interface Candidate {
     id: number;
@@ -39,12 +41,10 @@ export default function FundingCandidatesPage({ candidates }: Props) {
                     </p>
                 </header>
 
+                <InsightsNav />
+
                 {candidates.length === 0 ? (
-                    <Card>
-                        <CardContent className="py-10 text-center text-sm text-muted-foreground">
-                            Nothing to review.
-                        </CardContent>
-                    </Card>
+                    <EmptyState>Nothing to review.</EmptyState>
                 ) : (
                     <div className="space-y-3">
                         {candidates.map((c) => (

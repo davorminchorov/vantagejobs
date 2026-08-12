@@ -222,12 +222,6 @@ Route::middleware(['auth'])->group(function (): void {
         ->whereNumber('calendarEvent')
         ->name('calendar.destroy');
 
-    Route::prefix('admin/parser')->name('admin.parser.')->group(function (): void {
-        Route::get('/', AdminParserIndexController::class)->name('index');
-        Route::post('/rollup', AdminParserRunRollupController::class)->name('rollup');
-        Route::post('/reparse-all', AdminParserReparseAllController::class)->name('reparse-all');
-    });
-
     Route::post('/saved-views', StoreSavedViewController::class)->name('saved-views.store');
     Route::patch('/saved-views/{view}', UpdateSavedViewController::class)
         ->whereNumber('view')

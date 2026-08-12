@@ -1,7 +1,9 @@
 import { Head, Link } from '@inertiajs/react';
 
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import InsightsNav from '@/components/insights/InsightsNav';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { EmptyState } from '@/components/ui/empty-state';
 import {
     Table,
     TableBody,
@@ -10,6 +12,7 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
+import { cn } from '@/lib/utils';
 
 interface BucketRow {
     label: string;
@@ -42,18 +45,27 @@ function fmtUsd(value: number | null): string {
     return `$${k}k`;
 }
 
-function EmptyState({ label }: { label: string }) {
-    return (
-        <p className="text-sm text-muted-foreground">
-            No compensation samples yet for {label}.
-        </p>
-    );
+const OTHER_LABEL = 'Other';
+
+/**
+ * Sorts the "Other" bucket to the end while preserving the backend's
+ * sample_count-descending order among the tracked role families.
+ */
+function sortOtherLast(rows: BucketRow[]): BucketRow[] {
+    return [...rows].sort((a, b) => {
+        if (a.label === OTHER_LABEL && b.label !== OTHER_LABEL) return 1;
+        if (b.label === OTHER_LABEL && a.label !== OTHER_LABEL) return -1;
+        return 0;
+    });
 }
 
-function BucketTable({ rows }: { rows: BucketRow[] }) {
-    if (rows.length === 0) {
-        return <EmptyState label="this breakdown" />;
+function BucketTable({ rows, unclassifyOther = false }: { rows: BucketRow[]; unclassifyOther?: boolean }) {
+    const sortedRows = unclassifyOther ? sortOtherLast(rows) : rows;
+
+    if (sortedRows.length === 0) {
+        return <EmptyState>No compensation samples yet for this breakdown.</EmptyState>;
     }
+
     return (
         <Table>
             <TableHeader>
@@ -66,15 +78,25 @@ function BucketTable({ rows }: { rows: BucketRow[] }) {
                 </TableRow>
             </TableHeader>
             <TableBody>
-                {rows.map((r) => (
-                    <TableRow key={r.label}>
-                        <TableCell className="font-medium text-foreground">{r.label}</TableCell>
-                        <TableCell className="text-right font-mono tabular-nums">{r.sample_count}</TableCell>
-                        <TableCell className="text-right font-mono tabular-nums">{fmtUsd(r.p25)}</TableCell>
-                        <TableCell className="text-right font-mono tabular-nums">{fmtUsd(r.median)}</TableCell>
-                        <TableCell className="text-right font-mono tabular-nums">{fmtUsd(r.p75)}</TableCell>
-                    </TableRow>
-                ))}
+                {sortedRows.map((r) => {
+                    const isUnclassified = unclassifyOther && r.label === OTHER_LABEL;
+                    return (
+                        <TableRow key={r.label}>
+                            <TableCell
+                                className={cn(
+                                    'font-medium text-foreground',
+                                    isUnclassified && 'font-normal text-muted-foreground',
+                                )}
+                            >
+                                {isUnclassified ? `Unclassified (${r.sample_count} samples)` : r.label}
+                            </TableCell>
+                            <TableCell className="text-right font-mono tabular-nums">{r.sample_count}</TableCell>
+                            <TableCell className="text-right font-mono tabular-nums">{fmtUsd(r.p25)}</TableCell>
+                            <TableCell className="text-right font-mono tabular-nums">{fmtUsd(r.median)}</TableCell>
+                            <TableCell className="text-right font-mono tabular-nums">{fmtUsd(r.p75)}</TableCell>
+                        </TableRow>
+                    );
+                })}
             </TableBody>
         </Table>
     );
@@ -93,14 +115,19 @@ export default function CompInsightsPage({ byRoleFamily, byGeography, byCompany 
                     </p>
                 </header>
 
+                <InsightsNav />
+
                 <Card>
                     <CardHeader>
                         <CardTitle className="font-mono text-sm font-semibold uppercase tracking-wide text-muted-foreground">
                             By role family
                         </CardTitle>
                     </CardHeader>
-                    <CardContent>
-                        <BucketTable rows={byRoleFamily} />
+                    <CardContent className="space-y-3">
+                        <BucketTable rows={byRoleFamily} unclassifyOther />
+                        <p className="text-xs text-muted-foreground">
+                            Bucketing covers tracked role families only; everything else lands in Unclassified.
+                        </p>
                     </CardContent>
                 </Card>
 
@@ -123,7 +150,7 @@ export default function CompInsightsPage({ byRoleFamily, byGeography, byCompany 
                     </CardHeader>
                     <CardContent>
                         {byCompany.length === 0 ? (
-                            <EmptyState label="any company yet" />
+                            <EmptyState>No compensation samples yet for any company.</EmptyState>
                         ) : (
                             <Table>
                                 <TableHeader>
