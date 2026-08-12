@@ -253,4 +253,67 @@ final class RoleDifferTest extends TestCase
 
         $this->assertTrue($this->differ->wouldMassClose($existing, []));
     }
+
+    #[Test]
+    public function ats_insert_silently_closes_the_aggregator_role_with_the_matching_title(): void
+    {
+        $aggregatorRole = Role::factory()->aggregator()->create([
+            'company_id' => $this->company->id,
+            'title' => 'Backend Engineer',
+            'is_open' => true,
+        ]);
+
+        // Scoped to the ATS source, matching real scraper usage — an
+        // aggregator-born role is never part of an ATS diff's "existing" set.
+        $plan = $this->differ->plan($this->company->roles()->where('source', 'greenhouse')->get(), [
+            new ParsedRole(externalId: 'gh-1', title: 'backend engineer'),
+        ]);
+
+        $counts = $this->differ->apply($this->company, AtsType::GREENHOUSE, $plan);
+
+        $this->assertSame(1, $counts['new']);
+        $this->assertFalse((bool) $aggregatorRole->fresh()->is_open);
+        $this->assertSame(
+            0,
+            Event::query()->where('type', EventType::ROLE_CLOSED->value)->count(),
+            'Supersede must not emit a ROLE_CLOSED event — the timeline already reads "seen on aggregator" then "new role".',
+        );
+    }
+
+    #[Test]
+    public function ats_insert_leaves_an_aggregator_role_with_a_different_title_open(): void
+    {
+        $aggregatorRole = Role::factory()->aggregator()->create([
+            'company_id' => $this->company->id,
+            'title' => 'Frontend Engineer',
+            'is_open' => true,
+        ]);
+
+        $plan = $this->differ->plan($this->company->roles()->where('source', 'greenhouse')->get(), [
+            new ParsedRole(externalId: 'gh-1', title: 'Backend Engineer'),
+        ]);
+
+        $this->differ->apply($this->company, AtsType::GREENHOUSE, $plan);
+
+        $this->assertTrue((bool) $aggregatorRole->fresh()->is_open);
+    }
+
+    #[Test]
+    public function ats_insert_does_not_supersede_an_already_closed_aggregator_role(): void
+    {
+        Role::factory()->aggregator()->create([
+            'company_id' => $this->company->id,
+            'title' => 'Backend Engineer',
+            'is_open' => false,
+        ]);
+
+        $plan = $this->differ->plan($this->company->roles()->where('source', 'greenhouse')->get(), [
+            new ParsedRole(externalId: 'gh-1', title: 'Backend Engineer'),
+        ]);
+
+        // Must not throw or double-close; the query only targets is_open=true.
+        $counts = $this->differ->apply($this->company, AtsType::GREENHOUSE, $plan);
+
+        $this->assertSame(1, $counts['new']);
+    }
 }

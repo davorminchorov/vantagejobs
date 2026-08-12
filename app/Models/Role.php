@@ -21,6 +21,7 @@ use Illuminate\Database\Eloquent\Relations\MorphToMany;
     'company_id',
     'source',
     'external_id',
+    'aggregator_listing_id',
     'title',
     'url',
     'location',
@@ -101,5 +102,16 @@ final class Role extends Model
     public function offer(): HasOne
     {
         return $this->hasOne(Offer::class);
+    }
+
+    /**
+     * The aggregator listing this role was auto-linked from, when
+     * `source` is 'aggregator:{type}'. Null for ATS-sourced roles.
+     *
+     * @return BelongsTo<AggregatorListing, $this>
+     */
+    public function aggregatorListing(): BelongsTo
+    {
+        return $this->belongsTo(AggregatorListing::class);
     }
 }

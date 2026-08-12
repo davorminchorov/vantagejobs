@@ -113,6 +113,8 @@ final class RoleDiffer
                     'body' => null,
                     'occurred_at' => $now,
                 ]);
+
+                $this->supersedeAggregatorRole($company, $role);
             }
 
             foreach ($plan->toReopen as $roleId) {
@@ -178,6 +180,27 @@ final class RoleDiffer
                 'touched' => count($plan->toTouch),
             ];
         });
+    }
+
+    /**
+     * When the real ATS ingests a role that an aggregator-linked listing
+     * already spawned a Role for (see
+     * AggregatorListingPersister::attemptAutoLink()), close the
+     * aggregator-born duplicate silently — no ROLE_CLOSED event, since the
+     * timeline already reads "seen on aggregator" then "new role" and a
+     * second event would just be noise. Matches on title only, case-
+     * insensitive: an aggregator listing has no external_id the ATS would
+     * recognize, so title is the only signal linking the two rows.
+     */
+    private function supersedeAggregatorRole(Company $company, Role $atsRole): void
+    {
+        Role::query()
+            ->where('company_id', $company->id)
+            ->where('source', 'like', 'aggregator:%')
+            ->where('is_open', true)
+            ->where('id', '!=', $atsRole->id)
+            ->whereRaw('LOWER(title) = ?', [mb_strtolower($atsRole->title)])
+            ->update(['is_open' => false]);
     }
 
     private function insertRole(Company $company, AtsType $source, ParsedRole $parsed, CarbonImmutable $now): Role

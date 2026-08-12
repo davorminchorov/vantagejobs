@@ -95,9 +95,15 @@ final readonly class GhostJobDetector
                 ->count('source_id');
 
             if ($sources >= (int) $cfg['aggregator_diversity_threshold']) {
+                // Exclude aggregator-born Roles: a Role auto-linked from a
+                // listing (see AggregatorListingPersister::attemptAutoLink())
+                // is not ATS-backed, and counting it here would wrongly
+                // suppress the very "missing from ATS" signal H4 exists to
+                // catch.
                 $hasAtsRole = $this->db->table('roles')
                     ->where('company_id', $listing->matched_company_id)
                     ->where('is_open', true)
+                    ->where('source', 'not like', 'aggregator:%')
                     ->whereRaw('LOWER(title) = ?', [mb_strtolower($listing->parsed_role_title ?? '')])
                     ->exists();
                 if (! $hasAtsRole) {

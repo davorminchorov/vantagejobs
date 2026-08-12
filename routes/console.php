@@ -278,6 +278,13 @@ Schedule::command('listings:wake-snoozed')->hourly()->withoutOverlapping();
 // listings past each tenant's configured retention window.
 Schedule::command('listings:prune-dismissed')->dailyAt('06:20')->withoutOverlapping();
 
+// Aggregator-born role staleness: closes open Roles auto-linked from a
+// listing (source like 'aggregator:%') that haven't been re-seen within
+// config('scrapers.aggregator_role_stale_days'). Nothing else re-scrapes
+// these, so without this sweep a dropped listing's Role would stay open
+// forever.
+Schedule::command('roles:close-stale-aggregator')->dailyAt('06:25')->withoutOverlapping();
+
 // Export-job retention: prune expired export archives. Tenant-agnostic — the
 // command sweeps the global export_jobs table.
 Schedule::command('exports:prune')->dailyAt('06:10');

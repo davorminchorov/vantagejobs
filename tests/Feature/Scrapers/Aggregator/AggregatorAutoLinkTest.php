@@ -11,6 +11,7 @@ use App\Models\AggregatorListing;
 use App\Models\AggregatorSource;
 use App\Models\Company;
 use App\Models\Event;
+use App\Models\Role;
 use App\Scrapers\Aggregator\AggregatorListingPersister;
 use App\Scrapers\Aggregator\Parser\SourceContext;
 use App\Tenancy\Tenant;
@@ -23,8 +24,9 @@ use Tests\TestCase;
 /**
  * End-to-end coverage of PRD §6.4.6 auto-link: when a listing's parsed
  * company name matches an existing tracked Company (Jaro-Winkler ≥ 0.85),
- * the persister sets matched_company_id, flips status to `linked`, and
- * emits a NEW_ROLE Event on the matched Company.
+ * the persister sets matched_company_id, flips status to `linked`, creates
+ * a real Role from the listing (source 'aggregator:{type}'), and emits a
+ * NEW_ROLE Event on the matched Company carrying that Role's id.
  *
  * Drives AggregatorListingPersister directly with synthesized SourceContexts
  * so the test doesn't depend on any concrete scraper.
@@ -51,7 +53,7 @@ final class AggregatorAutoLinkTest extends TestCase
     }
 
     #[Test]
-    public function exact_normalized_match_links_listing_and_emits_event(): void
+    public function exact_normalized_match_links_listing_creates_role_and_emits_event(): void
     {
         $acme = Company::factory()->create(['name' => 'Acme Corp']);
 
@@ -61,13 +63,47 @@ final class AggregatorAutoLinkTest extends TestCase
         $this->assertSame($acme->id, $listing->matched_company_id);
         $this->assertSame(AggregatorListingStatus::LINKED, $listing->status);
 
+        $role = Role::query()->where('company_id', $acme->id)->sole();
+        $this->assertSame('aggregator:hackernews', $role->source);
+        $this->assertSame('vercel-edge-1', $role->external_id);
+        $this->assertSame($listing->id, $role->aggregator_listing_id);
+        $this->assertSame('Staff Engineer', $role->title);
+        $this->assertTrue($role->is_open);
+
         $event = Event::query()->where('company_id', $acme->id)->sole();
         $this->assertSame(EventType::NEW_ROLE->value, $event->type);
         $this->assertSame('Seen on aggregator: Staff Engineer', $event->title);
-        $this->assertNull($event->role_id);
+        $this->assertSame($role->id, $event->role_id);
 
         $body = json_decode((string) $event->body, true, flags: JSON_THROW_ON_ERROR);
         $this->assertSame($listing->id, $body['aggregator_listing_id']);
+    }
+
+    #[Test]
+    public function missing_parsed_title_links_without_creating_a_role(): void
+    {
+        $acme = Company::factory()->create(['name' => 'Acme Corp']);
+
+        // upsertListing() always supplies a title in `structured`, so drive
+        // the persister directly with a blank one to exercise the parser
+        // producing a null parsed_role_title.
+        $context = new SourceContext(
+            sourceType: AggregatorSourceType::HACKERNEWS,
+            structured: ['company_name' => 'Acme Corp', 'title' => ''],
+            bodyText: null,
+            postedAt: null,
+            externalId: 'no-title-1',
+        );
+        $this->persister->upsert($this->source, $context, ['title' => ''], 'no-title-1');
+
+        $listing = AggregatorListing::query()->where('external_id', 'no-title-1')->firstOrFail();
+        $this->assertSame($acme->id, $listing->matched_company_id);
+        $this->assertSame(AggregatorListingStatus::LINKED, $listing->status);
+
+        $this->assertSame(0, Role::query()->count());
+
+        $event = Event::query()->where('company_id', $acme->id)->sole();
+        $this->assertNull($event->role_id);
     }
 
     #[Test]
@@ -149,7 +185,7 @@ final class AggregatorAutoLinkTest extends TestCase
     }
 
     #[Test]
-    public function rerunning_does_not_duplicate_event(): void
+    public function rerunning_does_not_duplicate_event_or_role(): void
     {
         $acme = Company::factory()->create(['name' => 'Acme Corp']);
 
@@ -158,6 +194,23 @@ final class AggregatorAutoLinkTest extends TestCase
 
         $this->assertSame(1, AggregatorListing::query()->count());
         $this->assertSame(1, Event::query()->where('company_id', $acme->id)->count());
+        $this->assertSame(1, Role::query()->where('company_id', $acme->id)->count());
+    }
+
+    #[Test]
+    public function refetching_a_linked_listing_touches_its_roles_last_seen_at(): void
+    {
+        Company::factory()->create(['name' => 'Acme Corp']);
+
+        $this->upsertListing('acme-refetch-1', companyName: 'Acme Corp', roleTitle: 'Staff Engineer');
+
+        $role = Role::query()->where('external_id', 'acme-refetch-1')->sole();
+        $role->forceFill(['last_seen_at' => CarbonImmutable::now()->subDays(10)])->save();
+
+        $this->upsertListing('acme-refetch-1', companyName: 'Acme Corp', roleTitle: 'Staff Engineer');
+
+        $role->refresh();
+        $this->assertTrue($role->last_seen_at->greaterThan(CarbonImmutable::now()->subMinute()));
     }
 
     #[Test]

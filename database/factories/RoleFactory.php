@@ -43,4 +43,17 @@ final class RoleFactory extends Factory
             'last_seen_at' => now(),
         ];
     }
+
+    /**
+     * A Role auto-linked from an aggregator listing (see
+     * AggregatorListingPersister::attemptAutoLink()) rather than fetched
+     * from a company's own ATS.
+     */
+    public function aggregator(): self
+    {
+        return $this->state(fn (): array => [
+            'source' => 'aggregator:'.fake()->randomElement(['remoteok', 'himalayas', 'weworkremotely']),
+            'aggregator_listing_id' => null,
+        ]);
+    }
 }

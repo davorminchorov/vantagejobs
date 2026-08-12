@@ -11,6 +11,7 @@ use App\Models\AggregatorListing;
 use App\Models\AggregatorSource;
 use App\Models\Company;
 use App\Models\Event;
+use App\Models\Role;
 use App\Tenancy\Tenant;
 use App\Tenancy\TenantContext;
 use Carbon\CarbonImmutable;
@@ -133,5 +134,102 @@ final class GhostScanTest extends TestCase
         Artisan::call('signals:ghost:scan', ['--tenant' => 'primary']);
 
         $this->assertSame(0, AggregatorListing::query()->where('ghost_flag', true)->count());
+    }
+
+    /**
+     * H4: same role_hash across ≥3 distinct aggregator sources, no matching
+     * open Role on the company's own ATS.
+     */
+    #[Test]
+    public function flags_role_seen_on_three_aggregator_sources_missing_from_the_ats(): void
+    {
+        $hash = str_repeat('a', 64);
+        $sources = [
+            $this->source,
+            AggregatorSource::factory()->ofType(AggregatorSourceType::HIMALAYAS)->create(),
+            AggregatorSource::factory()->ofType(AggregatorSourceType::WEWORKREMOTELY)->create(),
+        ];
+
+        foreach ($sources as $source) {
+            AggregatorListing::factory()->create([
+                'source_id' => $source->id,
+                'matched_company_id' => $this->company->id,
+                'parsed_role_title' => 'Staff Engineer',
+                'role_hash' => $hash,
+                'status' => AggregatorListingStatus::KEPT,
+            ]);
+        }
+
+        Artisan::call('signals:ghost:scan', ['--tenant' => 'primary']);
+
+        $flagged = AggregatorListing::query()->where('role_hash', $hash)->where('ghost_flag', true)->count();
+        $this->assertSame(3, $flagged);
+    }
+
+    #[Test]
+    public function does_not_flag_aggregator_breadth_when_a_matching_open_ats_role_exists(): void
+    {
+        $hash = str_repeat('b', 64);
+        $sources = [
+            $this->source,
+            AggregatorSource::factory()->ofType(AggregatorSourceType::HIMALAYAS)->create(),
+            AggregatorSource::factory()->ofType(AggregatorSourceType::WEWORKREMOTELY)->create(),
+        ];
+
+        foreach ($sources as $source) {
+            AggregatorListing::factory()->create([
+                'source_id' => $source->id,
+                'matched_company_id' => $this->company->id,
+                'parsed_role_title' => 'Staff Engineer',
+                'role_hash' => $hash,
+                'status' => AggregatorListingStatus::KEPT,
+            ]);
+        }
+
+        Role::factory()->create([
+            'company_id' => $this->company->id,
+            'source' => 'greenhouse',
+            'title' => 'Staff Engineer',
+            'is_open' => true,
+        ]);
+
+        Artisan::call('signals:ghost:scan', ['--tenant' => 'primary']);
+
+        $reasons = AggregatorListing::query()->where('role_hash', $hash)->first()?->ghost_reasons ?? [];
+        $this->assertNotContains('aggregator_breadth_3', $reasons);
+    }
+
+    #[Test]
+    public function an_aggregator_born_role_does_not_suppress_aggregator_breadth(): void
+    {
+        $hash = str_repeat('c', 64);
+        $sources = [
+            $this->source,
+            AggregatorSource::factory()->ofType(AggregatorSourceType::HIMALAYAS)->create(),
+            AggregatorSource::factory()->ofType(AggregatorSourceType::WEWORKREMOTELY)->create(),
+        ];
+
+        foreach ($sources as $source) {
+            AggregatorListing::factory()->create([
+                'source_id' => $source->id,
+                'matched_company_id' => $this->company->id,
+                'parsed_role_title' => 'Staff Engineer',
+                'role_hash' => $hash,
+                'status' => AggregatorListingStatus::KEPT,
+            ]);
+        }
+
+        // A Role auto-linked from an aggregator listing is not ATS-backed —
+        // it must not count as "has ATS role" and suppress the signal.
+        Role::factory()->aggregator()->create([
+            'company_id' => $this->company->id,
+            'title' => 'Staff Engineer',
+            'is_open' => true,
+        ]);
+
+        Artisan::call('signals:ghost:scan', ['--tenant' => 'primary']);
+
+        $flagged = AggregatorListing::query()->where('role_hash', $hash)->where('ghost_flag', true)->count();
+        $this->assertSame(3, $flagged);
     }
 }

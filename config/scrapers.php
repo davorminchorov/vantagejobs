@@ -44,6 +44,20 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Aggregator-born role staleness
+    |--------------------------------------------------------------------------
+    |
+    | Roles created from an auto-linked aggregator listing (source like
+    | 'aggregator:%') have no ATS to confirm they've closed — nothing re-
+    | fetches them. The roles:close-stale-aggregator sweep closes any that
+    | haven't been re-seen (last_seen_at) within this many days. Override via
+    | SCRAPER_AGGREGATOR_ROLE_STALE_DAYS.
+    |
+    */
+    'aggregator_role_stale_days' => env('SCRAPER_AGGREGATOR_ROLE_STALE_DAYS', 21),
+
+    /*
+    |--------------------------------------------------------------------------
     | Per-source defaults
     |--------------------------------------------------------------------------
     |
