@@ -32,11 +32,6 @@ final readonly class ArbeitnowScraper implements AggregatorScraperInterface
         return AggregatorSourceType::ARBEITNOW;
     }
 
-    public function concurrency(): int
-    {
-        return (int) config('scrapers.aggregators.arbeitnow.concurrency');
-    }
-
     public function run(AggregatorSource $source): AggregatorRunResult
     {
         try {

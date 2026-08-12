@@ -16,10 +16,11 @@ use Throwable;
  * resolves the right scraper, runs it, captures counts + errors, closes
  * the row.
  *
- * Sequential per company today. TODO(post-phase-1): swap to a per-source
- * Saloon pool so each connector batches up to its `concurrency()` cap.
- * Will require splitting each scraper's run() into buildRequest() +
- * handleResponse() — keep that boundary in mind when touching scrapers.
+ * Called once per company from inside RunCompanyScrapeJob. Parallelism is
+ * job-level, not connector-level: scrape:all --queue dispatches one queued
+ * job per company, and Horizon's worker pool runs those jobs concurrently.
+ * There is no per-source request pool here — each job makes its own single
+ * HTTP call sequentially inside run().
  */
 final class ScrapeOrchestrator
 {

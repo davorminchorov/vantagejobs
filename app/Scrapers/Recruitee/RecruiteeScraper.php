@@ -31,11 +31,6 @@ final readonly class RecruiteeScraper implements AtsScraperInterface
         return AtsType::RECRUITEE;
     }
 
-    public function concurrency(): int
-    {
-        return (int) config('scrapers.sources.recruitee.concurrency');
-    }
-
     public function run(Company $company): ScraperRunResult
     {
         try {

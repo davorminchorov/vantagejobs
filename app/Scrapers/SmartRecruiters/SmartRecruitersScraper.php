@@ -38,11 +38,6 @@ final readonly class SmartRecruitersScraper implements AtsScraperInterface
         return AtsType::SMARTRECRUITERS;
     }
 
-    public function concurrency(): int
-    {
-        return (int) config('scrapers.sources.smartrecruiters.concurrency');
-    }
-
     public function run(Company $company): ScraperRunResult
     {
         try {

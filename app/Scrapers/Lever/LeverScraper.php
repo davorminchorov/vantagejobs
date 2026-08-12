@@ -13,7 +13,6 @@ use App\Scrapers\ParsedRole;
 use App\Scrapers\RoleDiffer;
 use App\Scrapers\ScraperRunResult;
 use Carbon\CarbonImmutable;
-use Illuminate\Contracts\Config\Repository as ConfigRepository;
 use Throwable;
 
 /**
@@ -35,17 +34,11 @@ final readonly class LeverScraper implements AtsScraperInterface
     public function __construct(
         private RoleDiffer $differ,
         private LeverConnector $connector,
-        private ConfigRepository $config,
     ) {}
 
     public function name(): AtsType
     {
         return AtsType::LEVER;
-    }
-
-    public function concurrency(): int
-    {
-        return (int) $this->config->get('scrapers.sources.lever.concurrency', 10);
     }
 
     public function run(Company $company): ScraperRunResult

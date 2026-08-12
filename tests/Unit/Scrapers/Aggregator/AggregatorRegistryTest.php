@@ -48,30 +48,25 @@ final class AggregatorRegistryTest extends TestCase
     public function registering_the_same_type_twice_replaces_the_prior_binding(): void
     {
         $registry = new AggregatorRegistry();
-        $first = $this->fakeScraper(AggregatorSourceType::REMOTEOK, concurrency: 1);
-        $second = $this->fakeScraper(AggregatorSourceType::REMOTEOK, concurrency: 5);
+        $first = $this->fakeScraper(AggregatorSourceType::REMOTEOK);
+        $second = $this->fakeScraper(AggregatorSourceType::REMOTEOK);
 
         $registry->register($first);
         $registry->register($second);
 
-        $this->assertSame(5, $registry->resolve(AggregatorSourceType::REMOTEOK)->concurrency());
+        $this->assertSame($second, $registry->resolve(AggregatorSourceType::REMOTEOK));
         $this->assertCount(1, $registry->all());
     }
 
-    private function fakeScraper(AggregatorSourceType $type, int $concurrency = 1): AggregatorScraperInterface
+    private function fakeScraper(AggregatorSourceType $type): AggregatorScraperInterface
     {
-        return new class($type, $concurrency) implements AggregatorScraperInterface
+        return new class($type) implements AggregatorScraperInterface
         {
-            public function __construct(private AggregatorSourceType $type, private int $concurrency) {}
+            public function __construct(private AggregatorSourceType $type) {}
 
             public function name(): AggregatorSourceType
             {
                 return $this->type;
-            }
-
-            public function concurrency(): int
-            {
-                return $this->concurrency;
             }
 
             public function run(AggregatorSource $source): AggregatorRunResult

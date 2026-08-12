@@ -17,17 +17,6 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Global concurrency ceiling
-    |--------------------------------------------------------------------------
-    |
-    | Soft cap across all sources in a single `scrape:all` invocation. The
-    | Saloon pool layer enforces this in addition to per-source caps.
-    |
-    */
-    'global_concurrency' => env('SCRAPER_GLOBAL_CONCURRENCY', 30),
-
-    /*
-    |--------------------------------------------------------------------------
     | Raw HTTP response retention
     |--------------------------------------------------------------------------
     |
@@ -42,10 +31,22 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | scrape_runs retention
+    |--------------------------------------------------------------------------
+    |
+    | scrape_runs has no bound otherwise: it grows one row per company per
+    | scheduled sweep forever. The scrape-runs:prune command deletes rows
+    | whose started_at is older than this window. Override via
+    | SCRAPER_RUN_RETENTION_DAYS if you need longer history for analysis.
+    |
+    */
+    'run_retention_days' => env('SCRAPER_RUN_RETENTION_DAYS', 90),
+
+    /*
+    |--------------------------------------------------------------------------
     | Per-source defaults
     |--------------------------------------------------------------------------
     |
-    | concurrency  : per-source Saloon pool cap (SOURCES.md guidance).
     | timeout      : request timeout in seconds.
     | connect_timeout : TCP-connect timeout in seconds.
     | retry_times  : max retries on transient failures.
@@ -54,56 +55,48 @@ return [
     */
     'sources' => [
         'greenhouse' => [
-            'concurrency' => 10,
             'timeout' => 15,
             'connect_timeout' => 5,
             'retry_times' => 4,
             'retry_sleep_ms' => 1000,
         ],
         'lever' => [
-            'concurrency' => 10,
             'timeout' => 15,
             'connect_timeout' => 5,
             'retry_times' => 4,
             'retry_sleep_ms' => 1000,
         ],
         'ashby' => [
-            'concurrency' => 10,
             'timeout' => 15,
             'connect_timeout' => 5,
             'retry_times' => 4,
             'retry_sleep_ms' => 1000,
         ],
         'workable' => [
-            'concurrency' => 5,
             'timeout' => 15,
             'connect_timeout' => 5,
             'retry_times' => 3,
             'retry_sleep_ms' => 1000,
         ],
         'smartrecruiters' => [
-            'concurrency' => 5,
             'timeout' => 15,
             'connect_timeout' => 5,
             'retry_times' => 3,
             'retry_sleep_ms' => 1000,
         ],
         'personio' => [
-            'concurrency' => 5,
             'timeout' => 15,
             'connect_timeout' => 5,
             'retry_times' => 3,
             'retry_sleep_ms' => 1000,
         ],
         'recruitee' => [
-            'concurrency' => 5,
             'timeout' => 15,
             'connect_timeout' => 5,
             'retry_times' => 3,
             'retry_sleep_ms' => 1000,
         ],
         'teamtailor' => [
-            'concurrency' => 5,
             'timeout' => 15,
             'connect_timeout' => 5,
             'retry_times' => 3,
@@ -116,73 +109,65 @@ return [
     | Aggregator sources (Phase 2 + optional Phase 3)
     |--------------------------------------------------------------------------
     |
-    | Per-source caps for the discovery-layer scrapers. Concurrency 1 across
-    | the board: SOURCES.md §2.2 (Remotive ≤ 2 req/min), §2.3 (Himalayas
-    | 429 on abuse), §2.4 (We Work Remotely RSS), §2.5 (RemoteOK polite-poll).
-    | HackerNews is serial-monthly per §2.1. 4dayweek, Working Nomads, and
-    | Adzuna (deferred / optional, SOURCES.md §3.6-3.8) follow the same
+    | Per-source settings for the discovery-layer scrapers. Each runs one
+    | request (or a small serial sequence) per invocation — see SOURCES.md
+    | §2.2 (Remotive ≤ 2 req/min), §2.3 (Himalayas 429 on abuse), §2.4 (We
+    | Work Remotely RSS), §2.5 (RemoteOK polite-poll). HackerNews is
+    | serial-monthly per §2.1. 4dayweek, Working Nomads, and Adzuna
+    | (deferred / optional, SOURCES.md §3.6-3.8) follow the same
     | polite-poll pattern.
     |
     */
     'aggregators' => [
         'hackernews' => [
-            'concurrency' => 1,
             'timeout' => 30,
             'connect_timeout' => 5,
             'retry_times' => 3,
             'retry_sleep_ms' => 2000,
         ],
         'remotive' => [
-            'concurrency' => 1,
             'timeout' => 15,
             'connect_timeout' => 5,
             'retry_times' => 2,
             'retry_sleep_ms' => 30_000,
         ],
         'himalayas' => [
-            'concurrency' => 1,
             'timeout' => 15,
             'connect_timeout' => 5,
             'retry_times' => 3,
             'retry_sleep_ms' => 2000,
         ],
         'weworkremotely' => [
-            'concurrency' => 1,
             'timeout' => 15,
             'connect_timeout' => 5,
             'retry_times' => 3,
             'retry_sleep_ms' => 2000,
         ],
         'remoteok' => [
-            'concurrency' => 1,
             'timeout' => 15,
             'connect_timeout' => 5,
             'retry_times' => 3,
             'retry_sleep_ms' => 2000,
         ],
         'fourdayweek' => [
-            'concurrency' => 1,
             'timeout' => 15,
             'connect_timeout' => 5,
             'retry_times' => 3,
             'retry_sleep_ms' => 2000,
         ],
         'workingnomads' => [
-            'concurrency' => 1,
             'timeout' => 15,
             'connect_timeout' => 5,
             'retry_times' => 3,
             'retry_sleep_ms' => 2000,
         ],
         'larajobs' => [
-            'concurrency' => 1,
             'timeout' => 15,
             'connect_timeout' => 5,
             'retry_times' => 3,
             'retry_sleep_ms' => 2000,
         ],
         'adzuna' => [
-            'concurrency' => 1,
             'timeout' => 15,
             'connect_timeout' => 5,
             'retry_times' => 3,
@@ -199,7 +184,6 @@ return [
             'what' => env('ADZUNA_WHAT', ''),
         ],
         'jobicy' => [
-            'concurrency' => 1,
             'timeout' => 15,
             'connect_timeout' => 5,
             'retry_times' => 3,
@@ -212,35 +196,30 @@ return [
             'count' => env('JOBICY_COUNT', 50),
         ],
         'arbeitnow' => [
-            'concurrency' => 1,
             'timeout' => 15,
             'connect_timeout' => 5,
             'retry_times' => 3,
             'retry_sleep_ms' => 2000,
         ],
         'python_org' => [
-            'concurrency' => 1,
             'timeout' => 15,
             'connect_timeout' => 5,
             'retry_times' => 3,
             'retry_sleep_ms' => 2000,
         ],
         'django_news' => [
-            'concurrency' => 1,
             'timeout' => 15,
             'connect_timeout' => 5,
             'retry_times' => 3,
             'retry_sleep_ms' => 2000,
         ],
         'elixir_jobs' => [
-            'concurrency' => 1,
             'timeout' => 15,
             'connect_timeout' => 5,
             'retry_times' => 3,
             'retry_sleep_ms' => 2000,
         ],
         'hexhire' => [
-            'concurrency' => 1,
             'timeout' => 15,
             'connect_timeout' => 5,
             'retry_times' => 3,

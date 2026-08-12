@@ -52,11 +52,6 @@ final readonly class WeWorkRemotelyScraper implements AggregatorScraperInterface
         return AggregatorSourceType::WEWORKREMOTELY;
     }
 
-    public function concurrency(): int
-    {
-        return (int) config('scrapers.aggregators.weworkremotely.concurrency');
-    }
-
     public function run(AggregatorSource $source): AggregatorRunResult
     {
         $connector = new WeWorkRemotelyConnector();

@@ -37,11 +37,6 @@ final readonly class HexHireScraper implements AggregatorScraperInterface
         return AggregatorSourceType::HEXHIRE;
     }
 
-    public function concurrency(): int
-    {
-        return (int) config('scrapers.aggregators.hexhire.concurrency');
-    }
-
     public function run(AggregatorSource $source): AggregatorRunResult
     {
         try {

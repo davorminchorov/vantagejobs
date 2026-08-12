@@ -35,11 +35,6 @@ final class AshbyScraper implements AtsScraperInterface
         return AtsType::ASHBY;
     }
 
-    public function concurrency(): int
-    {
-        return (int) $this->config->get('scrapers.sources.ashby.concurrency', 10);
-    }
-
     public function run(Company $company): ScraperRunResult
     {
         try {

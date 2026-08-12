@@ -32,11 +32,6 @@ final readonly class JobicyScraper implements AggregatorScraperInterface
         return AggregatorSourceType::JOBICY;
     }
 
-    public function concurrency(): int
-    {
-        return (int) config('scrapers.aggregators.jobicy.concurrency');
-    }
-
     public function run(AggregatorSource $source): AggregatorRunResult
     {
         try {

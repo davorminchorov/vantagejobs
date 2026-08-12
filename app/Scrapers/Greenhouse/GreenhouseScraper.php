@@ -32,11 +32,6 @@ final readonly class GreenhouseScraper implements AtsScraperInterface
         return AtsType::GREENHOUSE;
     }
 
-    public function concurrency(): int
-    {
-        return (int) config('scrapers.sources.greenhouse.concurrency');
-    }
-
     public function run(Company $company): ScraperRunResult
     {
         try {

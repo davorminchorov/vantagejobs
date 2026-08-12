@@ -35,11 +35,6 @@ final readonly class WorkingNomadsScraper implements AggregatorScraperInterface
         return AggregatorSourceType::WORKINGNOMADS;
     }
 
-    public function concurrency(): int
-    {
-        return (int) config('scrapers.aggregators.workingnomads.concurrency');
-    }
-
     public function run(AggregatorSource $source): AggregatorRunResult
     {
         try {

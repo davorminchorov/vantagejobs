@@ -41,11 +41,6 @@ final readonly class HackerNewsScraper implements AggregatorScraperInterface
         return AggregatorSourceType::HACKERNEWS;
     }
 
-    public function concurrency(): int
-    {
-        return (int) config('scrapers.aggregators.hackernews.concurrency');
-    }
-
     public function run(AggregatorSource $source): AggregatorRunResult
     {
         try {

@@ -39,11 +39,6 @@ final readonly class RemoteOkScraper implements AggregatorScraperInterface
         return AggregatorSourceType::REMOTEOK;
     }
 
-    public function concurrency(): int
-    {
-        return (int) config('scrapers.aggregators.remoteok.concurrency');
-    }
-
     public function run(AggregatorSource $source): AggregatorRunResult
     {
         try {

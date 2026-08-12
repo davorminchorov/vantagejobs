@@ -36,11 +36,6 @@ final readonly class PersonioScraper implements AtsScraperInterface
         return AtsType::PERSONIO;
     }
 
-    public function concurrency(): int
-    {
-        return (int) config('scrapers.sources.personio.concurrency');
-    }
-
     public function run(Company $company): ScraperRunResult
     {
         try {

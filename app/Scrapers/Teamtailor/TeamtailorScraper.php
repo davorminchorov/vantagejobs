@@ -33,11 +33,6 @@ final readonly class TeamtailorScraper implements AtsScraperInterface
         return AtsType::TEAMTAILOR;
     }
 
-    public function concurrency(): int
-    {
-        return (int) config('scrapers.sources.teamtailor.concurrency');
-    }
-
     public function run(Company $company): ScraperRunResult
     {
         try {

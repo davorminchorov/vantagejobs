@@ -22,11 +22,6 @@ interface AtsScraperInterface
     public function name(): AtsType;
 
     /**
-     * Per-source concurrency cap used by the Saloon pool in scrape:all.
-     */
-    public function concurrency(): int;
-
-    /**
      * Fetch, diff against existing roles, and persist changes for one company.
      *
      * Implementations write Role + Event rows and update company etag/last_modified

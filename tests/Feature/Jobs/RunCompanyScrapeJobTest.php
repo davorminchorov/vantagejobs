@@ -76,11 +76,6 @@ final class RunCompanyScrapeJobTest extends TestCase
                 return $this->type;
             }
 
-            public function concurrency(): int
-            {
-                return 1;
-            }
-
             public function run(Company $company): ScraperRunResult
             {
                 return $this->result;

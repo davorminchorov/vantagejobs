@@ -39,11 +39,6 @@ final readonly class RemotiveScraper implements AggregatorScraperInterface
         return AggregatorSourceType::REMOTIVE;
     }
 
-    public function concurrency(): int
-    {
-        return (int) config('scrapers.aggregators.remotive.concurrency');
-    }
-
     public function run(AggregatorSource $source): AggregatorRunResult
     {
         try {

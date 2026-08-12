@@ -39,11 +39,6 @@ final readonly class FourDayWeekScraper implements AggregatorScraperInterface
         return AggregatorSourceType::FOURDAYWEEK;
     }
 
-    public function concurrency(): int
-    {
-        return (int) config('scrapers.aggregators.fourdayweek.concurrency');
-    }
-
     public function run(AggregatorSource $source): AggregatorRunResult
     {
         try {

@@ -118,6 +118,11 @@ Schedule::command('calendar:send-reminders')->everyMinute()->withoutOverlapping(
 Schedule::command('parser:rollup-confidence')->dailyAt('02:30');
 Schedule::command('scrape-artifacts:purge')->dailyAt('03:00');
 
+// scrape_runs retention: deletes rows past config('scrapers.run_retention_days').
+// Runs after the artifact purge so a pruned run's (already nulled) artifacts
+// have had their own chance to go first.
+Schedule::command('scrape-runs:prune')->dailyAt('03:15');
+
 // Snapshot the day's company state at 04:00 UTC. Other signal jobs
 // (github, blog, layoffs, quality) update the same rows in place later.
 Schedule::call(static function () use ($tenantSlug): void {

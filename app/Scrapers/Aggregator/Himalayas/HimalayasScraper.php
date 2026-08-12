@@ -42,11 +42,6 @@ final readonly class HimalayasScraper implements AggregatorScraperInterface
         return AggregatorSourceType::HIMALAYAS;
     }
 
-    public function concurrency(): int
-    {
-        return (int) config('scrapers.aggregators.himalayas.concurrency');
-    }
-
     public function run(AggregatorSource $source): AggregatorRunResult
     {
         $connector = new HimalayasConnector();

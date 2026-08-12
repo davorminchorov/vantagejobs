@@ -220,11 +220,6 @@ final class AggregatorOrchestratorTest extends TestCase
                 return $this->type;
             }
 
-            public function concurrency(): int
-            {
-                return 1;
-            }
-
             public function run(AggregatorSource $source): AggregatorRunResult
             {
                 if ($this->throws !== null) {

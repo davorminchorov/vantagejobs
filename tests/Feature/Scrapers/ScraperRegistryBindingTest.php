@@ -26,9 +26,9 @@ final class ScraperRegistryBindingTest extends TestCase
     #[Test]
     public function scrapers_config_is_merged(): void
     {
-        $this->assertSame(10, config('scrapers.sources.greenhouse.concurrency'));
-        $this->assertSame(10, config('scrapers.sources.lever.concurrency'));
-        $this->assertSame(10, config('scrapers.sources.ashby.concurrency'));
+        $this->assertSame(15, config('scrapers.sources.greenhouse.timeout'));
+        $this->assertSame(15, config('scrapers.sources.lever.timeout'));
+        $this->assertSame(15, config('scrapers.sources.ashby.timeout'));
         $this->assertIsString(config('scrapers.user_agent'));
     }
 

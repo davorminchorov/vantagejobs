@@ -33,11 +33,6 @@ final readonly class PythonOrgScraper implements AggregatorScraperInterface
         return AggregatorSourceType::PYTHON_ORG;
     }
 
-    public function concurrency(): int
-    {
-        return (int) config('scrapers.aggregators.python_org.concurrency');
-    }
-
     public function run(AggregatorSource $source): AggregatorRunResult
     {
         try {

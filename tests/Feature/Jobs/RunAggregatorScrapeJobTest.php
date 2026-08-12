@@ -75,11 +75,6 @@ final class RunAggregatorScrapeJobTest extends TestCase
                 return $this->type;
             }
 
-            public function concurrency(): int
-            {
-                return 1;
-            }
-
             public function run(AggregatorSource $source): AggregatorRunResult
             {
                 return $this->result;

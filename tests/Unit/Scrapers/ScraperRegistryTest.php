@@ -48,30 +48,25 @@ final class ScraperRegistryTest extends TestCase
     public function registering_the_same_type_twice_replaces_the_prior_binding(): void
     {
         $registry = new ScraperRegistry();
-        $first = $this->fakeScraper(AtsType::LEVER, concurrency: 1);
-        $second = $this->fakeScraper(AtsType::LEVER, concurrency: 99);
+        $first = $this->fakeScraper(AtsType::LEVER);
+        $second = $this->fakeScraper(AtsType::LEVER);
 
         $registry->register($first);
         $registry->register($second);
 
-        $this->assertSame(99, $registry->resolve(AtsType::LEVER)->concurrency());
+        $this->assertSame($second, $registry->resolve(AtsType::LEVER));
         $this->assertCount(1, $registry->all());
     }
 
-    private function fakeScraper(AtsType $type, int $concurrency = 10): AtsScraperInterface
+    private function fakeScraper(AtsType $type): AtsScraperInterface
     {
-        return new class($type, $concurrency) implements AtsScraperInterface
+        return new class($type) implements AtsScraperInterface
         {
-            public function __construct(private AtsType $type, private int $concurrency) {}
+            public function __construct(private AtsType $type) {}
 
             public function name(): AtsType
             {
                 return $this->type;
-            }
-
-            public function concurrency(): int
-            {
-                return $this->concurrency;
             }
 
             public function run(Company $company): ScraperRunResult

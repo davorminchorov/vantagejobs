@@ -35,11 +35,6 @@ final readonly class DjangoNewsScraper implements AggregatorScraperInterface
         return AggregatorSourceType::DJANGO_NEWS;
     }
 
-    public function concurrency(): int
-    {
-        return (int) config('scrapers.aggregators.django_news.concurrency');
-    }
-
     public function run(AggregatorSource $source): AggregatorRunResult
     {
         try {

@@ -24,12 +24,6 @@ interface AggregatorScraperInterface
     public function name(): AggregatorSourceType;
 
     /**
-     * Per-source concurrency cap. Most aggregators are 1 (strict ToS or
-     * polite-poll guidance per SOURCES.md §2.2–2.5).
-     */
-    public function concurrency(): int;
-
-    /**
      * Fetch, parse, dedup-on-(source_id, external_id), and persist for one
      * source. Implementations update the source's run-state fields via the
      * orchestrator rather than inline.

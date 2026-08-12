@@ -37,11 +37,6 @@ final readonly class ElixirJobsScraper implements AggregatorScraperInterface
         return AggregatorSourceType::ELIXIR_JOBS;
     }
 
-    public function concurrency(): int
-    {
-        return (int) config('scrapers.aggregators.elixir_jobs.concurrency');
-    }
-
     public function run(AggregatorSource $source): AggregatorRunResult
     {
         try {

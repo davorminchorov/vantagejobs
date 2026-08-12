@@ -42,11 +42,6 @@ final readonly class LarajobsScraper implements AggregatorScraperInterface
         return AggregatorSourceType::LARAJOBS;
     }
 
-    public function concurrency(): int
-    {
-        return (int) config('scrapers.aggregators.larajobs.concurrency');
-    }
-
     public function run(AggregatorSource $source): AggregatorRunResult
     {
         try {

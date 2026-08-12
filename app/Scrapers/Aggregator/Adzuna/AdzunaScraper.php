@@ -38,11 +38,6 @@ final readonly class AdzunaScraper implements AggregatorScraperInterface
         return AggregatorSourceType::ADZUNA;
     }
 
-    public function concurrency(): int
-    {
-        return (int) config('scrapers.aggregators.adzuna.concurrency');
-    }
-
     public function run(AggregatorSource $source): AggregatorRunResult
     {
         $appId = (string) config('scrapers.aggregators.adzuna.app_id');

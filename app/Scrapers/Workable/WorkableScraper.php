@@ -32,11 +32,6 @@ final readonly class WorkableScraper implements AtsScraperInterface
         return AtsType::WORKABLE;
     }
 
-    public function concurrency(): int
-    {
-        return (int) config('scrapers.sources.workable.concurrency');
-    }
-
     public function run(Company $company): ScraperRunResult
     {
         try {
