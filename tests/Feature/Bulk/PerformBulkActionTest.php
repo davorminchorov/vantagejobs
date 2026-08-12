@@ -307,6 +307,28 @@ final class PerformBulkActionTest extends TestCase
     }
 
     #[Test]
+    public function shared_flash_prop_surfaces_the_undo_payload_after_redirect(): void
+    {
+        $company = Company::factory()->create(['tier' => 'C']);
+
+        $response = $this->actingAs($this->user)
+            ->from('/companies')
+            ->post('/bulk-actions', [
+                'entity' => 'company',
+                'action' => 'change_tier',
+                'ids' => [$company->id],
+                'tier' => 'A',
+            ]);
+
+        $log = AuditLog::query()->where('action', BulkActionExecutor::ACTION)->sole();
+
+        $this->followRedirects($response)
+            ->assertInertia(fn ($page) => $page
+                ->where('flash.undo.audit_log_id', $log->id)
+                ->where('flash.undo.count', 1));
+    }
+
+    #[Test]
     public function guests_cannot_perform_bulk_actions(): void
     {
         $company = Company::factory()->create();

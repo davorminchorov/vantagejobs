@@ -43,6 +43,9 @@ final class HandleInertiaRequests extends Middleware
             'flash' => fn () => [
                 'success' => $request->session()->get('success'),
                 'error' => $request->session()->get('error'),
+                // Structured payload for the bulk-action undo toast; see
+                // PerformBulkActionController.
+                'undo' => $request->session()->get('flash.undo'),
             ],
             'savedViews' => fn (): array => $this->savedViewsFor($request),
             'debug' => app()->environment('local'),
