@@ -8,21 +8,24 @@ use Saloon\Enums\Method;
 use Saloon\Http\Request;
 
 /**
- * GET /categories/{slug}.rss
+ * GET /remote-jobs.rss or /categories/{slug}.rss
  *
- * One Saloon request parameterised by category slug — the three category
- * feeds (back-end, full-stack, programming) differ only by path. A single
- * class keeps Saloon::fake() targeting trivial and avoids the three
- * near-identical subclasses that would otherwise be needed.
+ * One Saloon request parameterised by an optional category slug, per
+ * SOURCES.md §2.4. A null slug resolves to the umbrella feed
+ * (`/remote-jobs.rss`), which covers every category; a slug resolves to
+ * that category's feed. A single class keeps Saloon::fake() targeting
+ * trivial and avoids near-identical sibling classes.
  */
 final class CategoryFeedRequest extends Request
 {
     protected Method $method = Method::GET;
 
-    public function __construct(public readonly string $categorySlug) {}
+    public function __construct(public readonly ?string $categorySlug = null) {}
 
     public function resolveEndpoint(): string
     {
-        return '/categories/'.$this->categorySlug.'.rss';
+        return $this->categorySlug === null
+            ? '/remote-jobs.rss'
+            : '/categories/'.$this->categorySlug.'.rss';
     }
 }

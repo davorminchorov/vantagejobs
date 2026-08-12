@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+  <channel>
+    <title>We Work Remotely: Remote Jobs</title>
+    <link>https://weworkremotely.com/remote-jobs</link>
+    <description>All Remote Jobs</description>
+    <language>en-us</language>
+    <pubDate>Mon, 12 May 2026 10:30:00 +0000</pubDate>
+    <item>
+      <guid isPermaLink="false">https://weworkremotely.com/remote-jobs/hooli-site-reliability-engineer-005</guid>
+      <title>Hooli: Site Reliability Engineer</title>
+      <region>Anywhere in the World</region>
+      <link>https://weworkremotely.com/remote-jobs/hooli-site-reliability-engineer-005</link>
+      <description><![CDATA[<p>Hooli needs a Site Reliability Engineer. This posting only ever appears in the umbrella feed, not in any single category feed, since it spans DevOps and Programming.</p>]]></description>
+      <pubDate>Tue, 13 May 2026 07:00:00 +0000</pubDate>
+    </item>
+    <item>
+      <guid isPermaLink="false">https://weworkremotely.com/remote-jobs/acme-corp-senior-backend-engineer-001</guid>
+      <title>Acme Corp: Senior Backend Engineer</title>
+      <region>EMEA</region>
+      <link>https://weworkremotely.com/remote-jobs/acme-corp-senior-backend-engineer-001</link>
+      <description><![CDATA[<p>Acme Corp is hiring a Senior Backend Engineer to join our fully distributed engineering team. You will own services written in Python with Django on top of Postgres.</p><p>Requirements: deep knowledge of Django, experience operating Postgres at scale.</p>]]></description>
+      <pubDate>Mon, 12 May 2026 10:00:00 +0000</pubDate>
+    </item>
+  </channel>
+</rss>

@@ -49,13 +49,16 @@ final class WeWorkRemotelyScraperTest extends TestCase
     }
 
     /**
-     * Faked sequence covering the three category feeds the scraper hits in
-     * order: back-end, full-stack, programming. The back-end and full-stack
-     * fixtures share Acme's guid so cross-feed dedup gets exercised.
+     * Faked sequence covering the four feeds the scraper hits in order:
+     * the umbrella feed, then back-end, full-stack, programming. The
+     * umbrella fixture shares Acme's guid with back-end/full-stack so
+     * cross-feed dedup gets exercised, and carries one guid (Hooli) that
+     * appears nowhere else, proving the umbrella feed's own coverage.
      */
     private function fakeAllFeeds(): void
     {
         Saloon::fake([
+            MockResponse::make($this->fixture('all-jobs.rss'), 200),
             MockResponse::make($this->fixture('backend-jobs.rss'), 200),
             MockResponse::make($this->fixture('fullstack-jobs.rss'), 200),
             MockResponse::make($this->fixture('programming-jobs.rss'), 200),
@@ -70,10 +73,12 @@ final class WeWorkRemotelyScraperTest extends TestCase
         $result = $this->scraper->run($this->source);
 
         $this->assertFalse($result->hasErrors());
-        // 3 back-end + 1 dedup-skipped Acme + 1 Umbrella + 0 programming = 4 fetched
-        $this->assertSame(4, $result->fetched);
-        $this->assertSame(4, $result->newCount);
-        $this->assertSame(4, AggregatorListing::query()->count());
+        // Unique guids across all 4 feeds: Hooli + Acme (umbrella) + Globex +
+        // Initech (back-end, Acme re-seen and skipped) + "Umbrella" the
+        // company (full-stack, Acme re-seen and skipped) + 0 programming = 5.
+        $this->assertSame(5, $result->fetched);
+        $this->assertSame(5, $result->newCount);
+        $this->assertSame(5, AggregatorListing::query()->count());
 
         $acme = AggregatorListing::query()
             ->where('external_id', 'https://weworkremotely.com/remote-jobs/acme-corp-senior-backend-engineer-001')
@@ -154,7 +159,22 @@ final class WeWorkRemotelyScraperTest extends TestCase
                 ->where('external_id', 'https://weworkremotely.com/remote-jobs/acme-corp-senior-backend-engineer-001')
                 ->count(),
         );
-        $this->assertSame(4, $result->fetched);
+        $this->assertSame(5, $result->fetched);
+    }
+
+    #[Test]
+    public function umbrella_feed_item_absent_from_every_category_feed_is_still_ingested(): void
+    {
+        $this->fakeAllFeeds();
+
+        $this->scraper->run($this->source);
+
+        $hooli = AggregatorListing::query()
+            ->where('external_id', 'https://weworkremotely.com/remote-jobs/hooli-site-reliability-engineer-005')
+            ->firstOrFail();
+
+        $this->assertSame('Hooli', $hooli->parsed_company_name);
+        $this->assertSame('Site Reliability Engineer', $hooli->parsed_role_title);
     }
 
     #[Test]
@@ -162,14 +182,14 @@ final class WeWorkRemotelyScraperTest extends TestCase
     {
         $this->fakeAllFeeds();
         $first = $this->scraper->run($this->source);
-        $this->assertSame(4, $first->newCount);
+        $this->assertSame(5, $first->newCount);
 
         $this->fakeAllFeeds();
         $second = $this->scraper->run($this->source);
 
-        $this->assertSame(4, $second->fetched);
+        $this->assertSame(5, $second->fetched);
         $this->assertSame(0, $second->newCount);
-        $this->assertSame(4, AggregatorListing::query()->count());
+        $this->assertSame(5, AggregatorListing::query()->count());
     }
 
     #[Test]
@@ -207,8 +227,8 @@ final class WeWorkRemotelyScraperTest extends TestCase
         $this->assertTrue($result->hasErrors());
         $this->assertSame(0, $result->fetched);
         $this->assertSame(0, $result->newCount);
-        // One error per failed category feed (3 categories).
-        $this->assertCount(3, $result->errors);
+        // One error per failed feed: the umbrella feed plus 3 categories.
+        $this->assertCount(4, $result->errors);
         $this->assertSame('weworkremotely 503', $result->errors[0]['message']);
         $this->assertSame(0, AggregatorListing::query()->count());
     }

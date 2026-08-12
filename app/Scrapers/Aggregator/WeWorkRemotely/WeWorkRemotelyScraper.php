@@ -17,26 +17,32 @@ use Throwable;
  * We Work Remotely RSS scraper.
  *
  * Per SOURCES.md §2.4:
- *   - The source is XML, not JSON. We parse three category feeds (back-end,
- *     full-stack, programming) using SimpleXML and walk channel.item.
+ *   - The source is XML, not JSON. We parse the umbrella feed plus three
+ *     category feeds (back-end, full-stack, programming) using SimpleXML
+ *     and walk channel.item.
  *   - ToS forbids non-RSS scraping; the authenticated partner API is out of
  *     scope.
  *   - No salary or structured tags in the feed — comp falls through as
  *     MISSING and stack tags are inferred from body text.
  *
  * Cross-feed dedup happens in-process: the same `<guid>` often appears under
- * multiple categories, so we keep a per-run seen-set and skip duplicates
- * before they reach the persister. The persister itself is idempotent on
+ * multiple feeds, so we keep a per-run seen-set and skip duplicates before
+ * they reach the persister. The persister itself is idempotent on
  * (source_id, external_id), so reruns across days are also safe.
  */
 final readonly class WeWorkRemotelyScraper implements AggregatorScraperInterface
 {
     /**
-     * Per SOURCES.md §2.4 — the three category feeds we ingest for v1.
+     * The umbrella feed (slug null, `/remote-jobs.rss`) covers every
+     * category and is fetched first, so it's the one that decides coverage;
+     * the category feeds after it exist as a backstop in case the umbrella
+     * feed is briefly stale or unavailable, and in the common case they
+     * contribute nothing but cross-feed dedup skips.
      *
-     * @var list<string>
+     * @var list<string|null>
      */
-    private const CATEGORY_SLUGS = [
+    private const FEED_SLUGS = [
+        null,
         'remote-back-end-programming-jobs',
         'remote-full-stack-programming-jobs',
         'remote-programming-jobs',
@@ -63,14 +69,16 @@ final readonly class WeWorkRemotelyScraper implements AggregatorScraperInterface
         /** @var array<string, true> $seenGuids */
         $seenGuids = [];
 
-        foreach (self::CATEGORY_SLUGS as $slug) {
+        foreach (self::FEED_SLUGS as $slug) {
+            $label = $slug ?? 'umbrella';
+
             try {
                 $response = $connector->send(new CategoryFeedRequest($slug));
                 $body = (string) $response->body();
             } catch (Throwable $e) {
                 $errors[] = [
                     'message' => $e->getMessage(),
-                    'context' => ['category' => $slug],
+                    'context' => ['category' => $label],
                 ];
 
                 continue;
@@ -80,7 +88,7 @@ final readonly class WeWorkRemotelyScraper implements AggregatorScraperInterface
             if ($items === null) {
                 $errors[] = [
                     'message' => 'malformed RSS XML',
-                    'context' => ['category' => $slug],
+                    'context' => ['category' => $label],
                 ];
 
                 continue;
@@ -104,7 +112,7 @@ final readonly class WeWorkRemotelyScraper implements AggregatorScraperInterface
                 } catch (Throwable $e) {
                     $errors[] = [
                         'message' => $e->getMessage(),
-                        'context' => ['guid' => $externalId, 'category' => $slug],
+                        'context' => ['guid' => $externalId, 'category' => $label],
                     ];
                 }
             }

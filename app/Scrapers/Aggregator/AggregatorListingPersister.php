@@ -15,6 +15,8 @@ use App\Scrapers\Aggregator\Parser\ParsedListing;
 use App\Scrapers\Aggregator\Parser\ParserPipeline;
 use App\Scrapers\Aggregator\Parser\SourceContext;
 use Carbon\CarbonImmutable;
+use Illuminate\Contracts\Cache\LockTimeoutException;
+use Illuminate\Support\Facades\Cache;
 
 /**
  * Runs the ParserPipeline against a SourceContext and persists the result
@@ -47,6 +49,13 @@ final readonly class AggregatorListingPersister
      * Boomerang re-post gap per PRD §6.3.7.
      */
     private const BOOMERANG_GAP_DAYS = 14;
+
+    /**
+     * TTL and max wait for the cross-source dedup lock (see upsert()).
+     */
+    private const DEDUP_LOCK_TTL_SECONDS = 5;
+
+    private const DEDUP_LOCK_WAIT_SECONDS = 2;
 
     public function __construct(
         private ParserPipeline $pipeline,
@@ -82,19 +91,7 @@ final readonly class AggregatorListingPersister
         $attrs = $this->buildAttributes($source, $context, $parsed, $rawRecord, $externalId);
 
         if ($existing === null) {
-            $attrs = $this->applyAutoDismissGate($attrs);
-            $attrs = $this->applyDedupGate($attrs);
-
-            /** @var AggregatorListing $listing */
-            $listing = AggregatorListing::query()->create($attrs);
-
-            if ($listing->status === AggregatorListingStatus::NEW) {
-                $this->attemptAutoLink($listing, $parsed);
-            }
-
-            $this->detectBoomerang($listing);
-
-            return (int) $listing->id;
+            return $this->createUnderLock($source, $attrs, $parsed);
         }
 
         // Preserve user-set status on re-fetch — the triage UI is downstream.
@@ -102,6 +99,62 @@ final readonly class AggregatorListingPersister
         $existing->fill($attrs)->save();
 
         return null;
+    }
+
+    /**
+     * Two sources can ingest the same role within milliseconds of each
+     * other; without a lock both can pass applyDedupGate() (a plain
+     * check-then-insert) before either row exists to collide with, and we
+     * end up with two "new" listings for one job. We only bother locking
+     * when the dedup keys are complete — an incomplete role_hash carries the
+     * '∅' sentinel and applyDedupGate() already skips those rows entirely,
+     * so there's nothing to protect.
+     *
+     * On lock contention we fail open rather than blocking ingestion: the
+     * race is rare (it needs two sources to fetch the same job in the same
+     * ~2-second window) and the worst case of losing the race is one
+     * duplicate listing, which is far cheaper than stalling a scrape run.
+     *
+     * @param  array<string, mixed>  $attrs
+     */
+    private function createUnderLock(AggregatorSource $source, array $attrs, ParsedListing $parsed): int
+    {
+        $companyKey = is_string($attrs['normalized_company_key'] ?? null) ? $attrs['normalized_company_key'] : null;
+        $roleKey = is_string($attrs['normalized_role_key'] ?? null) ? $attrs['normalized_role_key'] : null;
+        $locationBucket = is_string($attrs['location_bucket'] ?? null) ? $attrs['location_bucket'] : null;
+
+        if (! $this->hasher->isComplete($companyKey, $roleKey, $locationBucket)) {
+            return $this->createAndLink($attrs, $parsed);
+        }
+
+        $lockKey = 'listing-dedup:'.$source->tenant_id.':'.$attrs['role_hash'];
+
+        try {
+            return Cache::lock($lockKey, self::DEDUP_LOCK_TTL_SECONDS)
+                ->block(self::DEDUP_LOCK_WAIT_SECONDS, fn (): int => $this->createAndLink($attrs, $parsed));
+        } catch (LockTimeoutException) {
+            return $this->createAndLink($attrs, $parsed);
+        }
+    }
+
+    /**
+     * @param  array<string, mixed>  $attrs
+     */
+    private function createAndLink(array $attrs, ParsedListing $parsed): int
+    {
+        $attrs = $this->applyAutoDismissGate($attrs);
+        $attrs = $this->applyDedupGate($attrs);
+
+        /** @var AggregatorListing $listing */
+        $listing = AggregatorListing::query()->create($attrs);
+
+        if ($listing->status === AggregatorListingStatus::NEW) {
+            $this->attemptAutoLink($listing, $parsed);
+        }
+
+        $this->detectBoomerang($listing);
+
+        return (int) $listing->id;
     }
 
     /**
@@ -265,6 +318,7 @@ final readonly class AggregatorListingPersister
             'parsed_company_name' => $this->asString($parsed->value('company_name')),
             'parsed_role_title' => $this->asString($parsed->value('role_title')),
             'parsed_seniority' => $this->asString($parsed->value('seniority')),
+            'discipline' => $this->asString($parsed->value('discipline')),
             'parsed_remote_type' => is_array($remote) ? ($remote['type'] ?? null) : null,
             'parsed_comp_min_usd' => $minUsd,
             'parsed_comp_max_usd' => $maxUsd,

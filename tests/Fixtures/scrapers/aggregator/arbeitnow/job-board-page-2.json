@@ -1,0 +1,37 @@
+{
+  "data": [
+    {
+      "slug": "senior-devops-engineer-berlin-405112",
+      "company_name": "Northwind GmbH",
+      "title": "Senior DevOps Engineer",
+      "description": "<p>Northwind is looking for a Senior DevOps Engineer to own our Kubernetes platform and CI/CD pipelines.</p>",
+      "remote": true,
+      "url": "https://www.arbeitnow.com/jobs/companies/northwind-gmbh/senior-devops-engineer-berlin-405112",
+      "tags": [
+        "Remote",
+        "DevOps"
+      ],
+      "job_types": [
+        "Full-time"
+      ],
+      "location": "Berlin",
+      "created_at": 1779130000
+    }
+  ],
+  "links": {
+    "first": "https://www.arbeitnow.com/api/job-board-api?limit=100&page=1",
+    "last": "https://www.arbeitnow.com/api/job-board-api?limit=100&page=2",
+    "prev": "https://www.arbeitnow.com/api/job-board-api?limit=100&page=1",
+    "next": null
+  },
+  "meta": {
+    "current_page": 2,
+    "current_page_url": "https://www.arbeitnow.com/api/job-board-api?limit=100&page=2",
+    "from": 101,
+    "path": "https://www.arbeitnow.com/api/job-board-api",
+    "per_page": 100,
+    "to": 101,
+    "terms": "This is a free public API for jobs, please do not abuse. I would appreciate linking back to the site. By using the API, you agree to the terms of service present on Arbeitnow.com",
+    "info": "Jobs are updated every hour and order by the `created_at` timestamp. Use `?page=` to paginate. Read more information here: https://www.arbeitnow.com/blog/job-board-api"
+  }
+}

@@ -200,6 +200,9 @@ return [
             'connect_timeout' => 5,
             'retry_times' => 3,
             'retry_sleep_ms' => 2000,
+            // Upstream supports ?page=N; walked until links.next is null or
+            // this cap is hit, whichever comes first.
+            'max_pages' => env('ARBEITNOW_MAX_PAGES', 5),
         ],
         'python_org' => [
             'timeout' => 15,
