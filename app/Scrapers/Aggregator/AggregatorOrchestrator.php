@@ -65,7 +65,11 @@ final class AggregatorOrchestrator
             $this->artifactContext->clear();
         }
 
-        $this->recordSuccess($source);
+        if ($result->hasErrors()) {
+            $this->recordPartial($source, $result->errors);
+        } else {
+            $this->recordSuccess($source);
+        }
 
         return $this->finalize(
             $run,
@@ -85,6 +89,29 @@ final class AggregatorOrchestrator
             'next_run_at' => $now->addMinutes($source->cadence_minutes),
             'last_error' => null,
             'consecutive_failures' => 0,
+        ])->save();
+    }
+
+    /**
+     * A partial run (fetched something, but hit per-item or per-page
+     * errors) still advances the cadence clock, but must not report the
+     * source as healthy the way recordSuccess() does — clearing last_error
+     * and zeroing consecutive_failures on a run that had errors makes a
+     * source that half-fails every day look clean forever. Also does not
+     * touch consecutive_failures on the failure side: recordFailure() owns
+     * incrementing that counter for hard (whole-run) failures only.
+     *
+     * @param  list<array{message: string, context?: array<string, mixed>}>  $errors
+     */
+    private function recordPartial(AggregatorSource $source, array $errors): void
+    {
+        $now = CarbonImmutable::now();
+        $firstMessage = $errors[0]['message'] ?? null;
+
+        $source->fill([
+            'last_run_at' => $now,
+            'next_run_at' => $now->addMinutes($source->cadence_minutes),
+            'last_error' => is_string($firstMessage) ? $firstMessage : 'partial run with unspecified error',
         ])->save();
     }
 

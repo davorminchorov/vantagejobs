@@ -139,7 +139,7 @@ final readonly class AggregatorListingPersister
         $listing->status = AggregatorListingStatus::LINKED;
         $listing->save();
 
-        $title = $this->asString($parsed->value('role_title')) ?? '(unknown role)';
+        $title = 'Seen on aggregator: '.($this->asString($parsed->value('role_title')) ?? '(unknown role)');
         $body = (string) json_encode([
             'aggregator_listing_id' => $listing->id,
             'source' => $listing->source_id,
@@ -340,7 +340,7 @@ final readonly class AggregatorListingPersister
             'company_id' => $companyId,
             'role_id' => null,
             'type' => EventType::BOOMERANG->value,
-            'title' => 'Role re-posted after '.$priorMaxFetched->diffInDays(CarbonImmutable::now()).' days',
+            'title' => 'Role re-posted after '.(int) $priorMaxFetched->diffInDays(CarbonImmutable::now()).' days',
             'body' => (string) json_encode([
                 'aggregator_listing_id' => $listing->id,
                 'role_hash' => $listing->role_hash,

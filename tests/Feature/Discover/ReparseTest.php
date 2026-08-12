@@ -10,6 +10,8 @@ use App\Models\AggregatorListing;
 use App\Models\AggregatorSource;
 use App\Models\ParseCorrection;
 use App\Models\User;
+use App\Scrapers\Aggregator\CompanyKeyNormalizer;
+use App\Scrapers\Aggregator\RoleHasher;
 use App\Tenancy\Tenant;
 use App\Tenancy\TenantContext;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -149,6 +151,45 @@ final class ReparseTest extends TestCase
         $this->assertSame('Senior Backend Engineer', $fresh->parsed_role_title);
         // The audit row is preserved -- only the live state changes.
         $this->assertSame(1, ParseCorrection::query()->where('listing_id', $listing->id)->count());
+    }
+
+    #[Test]
+    public function reparse_recomputes_normalized_keys_and_role_hash(): void
+    {
+        // normalized_company_key / normalized_role_key / role_hash are set
+        // once at ingest and otherwise never touched -- seed stale values
+        // (as if the listing was ingested before a parser or normalizer
+        // change) and prove reparse brings them back in line with the
+        // freshly-parsed company_name / role_title.
+        $listing = AggregatorListing::factory()->create([
+            'source_id' => $this->remotive->id,
+            'external_id' => '999001',
+            'raw' => $this->remotiveRawRecord(),
+            'parsed' => [],
+            'normalized_company_key' => 'stale-key',
+            'normalized_role_key' => 'stale-role',
+            'role_hash' => 'stale-hash',
+        ]);
+
+        $this->actingAs($this->user)
+            ->post("/discover/{$listing->id}/reparse")
+            ->assertRedirect();
+
+        $fresh = $listing->fresh();
+        $normalizer = $this->app->make(CompanyKeyNormalizer::class);
+        $hasher = $this->app->make(RoleHasher::class);
+
+        $expectedCompanyKey = $normalizer->normalize($fresh->parsed_company_name);
+        $expectedRoleKey = $normalizer->normalize($fresh->parsed_role_title);
+
+        $this->assertNotSame('stale-key', $fresh->normalized_company_key);
+        $this->assertSame($expectedCompanyKey, $fresh->normalized_company_key);
+        $this->assertSame($expectedRoleKey, $fresh->normalized_role_key);
+        $this->assertNotSame('stale-hash', $fresh->role_hash);
+        $this->assertSame(
+            $hasher->hash($expectedCompanyKey, $expectedRoleKey, $fresh->location_bucket),
+            $fresh->role_hash,
+        );
     }
 
     #[Test]

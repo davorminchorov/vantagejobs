@@ -157,6 +157,37 @@ final class AggregatorOrchestratorTest extends TestCase
     }
 
     #[Test]
+    public function partial_run_sets_last_error_without_resetting_consecutive_failures(): void
+    {
+        $this->registry->register($this->fakeScraper(
+            AggregatorSourceType::REMOTIVE,
+            result: new AggregatorRunResult(
+                fetched: 100,
+                newCount: 12,
+                errors: [['message' => '3 listings failed to parse']],
+            ),
+        ));
+
+        $source = AggregatorSource::factory()->ofType(AggregatorSourceType::REMOTIVE)->create([
+            'last_error' => null,
+            'consecutive_failures' => 2,
+        ]);
+
+        $this->orchestrator->runForSource($source);
+        $source->refresh();
+
+        // A partial run must not look healthy: recordSuccess() would have
+        // cleared last_error and zeroed consecutive_failures here, which
+        // is exactly the behaviour that made a source failing every day
+        // look clean forever.
+        $this->assertSame('3 listings failed to parse', $source->last_error);
+        $this->assertSame(2, $source->consecutive_failures);
+        $this->assertNotNull($source->last_run_at);
+        $this->assertNotNull($source->next_run_at);
+        $this->assertTrue($source->next_run_at->greaterThan($source->last_run_at));
+    }
+
+    #[Test]
     public function missing_registration_also_counts_as_a_failure_on_the_source(): void
     {
         $this->app->instance(AggregatorRegistry::class, new AggregatorRegistry());

@@ -225,6 +225,36 @@ final class DedupAndVolumeCapTest extends TestCase
     }
 
     #[Test]
+    public function null_posted_at_falls_back_to_fetched_at_for_tiebreak(): void
+    {
+        $persister = $this->capPersister(trigger: 1, keep: 1);
+
+        // Same score (0) for both, so the tiebreak decides. X has no
+        // posted_at (a source that never populates it, e.g. python_org)
+        // but was fetched moments ago; Y has a real posted_at, but it's
+        // older than X's fetched_at. Without the fetched_at fallback, X's
+        // null posted_at ranks as the oldest possible timestamp regardless
+        // of freshness, so it would lose the tiebreak every time.
+        $x = $this->upsertVia($persister, $this->sourceA, 'null-posted', 'Co X', 'Role X');
+        AggregatorListing::query()->whereKey($x)->update([
+            'posted_at' => null,
+            'fetched_at' => CarbonImmutable::now(),
+        ]);
+
+        $y = $this->upsertVia($persister, $this->sourceA, 'dated-posted', 'Co Y', 'Role Y');
+        AggregatorListing::query()->whereKey($y)->update([
+            'posted_at' => CarbonImmutable::now()->subMinutes(5),
+            'fetched_at' => CarbonImmutable::now()->subMinutes(10),
+        ]);
+
+        $demoted = $persister->capRun([$x, $y]);
+
+        $this->assertSame(1, $demoted);
+        $this->assertSame(AggregatorListingStatus::NEW, AggregatorListing::query()->find($x)->status);
+        $this->assertSame(AggregatorListingStatus::OVERFLOW, AggregatorListing::query()->find($y)->status);
+    }
+
+    #[Test]
     public function cap_ignores_listings_not_in_new_status(): void
     {
         $persister = $this->capPersister(trigger: 2, keep: 1);

@@ -44,7 +44,11 @@ final readonly class ApplyCorrectionAction
         'stack_tags',
     ];
 
-    public function __construct(private AuthFactory $auth) {}
+    public function __construct(
+        private AuthFactory $auth,
+        private CompanyKeyNormalizer $normalizer,
+        private RoleHasher $hasher,
+    ) {}
 
     /**
      * Apply a correction. Returns the ParseCorrection row when one was
@@ -89,6 +93,7 @@ final readonly class ApplyCorrectionAction
             $listing->parsed = $parsed;
 
             $this->syncDenormalizedColumns($listing, $field, $newValue);
+            $this->recomputeMatchingKeys($listing);
 
             $listing->save();
 
@@ -186,6 +191,24 @@ final readonly class ApplyCorrectionAction
         if ($field === 'comp_min_usd' || $field === 'comp_max_usd') {
             $listing->has_comp = $listing->parsed_comp_min_usd !== null || $listing->parsed_comp_max_usd !== null;
         }
+    }
+
+    /**
+     * normalized_company_key, normalized_role_key, and role_hash are set
+     * once at ingest time by AggregatorListingPersister::buildAttributes()
+     * and never touched again by default — a correction that changes
+     * company_name / role_title / region must recompute them here, or
+     * dedup / auto-dismiss / auto-link / boomerang detection keep matching
+     * against a stale key forever.
+     */
+    private function recomputeMatchingKeys(AggregatorListing $listing): void
+    {
+        $companyKey = $this->normalizer->normalize($listing->parsed_company_name);
+        $roleKey = $this->normalizer->normalize($listing->parsed_role_title);
+
+        $listing->normalized_company_key = $companyKey;
+        $listing->normalized_role_key = $roleKey;
+        $listing->role_hash = $this->hasher->hash($companyKey, $roleKey, $listing->location_bucket);
     }
 
     private function valuesEqual(mixed $a, mixed $b): bool

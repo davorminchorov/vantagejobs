@@ -32,6 +32,8 @@ final readonly class ReparseAction
     public function __construct(
         private SourceContextFactory $contextFactory,
         private ParserPipeline $pipeline,
+        private CompanyKeyNormalizer $normalizer,
+        private RoleHasher $hasher,
     ) {}
 
     public function reparse(AggregatorListing $listing, bool $force = false): AggregatorListing
@@ -54,6 +56,7 @@ final readonly class ReparseAction
         $parsed = $this->pipeline->parse($context);
 
         $this->writeParsedToListing($listing, $parsed);
+        $this->recomputeMatchingKeys($listing);
         $listing->save();
 
         if (! $force) {
@@ -129,7 +132,26 @@ final readonly class ReparseAction
             $this->syncDenormalizedColumn($listing, $field, $newValue);
         }
         $listing->parsed = $parsed;
+        $this->recomputeMatchingKeys($listing);
         $listing->save();
+    }
+
+    /**
+     * normalized_company_key, normalized_role_key, and role_hash are set
+     * once at ingest time by AggregatorListingPersister::buildAttributes()
+     * and never touched again by default — a reparse or correction that
+     * changes company_name / role_title / region must recompute them here,
+     * or dedup / auto-dismiss / auto-link / boomerang detection keep
+     * matching against a stale key forever.
+     */
+    private function recomputeMatchingKeys(AggregatorListing $listing): void
+    {
+        $companyKey = $this->normalizer->normalize($listing->parsed_company_name);
+        $roleKey = $this->normalizer->normalize($listing->parsed_role_title);
+
+        $listing->normalized_company_key = $companyKey;
+        $listing->normalized_role_key = $roleKey;
+        $listing->role_hash = $this->hasher->hash($companyKey, $roleKey, $listing->location_bucket);
     }
 
     private function parsedSlotKey(string $field): string

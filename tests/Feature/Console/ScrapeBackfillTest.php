@@ -46,6 +46,30 @@ final class ScrapeBackfillTest extends TestCase
         $this->assertSame(1, Artisan::call('scrape:backfill', ['--tenant' => 'primary', '--source' => 'craigslist']));
     }
 
+    /**
+     * `--source` accepting a value that isn't a backing AggregatorSourceType
+     * case at all (e.g. "craigslist" above) already failed cleanly. This
+     * covers the other half: a value that IS a valid, seeded aggregator
+     * source type but has no backfill replay strategy implemented
+     * (ScrapeBackfillAction::backfill() only covers 5 of the 15 cases) —
+     * the command must reject it before ever calling the action, instead
+     * of letting an UnhandledMatchError escape.
+     */
+    #[Test]
+    public function rejects_a_valid_but_unsupported_source_type_cleanly(): void
+    {
+        AggregatorSource::factory()->ofType(AggregatorSourceType::JOBICY)->create();
+
+        $exit = Artisan::call('scrape:backfill', [
+            '--tenant' => 'primary',
+            '--source' => 'jobicy',
+        ]);
+
+        $this->assertSame(1, $exit);
+        $this->assertStringContainsString('Unknown or unsupported source', Artisan::output());
+        $this->assertSame(0, AggregatorListing::query()->count());
+    }
+
     #[Test]
     public function hackernews_pulls_historical_threads_via_algolia(): void
     {

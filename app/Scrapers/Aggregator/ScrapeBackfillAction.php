@@ -20,6 +20,7 @@ use App\Scrapers\Aggregator\WeWorkRemotely\WeWorkRemotelyContextBuilder;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\Filesystem\Factory as FilesystemFactory;
 use Psr\Log\LoggerInterface;
+use RuntimeException;
 use SimpleXMLElement;
 use Throwable;
 
@@ -56,6 +57,22 @@ final readonly class ScrapeBackfillAction
         private LoggerInterface $logger,
     ) {}
 
+    /**
+     * Source types with a replay strategy implemented below. Kept in sync
+     * with the match() arms so ScrapeBackfillCommand can validate --source
+     * against this exact list instead of the full AggregatorSourceType
+     * enum (which has grown well past what this class supports).
+     *
+     * @var list<AggregatorSourceType>
+     */
+    public const SUPPORTED_TYPES = [
+        AggregatorSourceType::HACKERNEWS,
+        AggregatorSourceType::REMOTIVE,
+        AggregatorSourceType::HIMALAYAS,
+        AggregatorSourceType::WEWORKREMOTELY,
+        AggregatorSourceType::REMOTEOK,
+    ];
+
     public function backfill(AggregatorSource $source, int $days): BackfillResult
     {
         return match ($source->type) {
@@ -64,6 +81,11 @@ final readonly class ScrapeBackfillAction
             AggregatorSourceType::HIMALAYAS => $this->backfillFromArtifacts($source, $days, fn (string $body) => $this->replayHimalayasBody($source, $body)),
             AggregatorSourceType::WEWORKREMOTELY => $this->backfillFromArtifacts($source, $days, fn (string $body) => $this->replayWeWorkRemotelyBody($source, $body)),
             AggregatorSourceType::REMOTEOK => $this->backfillFromArtifacts($source, $days, fn (string $body) => $this->replayRemoteOkBody($source, $body)),
+            default => throw new RuntimeException(sprintf(
+                'Backfill not implemented for source [%s]. Supported: %s.',
+                $source->type->value,
+                implode(', ', array_map(static fn (AggregatorSourceType $t) => $t->value, self::SUPPORTED_TYPES)),
+            )),
         };
     }
 

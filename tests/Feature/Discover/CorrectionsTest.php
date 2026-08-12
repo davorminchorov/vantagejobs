@@ -10,6 +10,8 @@ use App\Models\AggregatorListing;
 use App\Models\AggregatorSource;
 use App\Models\ParseCorrection;
 use App\Models\User;
+use App\Scrapers\Aggregator\CompanyKeyNormalizer;
+use App\Scrapers\Aggregator\RoleHasher;
 use App\Tenancy\Tenant;
 use App\Tenancy\TenantContext;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -136,6 +138,52 @@ final class CorrectionsTest extends TestCase
 
         $slot = $fresh->parsedField('compensation');
         $this->assertSame(180000, $slot['value']['min_usd']);
+    }
+
+    #[Test]
+    public function correcting_company_name_recomputes_normalized_key_and_role_hash(): void
+    {
+        // normalized_company_key / role_hash are set once at ingest and
+        // otherwise never touched -- a correction that changes company_name
+        // must recompute both, or the dedup / auto-dismiss / auto-link /
+        // boomerang gates keep matching against the pre-correction company.
+        $listing = AggregatorListing::factory()->create([
+            'source_id' => $this->source->id,
+            'parsed_company_name' => 'Acme Corp',
+            'parsed_role_title' => 'Backend Engineer',
+            'normalized_company_key' => 'acme',
+            'normalized_role_key' => 'backendengineer',
+            'location_bucket' => 'worldwide',
+            'role_hash' => 'stale-hash',
+            'parsed' => [
+                'company_name' => [
+                    'value' => 'Acme Corp',
+                    'confidence' => 0.7,
+                    'source' => 'inferred',
+                    'evidence' => null,
+                ],
+            ],
+        ]);
+
+        $this->actingAs($this->user)
+            ->post("/discover/{$listing->id}/corrections", [
+                'field' => 'company_name',
+                'new_value' => 'Globex Corporation',
+            ])
+            ->assertRedirect();
+
+        $fresh = $listing->fresh();
+        $normalizer = $this->app->make(CompanyKeyNormalizer::class);
+        $hasher = $this->app->make(RoleHasher::class);
+        $expectedCompanyKey = $normalizer->normalize('Globex Corporation');
+
+        $this->assertNotSame('acme', $fresh->normalized_company_key);
+        $this->assertSame($expectedCompanyKey, $fresh->normalized_company_key);
+        $this->assertNotSame('stale-hash', $fresh->role_hash);
+        $this->assertSame(
+            $hasher->hash($expectedCompanyKey, $fresh->normalized_role_key, $fresh->location_bucket),
+            $fresh->role_hash,
+        );
     }
 
     #[Test]

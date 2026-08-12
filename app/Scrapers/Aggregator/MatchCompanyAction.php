@@ -20,16 +20,42 @@ use App\Models\Company;
  * Match strategy (in order):
  *   1. Exact match on normalized key — cheap and covers 95% of cases
  *      ("Acme Corp" / "Acme, Inc." / "Acme Co" all collapse to "acme").
- *   2. Fuzzy fallback — scan every Company in tenant scope, compute Jaro-
- *      Winkler against the normalized listing key, return the highest
- *      scorer ≥ 0.85. At < 500 companies this is fine; if it ever bites,
- *      denormalize the key onto companies + index it.
+ *   2. Fuzzy fallback — scan every active Company in tenant scope, compute
+ *      Jaro-Winkler against the normalized listing key, return the highest
+ *      scorer ≥ 0.85. Skipped entirely when the normalized listing key is
+ *      shorter than MIN_FUZZY_KEY_LENGTH: short keys ("ai", "co") clear 0.85
+ *      against unrelated short company names far too easily, so only an
+ *      exact match is trusted at that length. At < 500 companies the
+ *      per-listing table scan is fine; if it ever bites, denormalize the
+ *      key onto companies + index it.
  *
  * Tenant scoping happens implicitly via BelongsToTenant on Company.
+ * Graveyarded companies (is_active = false) are excluded from candidates —
+ * auto-linking a fresh aggregator sighting to a company we've stopped
+ * tracking would just resurrect it silently.
+ *
+ * The candidate list is memoized on the instance after the first match()
+ * call. This class has no explicit container binding, so it inherits
+ * whatever lifetime its resolution chain gives it — in practice the
+ * AggregatorListingPersister that injects it is built once per scoped
+ * AggregatorRegistry resolution (see AggregatorServiceProvider), i.e. once
+ * per scrape run, so the memoized list is naturally scoped to that run and
+ * never needs an explicit reset.
  */
 final class MatchCompanyAction
 {
     public const THRESHOLD = 0.85;
+
+    /**
+     * Normalized listing keys shorter than this skip the fuzzy path
+     * entirely — only an exact key match is trusted.
+     */
+    private const MIN_FUZZY_KEY_LENGTH = 5;
+
+    /**
+     * @var list<Company>|null
+     */
+    private ?array $candidates = null;
 
     public function __construct(private readonly CompanyKeyNormalizer $normalizer) {}
 
@@ -40,13 +66,12 @@ final class MatchCompanyAction
             return null;
         }
 
-        /** @var Company[] $companies */
-        $companies = Company::query()->get(['id', 'name'])->all();
+        $allowFuzzy = mb_strlen($listingKey) >= self::MIN_FUZZY_KEY_LENGTH;
 
         $best = null;
         $bestScore = 0.0;
 
-        foreach ($companies as $company) {
+        foreach ($this->candidates() as $company) {
             $candidateKey = $this->normalizer->normalize($company->name);
             if ($candidateKey === null) {
                 continue;
@@ -54,6 +79,10 @@ final class MatchCompanyAction
 
             if ($candidateKey === $listingKey) {
                 return $company;
+            }
+
+            if (! $allowFuzzy) {
+                continue;
             }
 
             $score = $this->jaroWinkler($listingKey, $candidateKey);
@@ -64,6 +93,18 @@ final class MatchCompanyAction
         }
 
         return $bestScore >= self::THRESHOLD ? $best : null;
+    }
+
+    /**
+     * @return list<Company>
+     */
+    private function candidates(): array
+    {
+        if ($this->candidates === null) {
+            $this->candidates = Company::query()->where('is_active', true)->get(['id', 'name'])->all();
+        }
+
+        return $this->candidates;
     }
 
     /**

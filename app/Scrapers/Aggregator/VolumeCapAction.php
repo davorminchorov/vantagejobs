@@ -20,8 +20,10 @@ use App\Models\AggregatorListing;
  *   has_comp     +1
  *   is_remote    +1
  *
- * Ties broken by posted_at desc (newer first), then listing.id asc for
- * determinism.
+ * Ties broken by posted_at desc (newer first, falling back to fetched_at
+ * for sources that never populate posted_at — otherwise those sources are
+ * structurally first in line for demotion regardless of actual freshness),
+ * then listing.id asc for determinism.
  *
  * Thresholds are constructor-injected so tests can use small numbers
  * (defaults match the PRD: 200 / 50).
@@ -46,7 +48,7 @@ final readonly class VolumeCapAction
         $newListings = AggregatorListing::query()
             ->whereIn('id', $createdIds)
             ->where('status', AggregatorListingStatus::NEW->value)
-            ->get(['id', 'has_comp', 'parsed_remote_type', 'posted_at']);
+            ->get(['id', 'has_comp', 'parsed_remote_type', 'posted_at', 'fetched_at']);
 
         if ($newListings->count() <= $this->triggerThreshold) {
             return 0;
@@ -65,7 +67,7 @@ final readonly class VolumeCapAction
                 return [
                     'id' => (int) $listing->id,
                     'score' => $score,
-                    'posted_at' => $listing->posted_at?->getTimestamp() ?? 0,
+                    'posted_at' => $listing->posted_at?->getTimestamp() ?? $listing->fetched_at?->getTimestamp() ?? 0,
                 ];
             })
             ->sort(static function (array $a, array $b): int {

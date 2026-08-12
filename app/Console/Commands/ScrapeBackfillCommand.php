@@ -110,8 +110,11 @@ final class ScrapeBackfillCommand extends Command
         }
 
         $type = AggregatorSourceType::tryFrom($value);
-        if (! $type instanceof AggregatorSourceType) {
-            $this->error('Unknown source. Expected one of: '.implode(', ', array_map(static fn ($c) => $c->value, AggregatorSourceType::cases())));
+        if (! $type instanceof AggregatorSourceType || ! in_array($type, ScrapeBackfillAction::SUPPORTED_TYPES, true)) {
+            $this->error('Unknown or unsupported source. Expected one of: '.implode(
+                ', ',
+                array_map(static fn (AggregatorSourceType $c) => $c->value, ScrapeBackfillAction::SUPPORTED_TYPES),
+            ));
 
             return null;
         }

@@ -63,7 +63,7 @@ final class AggregatorAutoLinkTest extends TestCase
 
         $event = Event::query()->where('company_id', $acme->id)->sole();
         $this->assertSame(EventType::NEW_ROLE->value, $event->type);
-        $this->assertSame('Staff Engineer', $event->title);
+        $this->assertSame('Seen on aggregator: Staff Engineer', $event->title);
         $this->assertNull($event->role_id);
 
         $body = json_decode((string) $event->body, true, flags: JSON_THROW_ON_ERROR);
@@ -103,6 +103,35 @@ final class AggregatorAutoLinkTest extends TestCase
         $this->upsertListing('only-listing', companyName: 'Acme', roleTitle: 'Engineer');
 
         $listing = AggregatorListing::query()->where('external_id', 'only-listing')->firstOrFail();
+        $this->assertNull($listing->matched_company_id);
+        $this->assertSame(AggregatorListingStatus::NEW, $listing->status);
+    }
+
+    #[Test]
+    public function graveyarded_company_is_not_a_match_candidate(): void
+    {
+        Company::factory()->create(['name' => 'Acme Corp', 'is_active' => false]);
+
+        $this->upsertListing('graveyard-1', companyName: 'Acme Corp', roleTitle: 'Engineer');
+
+        $listing = AggregatorListing::query()->where('external_id', 'graveyard-1')->firstOrFail();
+        $this->assertNull($listing->matched_company_id);
+        $this->assertSame(AggregatorListingStatus::NEW, $listing->status);
+        $this->assertSame(0, Event::query()->count());
+    }
+
+    #[Test]
+    public function short_normalized_key_skips_fuzzy_match_even_above_threshold(): void
+    {
+        Company::factory()->create(['name' => 'Uber']);
+
+        // 'Ubar' normalizes to 'ubar' (4 chars, below the 5-char fuzzy
+        // floor). Jaro-Winkler('ubar', 'uber') ~= 0.867, comfortably above
+        // the 0.85 threshold -- without the length floor this would
+        // auto-link two distinct companies on a short-name near-miss.
+        $this->upsertListing('short-name-1', companyName: 'Ubar', roleTitle: 'Engineer');
+
+        $listing = AggregatorListing::query()->where('external_id', 'short-name-1')->firstOrFail();
         $this->assertNull($listing->matched_company_id);
         $this->assertSame(AggregatorListingStatus::NEW, $listing->status);
     }
