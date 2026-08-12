@@ -8,6 +8,7 @@ use App\Scrapers\Ashby\AshbyScraper;
 use App\Scrapers\Greenhouse\GreenhouseScraper;
 use App\Scrapers\Lever\LeverScraper;
 use App\Scrapers\Personio\PersonioScraper;
+use App\Scrapers\Pinpoint\PinpointScraper;
 use App\Scrapers\Recruitee\RecruiteeScraper;
 use App\Scrapers\ScraperRegistry;
 use App\Scrapers\SmartRecruiters\SmartRecruitersScraper;
@@ -34,7 +35,7 @@ final class ScraperServiceProvider extends ServiceProvider
         $this->mergeConfigFrom(__DIR__.'/../../config/scrapers.php', 'scrapers');
 
         $this->app->scoped(ScraperRegistry::class, function ($app): ScraperRegistry {
-            $registry = new ScraperRegistry();
+            $registry = new ScraperRegistry;
             $registry->register($app->make(GreenhouseScraper::class));
             $registry->register($app->make(LeverScraper::class));
             $registry->register($app->make(AshbyScraper::class));
@@ -43,6 +44,7 @@ final class ScraperServiceProvider extends ServiceProvider
             $registry->register($app->make(PersonioScraper::class));
             $registry->register($app->make(RecruiteeScraper::class));
             $registry->register($app->make(TeamtailorScraper::class));
+            $registry->register($app->make(PinpointScraper::class));
 
             return $registry;
         });

@@ -47,6 +47,8 @@ final class AtsDetector
         // is intentionally NOT auto-detected — too easily a false positive
         // (any career.* domain), so it must be set manually.
         ['type' => AtsType::TEAMTAILOR, 'regex' => '#https?://([a-z0-9_-]+)\.teamtailor\.com#i'],
+        // Pinpoint: {slug}.pinpointhq.com
+        ['type' => AtsType::PINPOINT, 'regex' => '#https?://([a-z0-9_-]+)\.pinpointhq\.com#i'],
     ];
 
     /**

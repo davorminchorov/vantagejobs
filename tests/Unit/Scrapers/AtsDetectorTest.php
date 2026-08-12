@@ -46,6 +46,10 @@ final class AtsDetectorTest extends TestCase
             // Teamtailor
             ['https://acme.teamtailor.com/jobs.rss', ['ats_type' => 'teamtailor', 'ats_slug' => 'acme']],
 
+            // Pinpoint
+            ['https://acme.pinpointhq.com/', ['ats_type' => 'pinpoint', 'ats_slug' => 'acme']],
+            ['https://acme.pinpointhq.com/postings.json', ['ats_type' => 'pinpoint', 'ats_slug' => 'acme']],
+
             ['https://example.com/careers', null],
             ['https://career.acme.com/', null],
             ['', null],
@@ -56,7 +60,7 @@ final class AtsDetectorTest extends TestCase
     #[DataProvider('urlCases')]
     public function detect_matches_known_ats_patterns(string $url, ?array $expected): void
     {
-        $detector = new AtsDetector();
+        $detector = new AtsDetector;
 
         $this->assertSame($expected, $detector->detect($url));
     }
@@ -64,6 +68,6 @@ final class AtsDetectorTest extends TestCase
     #[Test]
     public function detect_returns_null_for_null_input(): void
     {
-        $this->assertNull((new AtsDetector())->detect(null));
+        $this->assertNull((new AtsDetector)->detect(null));
     }
 }

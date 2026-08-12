@@ -623,6 +623,16 @@ These are integrated only if Phase 1+2 coverage proves insufficient. Each follow
 - **Free tier:** Generous, requires app_id/app_key registration.
 - **Coverage:** 12+ countries; useful for EU geo-discovery.
 
+## 3.9 Pinpoint
+- **Verdict:** Integrated (verified live 2026-08-12). Officially documented public JSON endpoint.
+- **Endpoint:** `GET https://{slug}.pinpointhq.com/postings.json`
+- **Docs:** https://developers.pinpointhq.com/docs/jobs-json-endpoint (replaces the deprecated `jobs.json`).
+- **Auth:** None. **Pagination:** None — single response, filter query params only.
+- **Detection:** `{slug}.pinpointhq.com`
+- **Response shape:** `{"data":[...]}`; items carry full HTML description/benefits, `workplace_type` (`remote|hybrid|onsite`), structured compensation (`compensation_minimum/maximum/currency/frequency`) gated by `compensation_visible`, department under `job.department.name`.
+- **Conditional GET:** Honours `If-None-Match` (weak ETags, verified 304). No `Last-Modified`.
+- **Gotchas:** No posted/created date field — `postedAt` is always null. `location.name` can be null; fall back to `location.city`.
+
 ---
 
 # Category 4: Signal Sources (Phase 4)
@@ -871,40 +881,26 @@ The following are documented to prevent future confusion. If something below cha
 
 # Appendix A: Scraper Interface Contract
 
-Every scraper class implements the same interface (PHP, Phase 1 onward). This is the contract Claude Code should design against:
+Every ATS scraper implements `App\Scrapers\Contracts\AtsScraperInterface`; aggregator scrapers implement `App\Scrapers\Aggregator\Contracts\AggregatorScraperInterface`. The real ATS contract (see the interface file, which is authoritative):
 
 ```php
-interface ScraperInterface
+interface AtsScraperInterface
 {
     /**
-     * Identify this scraper (e.g. 'greenhouse', 'lever', 'hn_hiring').
+     * Identify this scraper (AtsType enum case).
      */
-    public function name(): string;
+    public function name(): AtsType;
 
     /**
-     * Run the scraper for a given target (Company for ATS, AggregatorSource for aggregators).
-     * Must be idempotent: running twice produces zero new Events the second time.
-     *
-     * @return ScraperRunResult { fetched: int, new: int, closed: int, errors: array }
+     * Run the scraper for one company. Must be idempotent: running twice
+     * against the same board produces zero new Events the second time.
+     * Never throws — errors are returned as data on ScraperRunResult.
      */
-    public function run(mixed $target, Client $http): ScraperRunResult;
-
-    /**
-     * Per-source concurrency cap for the Guzzle Pool.
-     */
-    public function concurrency(): int;
-
-    /**
-     * Recommended schedule (cron expression).
-     */
-    public function schedule(): string;
+    public function run(Company $company): ScraperRunResult;
 }
 ```
 
-ATS scrapers and aggregator scrapers may need subclass differentiation:
-
-- `AtsScraperInterface extends ScraperInterface` — operates per Company, returns Role rows.
-- `AggregatorScraperInterface extends ScraperInterface` — operates per AggregatorSource, returns AggregatorListing rows.
+Each scraper builds its own Saloon connector (extending `ConfigurableConnector`, which wires retries/timeouts from `config/scrapers.php`) and diffs results through the shared `RoleDiffer`. Scheduling and concurrency live in `routes/console.php` and Horizon config, not on the scraper.
 
 ---
 
@@ -914,6 +910,7 @@ ATS scrapers and aggregator scrapers may need subclass differentiation:
 |---|---|---|
 | Greenhouse / Lever / Ashby (tracked companies) | 6 hours | Direct ATS data, want freshness |
 | Workable / Personio / Recruitee / Teamtailor | 12 hours | Lower-volume ATS |
+| Pinpoint | 12 hours | Lower-volume ATS |
 | Himalayas / Remotive / RemoteOK / WWR RSS / 4dayweek | 24 hours | Aggregator caching + ToS |
 | HN "Who is Hiring" | Monthly + day-5 | Thread posts on the 1st |
 | layoffs.fyi + TrueUp | Weekly | Negative signals don't move fast |
