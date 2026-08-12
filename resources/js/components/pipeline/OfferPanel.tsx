@@ -1,5 +1,5 @@
 import { useForm } from '@inertiajs/react';
-import { FormEvent } from 'react';
+import type { FormEvent } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -44,7 +44,6 @@ interface OfferFormValues {
 }
 
 interface OfferPanelProps {
-    roleId: number;
     offer: OfferSummary | null;
     /** Named route 'pipeline.offers.upsert' resolved by the caller via route(). */
     action: string;
@@ -65,7 +64,7 @@ function formatUsd(value: number | null | undefined): string {
     }).format(value);
 }
 
-export default function OfferPanel({ roleId, offer, action }: OfferPanelProps) {
+export default function OfferPanel({ offer, action }: OfferPanelProps) {
     const form = useForm<OfferFormValues>({
         currency: offer?.currency ?? 'USD',
         base: toField(offer?.base),

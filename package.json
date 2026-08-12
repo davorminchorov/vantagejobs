@@ -12,6 +12,7 @@
     },
     "devDependencies": {
         "@eslint/js": "^9.39.4",
+        "@inertiajs/core": "^2.3.23",
         "@tailwindcss/vite": "^4.0.0",
         "@types/node": "^25.8.0",
         "@types/react": "^19.2.14",

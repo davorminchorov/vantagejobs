@@ -23,7 +23,8 @@ use Inertia\Response;
  * key never blows up the page.
  *
  * Also surfaces a "source health" strip listing any source whose most recent
- * run failed or whose consecutive_failures counter is non-zero — per PRD §7.8:
+ * run failed or whose consecutive_failures counter is at or above the
+ * scrapers.source_health.consecutive_failure_alert threshold — per PRD §7.8:
  * "When a source is down, I should see it within one click of /admin/runs."
  */
 final readonly class IndexController
@@ -284,8 +285,12 @@ final readonly class IndexController
     {
         $health = [];
 
+        // Same alert threshold SourceHealthQuery uses so the dashboard tile
+        // and this strip always agree on which sources count as failing.
+        $failureThreshold = max(1, (int) config('scrapers.source_health.consecutive_failure_alert', 3));
+
         $sources = AggregatorSource::query()
-            ->where('consecutive_failures', '>=', 1)
+            ->where('consecutive_failures', '>=', $failureThreshold)
             ->get();
 
         foreach ($sources as $source) {

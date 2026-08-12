@@ -1,3 +1,4 @@
+import type { FormDataConvertible } from '@inertiajs/core';
 import { router, usePage } from '@inertiajs/react';
 import { useEffect, useRef, useState } from 'react';
 
@@ -103,7 +104,7 @@ export default function BulkActionBar({ entity, selectedIds, onClear, only }: Pr
         if (!pending || count === 0) {
             return;
         }
-        const data: Record<string, unknown> = {
+        const data: Record<string, FormDataConvertible> = {
             entity,
             action: pending.key,
             ids: selectedIds,

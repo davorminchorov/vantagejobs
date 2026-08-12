@@ -177,6 +177,25 @@ final class IndexTest extends TestCase
     }
 
     #[Test]
+    public function source_health_strip_ignores_sources_below_the_alert_threshold(): void
+    {
+        config()->set('scrapers.source_health.consecutive_failure_alert', 3);
+
+        AggregatorSource::factory()
+            ->ofType(AggregatorSourceType::HACKERNEWS)
+            ->create([
+                'consecutive_failures' => 2,
+                'last_error' => 'transient blip',
+                'last_run_at' => CarbonImmutable::now()->subHour(),
+            ]);
+
+        $response = $this->actingAs($this->user)->get('/admin/runs');
+
+        $response->assertOk();
+        $this->assertCount(0, $response->viewData('page')['props']['health']);
+    }
+
+    #[Test]
     public function it_exposes_trigger_options_and_active_run_count(): void
     {
         Company::factory()->create(['ats_type' => 'greenhouse', 'ats_slug' => 'gh-a']);

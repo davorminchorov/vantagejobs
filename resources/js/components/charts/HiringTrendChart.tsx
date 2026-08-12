@@ -9,6 +9,8 @@ import {
     YAxis,
 } from 'recharts';
 
+import { formatDate } from '@/lib/dates';
+
 interface TrendPoint {
     date: string;
     open_role_count: number;
@@ -62,7 +64,7 @@ export default function HiringTrendChart({ data, showListings = true, height = 2
                 <Tooltip
                     contentStyle={{ fontSize: 12 }}
                     wrapperClassName="rounded-md border border-border bg-card text-card-foreground tabular-nums shadow-sm"
-                    labelFormatter={(d: string) => new Date(d).toLocaleDateString()}
+                    labelFormatter={(label) => formatDate(String(label))}
                 />
                 <Legend wrapperStyle={{ fontSize: 12 }} />
                 <Line

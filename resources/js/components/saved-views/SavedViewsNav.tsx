@@ -46,7 +46,8 @@ function buildHref(entity: SharedSavedView['entity'], filters: Record<string, un
 
 export default function SavedViewsNav({ variant = 'rail', onNavigate }: SavedViewsNavProps) {
     const page = usePage<PageProps>();
-    const savedViews = page.props.savedViews ?? [];
+    const savedViewsProp = page.props.savedViews;
+    const savedViews = useMemo(() => savedViewsProp ?? [], [savedViewsProp]);
 
     const grouped = useMemo(() => {
         const byEntity: Record<string, SharedSavedView[]> = {};

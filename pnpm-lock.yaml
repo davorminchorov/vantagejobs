@@ -66,6 +66,9 @@ importers:
       '@eslint/js':
         specifier: ^9.39.4
         version: 9.39.4
+      '@inertiajs/core':
+        specifier: ^2.3.23
+        version: 2.3.23
       '@tailwindcss/vite':
         specifier: ^4.0.0
         version: 4.3.0(vite@8.0.13(@types/node@25.9.0)(jiti@2.7.0))

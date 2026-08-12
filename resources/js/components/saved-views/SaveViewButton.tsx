@@ -1,3 +1,4 @@
+import type { FormDataConvertible } from '@inertiajs/core';
 import { router } from '@inertiajs/react';
 import { useState } from 'react';
 
@@ -15,7 +16,7 @@ import { Input } from '@/components/ui/input';
 
 interface SaveViewButtonProps {
     readonly entity: 'companies' | 'roles' | 'discover';
-    readonly filters: Record<string, unknown>;
+    readonly filters: Record<string, FormDataConvertible>;
     readonly disabled?: boolean;
 }
 

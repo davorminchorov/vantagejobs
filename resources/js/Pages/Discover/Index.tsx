@@ -81,6 +81,9 @@ type EditableField =
     | 'comp_max_usd'
     | 'stack_tags';
 
+/** Values the inline correction editor can produce for any editable field. */
+type CorrectionValue = string | number | string[] | null;
+
 const VISIBLE_STATUS_TABS = ['new', 'kept', 'snoozed', 'dismissed'] as const;
 const MORE_STATUS_TABS = ['linked', 'auto_dismissed', 'overflow', 'duplicate'] as const;
 
@@ -221,7 +224,7 @@ export default function DiscoverIndex({ listings, filters, options }: Props) {
         );
     }
 
-    function saveCorrection(listing: Listing, field: EditableField, newValue: unknown) {
+    function saveCorrection(listing: Listing, field: EditableField, newValue: CorrectionValue) {
         router.post(
             `/discover/${listing.id}/corrections`,
             { field, new_value: newValue },
@@ -427,7 +430,7 @@ interface ListingCardProps {
     onAction: (verb: 'keep' | 'dismiss' | 'snooze' | 'bookmark') => void;
     onEdit: (field: EditableField) => void;
     onCancelEdit: () => void;
-    onSave: (field: EditableField, value: unknown) => void;
+    onSave: (field: EditableField, value: CorrectionValue) => void;
     onSaveFixture: () => void;
     onReparse: (force: boolean) => void;
     ref?: React.Ref<HTMLDivElement>;
@@ -789,7 +792,7 @@ interface CorrectionEditorProps {
     listing: Listing;
     field: EditableField;
     debug: boolean;
-    onSave: (value: unknown) => void;
+    onSave: (value: CorrectionValue) => void;
     onCancel: () => void;
     onSaveFixture: () => void;
 }
@@ -797,7 +800,7 @@ interface CorrectionEditorProps {
 function CorrectionEditor({ listing, field, debug, onSave, onCancel, onSaveFixture }: CorrectionEditorProps) {
     const slot = listing.parsed?.[PARSED_SLOT_FOR_FIELD[field]] ?? null;
     const currentValue = currentValueFor(listing, field);
-    const [value, setValue] = useState<unknown>(currentValue);
+    const [value, setValue] = useState<CorrectionValue>(currentValue);
     const [showRaw, setShowRaw] = useState(false);
 
     function submit(e: FormEvent<HTMLFormElement>) {
@@ -867,8 +870,8 @@ function FieldInput({
     onChange,
 }: {
     field: EditableField;
-    value: unknown;
-    onChange: (v: unknown) => void;
+    value: CorrectionValue;
+    onChange: (v: CorrectionValue) => void;
 }) {
     if (field === 'remote_type') {
         return (
@@ -930,7 +933,7 @@ function hostnameFromUrl(url: string): string {
     }
 }
 
-function currentValueFor(listing: Listing, field: EditableField): unknown {
+function currentValueFor(listing: Listing, field: EditableField): CorrectionValue {
     switch (field) {
         case 'company_name':
             return listing.parsed_company_name ?? '';

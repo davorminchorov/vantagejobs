@@ -192,7 +192,6 @@ export default function ShowRolePage({ role, contacts, options }: Props) {
                     <TabsContent value="offer">
                         <div className="space-y-6">
                             <OfferPanel
-                                roleId={role.id}
                                 offer={role.offer}
                                 action={`/pipeline/roles/${role.id}/offer`}
                             />
