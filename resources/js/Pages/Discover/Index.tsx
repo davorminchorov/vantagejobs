@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
+import { RelativeDate } from '@/lib/dates';
 import { cn } from '@/lib/utils';
 import type { PageProps } from '@/types';
 
@@ -679,6 +680,11 @@ function ListingRow({
                             revealed={isFocused}
                             onEdit={onEdit}
                         />
+                        {listing.posted_at !== null && (
+                            <span className="whitespace-nowrap text-muted-foreground/70">
+                                posted <RelativeDate iso={listing.posted_at} />
+                            </span>
+                        )}
                         {listing.stack_tags && listing.stack_tags.length > 0 && (
                             <div
                                 className="focus-visible:ring-ring flex flex-wrap items-center gap-1 rounded focus-visible:outline-none focus-visible:ring-2"

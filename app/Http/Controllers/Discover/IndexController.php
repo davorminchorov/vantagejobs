@@ -28,7 +28,9 @@ final readonly class IndexController
             ->where('status', $filters['status']);
 
         $listings = $query
-            ->orderByDesc('posted_at')
+            // Postgres sorts DESC with NULLS FIRST by default, which would
+            // bury every dated listing under the undated backlog.
+            ->orderByRaw('posted_at DESC NULLS LAST')
             ->orderByDesc('id')
             ->paginate(25)
             ->withQueryString();

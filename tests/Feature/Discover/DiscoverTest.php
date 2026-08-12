@@ -62,6 +62,14 @@ final class DiscoverTest extends TestCase
             'status' => AggregatorListingStatus::NEW,
             'posted_at' => CarbonImmutable::now()->subDay(),
         ]);
+        // undated NEW — must sort after every dated listing (NULLS LAST),
+        // not float to the top as Postgres would by default on DESC.
+        AggregatorListing::factory()->create([
+            'source_id' => $this->hackerNews->id,
+            'external_id' => 'undated',
+            'status' => AggregatorListingStatus::NEW,
+            'posted_at' => null,
+        ]);
         // dismissed — must not appear
         AggregatorListing::factory()->create([
             'source_id' => $this->hackerNews->id,
@@ -73,9 +81,10 @@ final class DiscoverTest extends TestCase
 
         $response->assertOk();
         $props = $response->viewData('page')['props'];
-        $this->assertCount(2, $props['listings']['data']);
+        $this->assertCount(3, $props['listings']['data']);
         $this->assertSame('b', $props['listings']['data'][0]['external_id']);
         $this->assertSame('a', $props['listings']['data'][1]['external_id']);
+        $this->assertSame('undated', $props['listings']['data'][2]['external_id']);
         $this->assertSame('new', $props['filters']['status']);
     }
 
