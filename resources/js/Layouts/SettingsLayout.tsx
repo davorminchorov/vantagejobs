@@ -29,6 +29,11 @@ const navSections: SettingsNavSection[] = [
         label: 'Notifications',
         items: [
             { title: 'Notifications', href: '/settings/notifications', routeName: 'settings.notifications' },
+        ],
+    },
+    {
+        label: 'Sources & triage',
+        items: [
             { title: 'Triage', href: '/settings/triage', routeName: 'settings.triage' },
             { title: 'Sources', href: '/discover/sources', routeName: 'discover.sources.index' },
         ],

@@ -113,17 +113,29 @@ export default function DashboardPage({
                         <div className="rounded-3xl border border-border bg-card p-8 shadow-xl shadow-black/5">
                             <h2 className="text-xl font-semibold tracking-tight">Welcome to VantageJobs</h2>
                             <p className="mt-2 text-sm text-muted-foreground">
-                                Phase 0 is shipped. To populate the seeded starter list of 10 companies, run:
+                                Add a company to start tracking its roles, or bulk import a list to get going
+                                faster.
                             </p>
-                            <pre className="mt-4 overflow-x-auto rounded-xl bg-zinc-900 p-4 font-mono text-xs text-zinc-100 dark:bg-black/50">
-                                spin exec -T php php artisan db:seed --class=ExampleCompaniesSeeder
-                            </pre>
-                            <Link
-                                href="/settings/profile"
-                                className="mt-6 inline-block rounded-full bg-teal-600 px-6 py-2.5 text-sm font-semibold text-white shadow-lg shadow-teal-600/25 transition-transform hover:-translate-y-0.5"
-                            >
-                                Review settings
-                            </Link>
+                            <div className="mt-6 flex flex-wrap items-center gap-3">
+                                <Link
+                                    href="/companies/create"
+                                    className="rounded-full bg-teal-600 px-6 py-2.5 text-sm font-semibold text-white shadow-lg shadow-teal-600/25 transition-transform hover:-translate-y-0.5"
+                                >
+                                    Add company
+                                </Link>
+                                <Link
+                                    href="/import"
+                                    className="rounded-full border border-input px-6 py-2.5 text-sm font-semibold text-foreground shadow-sm transition-transform hover:-translate-y-0.5 hover:bg-accent"
+                                >
+                                    Bulk import
+                                </Link>
+                                <Link
+                                    href="/settings/profile"
+                                    className="text-sm font-semibold text-teal-700 hover:underline dark:text-teal-300"
+                                >
+                                    Review settings
+                                </Link>
+                            </div>
                         </div>
                     ) : (
                         <>

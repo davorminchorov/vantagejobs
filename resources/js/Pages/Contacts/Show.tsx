@@ -192,9 +192,9 @@ export default function ContactShowPage({ contact, outreach, templates, channels
 
 function DetailRow({ label, children }: { label: string; children: React.ReactNode }) {
     return (
-        <div className="flex items-baseline justify-between gap-4">
+        <div className="flex flex-col gap-0.5 sm:grid sm:grid-cols-[10rem_1fr] sm:items-baseline">
             <span className="font-mono text-xs uppercase tracking-wide text-muted-foreground">{label}</span>
-            <span className="text-right">{children}</span>
+            <span>{children}</span>
         </div>
     );
 }

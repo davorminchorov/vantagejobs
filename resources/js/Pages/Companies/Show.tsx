@@ -467,9 +467,10 @@ function RolesTable({
                                                     <span className="font-mono text-xs text-muted-foreground">{role.source}</span>
                                                 </TableCell>
                                                 <TableCell>
-                                                    <span className="font-mono text-xs tabular-nums text-muted-foreground">
-                                                        {role.last_seen_at ? new Date(role.last_seen_at).toLocaleDateString() : '—'}
-                                                    </span>
+                                                    <RelativeDate
+                                                        iso={role.last_seen_at}
+                                                        className="font-mono text-xs tabular-nums text-muted-foreground"
+                                                    />
                                                 </TableCell>
                                                 <TableCell className="text-right">
                                                     {role.is_open ? (
