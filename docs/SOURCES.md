@@ -641,6 +641,14 @@ These are integrated only if Phase 1+2 coverage proves insufficient. Each follow
 - **Response shape:** list items carry `id`, `jobOpeningName`, `departmentLabel`, `employmentStatusLabel`, `location.{city,state}`, `atsLocation`, `isRemote`, `locationType`. No description and no posted date — `postedAt` is null; job URL is constructed as `https://{slug}.bamboohr.com/careers/{id}`.
 - **Gotchas:** Invalid subdomains 302-redirect to the `www.bamboohr.com` marketing site — the connector disables redirect following and the scraper maps 3xx to a slug-not-found error (`http_status: 404`) so redetect health tracking engages. `isRemote` is null on every posting observed live; `locationType === "1"` correlates with no-fixed-city roles and is treated as a remote signal.
 
+## 3.11 Rippling
+- **Verdict:** Integrated (verified live 2026-08-12). Public board API, no auth.
+- **Endpoint:** `GET https://ats.rippling.com/api/v2/board/{slug}/jobs?page={n}&pageSize=100`
+- **Auth:** None. **Pagination:** zero-based `page` with `totalPages` metadata; 10-page safety cap with truncation reporting.
+- **Detection:** `ats.rippling.com/{slug}/jobs` (board pages) or the API path itself.
+- **Response shape:** `{"items":[...]}`; items carry uuid `id`, `name`, `url`, `department.name`, structured `locations[].{name,country,countryCode}`. No comp fields, no posted date.
+- **Gotchas:** No ETag/Last-Modified observed live — conditional-GET plumbing is forward-compatible only. Board slugs often end in `-job-board` (e.g. `cars-and-bids-job-board`).
+
 ---
 
 # Category 4: Signal Sources (Phase 4)
@@ -918,7 +926,7 @@ Each scraper builds its own Saloon connector (extending `ConfigurableConnector`,
 |---|---|---|
 | Greenhouse / Lever / Ashby (tracked companies) | 6 hours | Direct ATS data, want freshness |
 | Workable / Personio / Recruitee / Teamtailor | 12 hours | Lower-volume ATS |
-| Pinpoint / BambooHR | 12 hours | Lower-volume ATS |
+| Pinpoint / BambooHR / Rippling | 12 hours | Lower-volume ATS |
 | Himalayas / Remotive / RemoteOK / WWR RSS / 4dayweek | 24 hours | Aggregator caching + ToS |
 | HN "Who is Hiring" | Monthly + day-5 | Thread posts on the 1st |
 | layoffs.fyi + TrueUp | Weekly | Negative signals don't move fast |

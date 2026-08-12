@@ -52,6 +52,10 @@ final class AtsDetector
         // BambooHR: {slug}.bamboohr.com. www is the marketing site, never a
         // board (invalid slugs 302-redirect there), so it's excluded.
         ['type' => AtsType::BAMBOOHR, 'regex' => '#https?://(?!www\.)([a-z0-9_-]+)\.bamboohr\.com#i'],
+        // Rippling: the API form must precede the generic path catch-all so
+        // "api" is never mistaken for a board slug.
+        ['type' => AtsType::RIPPLING, 'regex' => '#ats\.rippling\.com/api/v[0-9]+/board/([a-z0-9_-]+)#i'],
+        ['type' => AtsType::RIPPLING, 'regex' => '#ats\.rippling\.com/([a-z0-9_-]+)#i'],
     ];
 
     /**

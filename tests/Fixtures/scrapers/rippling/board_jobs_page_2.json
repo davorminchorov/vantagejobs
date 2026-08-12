@@ -1,0 +1,26 @@
+{
+  "items": [
+    {
+      "id": "22222222-2222-2222-2222-222222222003",
+      "name": "People Operations Partner",
+      "url": "https://ats.rippling.com/acme/jobs/22222222-2222-2222-2222-222222222003",
+      "department": { "name": "People" },
+      "locations": [
+        {
+          "name": "Chicago, IL",
+          "country": "United States",
+          "countryCode": "US",
+          "state": "Illinois",
+          "stateCode": "IL",
+          "city": "Chicago",
+          "workplaceType": "ON_SITE"
+        }
+      ],
+      "language": "en-US"
+    }
+  ],
+  "page": 1,
+  "pageSize": 100,
+  "totalItems": 3,
+  "totalPages": 2
+}

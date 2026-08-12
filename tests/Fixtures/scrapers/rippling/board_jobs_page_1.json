@@ -1,0 +1,44 @@
+{
+  "items": [
+    {
+      "id": "22222222-2222-2222-2222-222222222001",
+      "name": "Account Executive",
+      "url": "https://ats.rippling.com/acme/jobs/22222222-2222-2222-2222-222222222001",
+      "department": { "name": "Sales" },
+      "locations": [
+        {
+          "name": "Austin, TX",
+          "country": "United States",
+          "countryCode": "US",
+          "state": "Texas",
+          "stateCode": "TX",
+          "city": "Austin",
+          "workplaceType": "ON_SITE"
+        }
+      ],
+      "language": "en-US"
+    },
+    {
+      "id": "22222222-2222-2222-2222-222222222002",
+      "name": "Senior Backend Engineer",
+      "url": "https://ats.rippling.com/acme/jobs/22222222-2222-2222-2222-222222222002",
+      "department": { "name": "Engineering" },
+      "locations": [
+        {
+          "name": "Remote (United States)",
+          "country": "United States",
+          "countryCode": "US",
+          "state": null,
+          "stateCode": null,
+          "city": null,
+          "workplaceType": "REMOTE"
+        }
+      ],
+      "language": "en-US"
+    }
+  ],
+  "page": 0,
+  "pageSize": 100,
+  "totalItems": 3,
+  "totalPages": 2
+}

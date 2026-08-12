@@ -1,0 +1,62 @@
+{
+  "items": [
+    {
+      "id": "11111111-1111-1111-1111-111111111001",
+      "name": "Business Operations Manager",
+      "url": "https://ats.rippling.com/acme/jobs/11111111-1111-1111-1111-111111111001",
+      "department": { "name": "Bizops" },
+      "locations": [
+        {
+          "name": "San Francisco, CA",
+          "country": "United States",
+          "countryCode": "US",
+          "state": "California",
+          "stateCode": "CA",
+          "city": "San Francisco",
+          "workplaceType": "ON_SITE"
+        }
+      ],
+      "language": "en-US"
+    },
+    {
+      "id": "11111111-1111-1111-1111-111111111002",
+      "name": "Staff Product Designer",
+      "url": "https://ats.rippling.com/acme/jobs/11111111-1111-1111-1111-111111111002",
+      "department": { "name": "Design" },
+      "locations": [
+        {
+          "name": "New York, NY",
+          "country": "United States",
+          "countryCode": "US",
+          "state": "New York",
+          "stateCode": "NY",
+          "city": "New York",
+          "workplaceType": "ON_SITE"
+        }
+      ],
+      "language": "en-US"
+    },
+    {
+      "id": "11111111-1111-1111-1111-111111111003",
+      "name": "Engineering Manager, Platform",
+      "url": "https://ats.rippling.com/acme/jobs/11111111-1111-1111-1111-111111111003",
+      "department": { "name": "Engineering" },
+      "locations": [
+        {
+          "name": "Remote (United States)",
+          "country": "United States",
+          "countryCode": "US",
+          "state": null,
+          "stateCode": null,
+          "city": null,
+          "workplaceType": "REMOTE"
+        }
+      ],
+      "language": "en-US"
+    }
+  ],
+  "page": 0,
+  "pageSize": 100,
+  "totalItems": 3,
+  "totalPages": 1
+}

@@ -54,6 +54,11 @@ final class AtsDetectorTest extends TestCase
             ['https://acme.bamboohr.com/careers', ['ats_type' => 'bamboohr', 'ats_slug' => 'acme']],
             ['https://www.bamboohr.com/careers/', null],
 
+            // Rippling
+            ['https://ats.rippling.com/acme/jobs', ['ats_type' => 'rippling', 'ats_slug' => 'acme']],
+            ['https://ats.rippling.com/acme-job-board/jobs/f8e316a0', ['ats_type' => 'rippling', 'ats_slug' => 'acme-job-board']],
+            ['https://ats.rippling.com/api/v2/board/acme/jobs', ['ats_type' => 'rippling', 'ats_slug' => 'acme']],
+
             ['https://example.com/careers', null],
             ['https://career.acme.com/', null],
             ['', null],

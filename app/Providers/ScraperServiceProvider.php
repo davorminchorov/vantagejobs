@@ -11,6 +11,7 @@ use App\Scrapers\Lever\LeverScraper;
 use App\Scrapers\Personio\PersonioScraper;
 use App\Scrapers\Pinpoint\PinpointScraper;
 use App\Scrapers\Recruitee\RecruiteeScraper;
+use App\Scrapers\Rippling\RipplingScraper;
 use App\Scrapers\ScraperRegistry;
 use App\Scrapers\SmartRecruiters\SmartRecruitersScraper;
 use App\Scrapers\Teamtailor\TeamtailorScraper;
@@ -47,6 +48,7 @@ final class ScraperServiceProvider extends ServiceProvider
             $registry->register($app->make(TeamtailorScraper::class));
             $registry->register($app->make(PinpointScraper::class));
             $registry->register($app->make(BambooHrScraper::class));
+            $registry->register($app->make(RipplingScraper::class));
 
             return $registry;
         });
