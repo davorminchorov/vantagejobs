@@ -49,6 +49,9 @@ final class AtsDetector
         ['type' => AtsType::TEAMTAILOR, 'regex' => '#https?://([a-z0-9_-]+)\.teamtailor\.com#i'],
         // Pinpoint: {slug}.pinpointhq.com
         ['type' => AtsType::PINPOINT, 'regex' => '#https?://([a-z0-9_-]+)\.pinpointhq\.com#i'],
+        // BambooHR: {slug}.bamboohr.com. www is the marketing site, never a
+        // board (invalid slugs 302-redirect there), so it's excluded.
+        ['type' => AtsType::BAMBOOHR, 'regex' => '#https?://(?!www\.)([a-z0-9_-]+)\.bamboohr\.com#i'],
     ];
 
     /**

@@ -15,4 +15,5 @@ enum AtsType: string
     case RECRUITEE = 'recruitee';
     case TEAMTAILOR = 'teamtailor';
     case PINPOINT = 'pinpoint';
+    case BAMBOOHR = 'bamboohr';
 }

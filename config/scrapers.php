@@ -122,6 +122,12 @@ return [
             'retry_times' => 3,
             'retry_sleep_ms' => 1000,
         ],
+        'bamboohr' => [
+            'timeout' => 15,
+            'connect_timeout' => 5,
+            'retry_times' => 3,
+            'retry_sleep_ms' => 1000,
+        ],
     ],
 
     /*

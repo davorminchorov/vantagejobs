@@ -110,7 +110,7 @@ const QUICK_CHIPS: ReadonlyArray<QuickChip> = [
     { key: 'a-tier', label: 'A-tier', filters: { tier: ['A'] } },
     { key: 'has-open-roles', label: 'Hiring now', filters: { has_open_roles: true } },
     { key: 'stale-7d', label: 'Stale > 7d', filters: { last_checked: 'older_than_30d' } },
-    { key: 'ats-detected', label: 'ATS detected', filters: { ats_type: ['greenhouse', 'lever', 'ashby', 'pinpoint'] } },
+    { key: 'ats-detected', label: 'ATS detected', filters: { ats_type: ['greenhouse', 'lever', 'ashby', 'pinpoint', 'bamboohr'] } },
     { key: 'recently-funded', label: 'Funded in last 18mo', filters: { recently_funded: true } },
 ];
 

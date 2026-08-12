@@ -1,0 +1,41 @@
+{
+  "meta": { "totalCount": 3 },
+  "result": [
+    {
+      "id": "343",
+      "jobOpeningName": "Workshop Technician",
+      "departmentId": null,
+      "departmentLabel": "Operations",
+      "employmentStatusLabel": "Full-Time",
+      "employmentType": null,
+      "location": { "city": "Stavanger", "state": null },
+      "atsLocation": { "country": null, "state": null, "province": null, "city": null },
+      "isRemote": null,
+      "locationType": "0"
+    },
+    {
+      "id": "348",
+      "jobOpeningName": "Senior Tooling Technician",
+      "departmentId": null,
+      "departmentLabel": "Operations",
+      "employmentStatusLabel": "Full-Time",
+      "employmentType": null,
+      "location": { "city": "Houston", "state": "Texas" },
+      "atsLocation": { "country": null, "state": null, "province": null, "city": null },
+      "isRemote": null,
+      "locationType": "0"
+    },
+    {
+      "id": "356",
+      "jobOpeningName": "Offshore ROV Tooling Technician",
+      "departmentId": null,
+      "departmentLabel": null,
+      "employmentStatusLabel": "Full-Time",
+      "employmentType": null,
+      "location": { "city": null, "state": null },
+      "atsLocation": { "country": "United Kingdom", "state": null, "province": null, "city": null },
+      "isRemote": null,
+      "locationType": "1"
+    }
+  ]
+}

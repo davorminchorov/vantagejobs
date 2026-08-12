@@ -50,6 +50,10 @@ final class AtsDetectorTest extends TestCase
             ['https://acme.pinpointhq.com/', ['ats_type' => 'pinpoint', 'ats_slug' => 'acme']],
             ['https://acme.pinpointhq.com/postings.json', ['ats_type' => 'pinpoint', 'ats_slug' => 'acme']],
 
+            // BambooHR
+            ['https://acme.bamboohr.com/careers', ['ats_type' => 'bamboohr', 'ats_slug' => 'acme']],
+            ['https://www.bamboohr.com/careers/', null],
+
             ['https://example.com/careers', null],
             ['https://career.acme.com/', null],
             ['', null],

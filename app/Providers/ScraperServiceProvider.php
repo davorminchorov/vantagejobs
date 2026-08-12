@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Providers;
 
 use App\Scrapers\Ashby\AshbyScraper;
+use App\Scrapers\BambooHr\BambooHrScraper;
 use App\Scrapers\Greenhouse\GreenhouseScraper;
 use App\Scrapers\Lever\LeverScraper;
 use App\Scrapers\Personio\PersonioScraper;
@@ -45,6 +46,7 @@ final class ScraperServiceProvider extends ServiceProvider
             $registry->register($app->make(RecruiteeScraper::class));
             $registry->register($app->make(TeamtailorScraper::class));
             $registry->register($app->make(PinpointScraper::class));
+            $registry->register($app->make(BambooHrScraper::class));
 
             return $registry;
         });

@@ -633,6 +633,14 @@ These are integrated only if Phase 1+2 coverage proves insufficient. Each follow
 - **Conditional GET:** Honours `If-None-Match` (weak ETags, verified 304). No `Last-Modified`.
 - **Gotchas:** No posted/created date field — `postedAt` is always null. `location.name` can be null; fall back to `location.city`.
 
+## 3.10 BambooHR
+- **Verdict:** Integrated (verified live 2026-08-12). Undocumented but widely used public careers JSON.
+- **Endpoint:** `GET https://{slug}.bamboohr.com/careers/list`
+- **Auth:** None. **Pagination:** None — single response (`{"meta":{"totalCount":N},"result":[...]}`).
+- **Detection:** `{slug}.bamboohr.com` (excluding `www`).
+- **Response shape:** list items carry `id`, `jobOpeningName`, `departmentLabel`, `employmentStatusLabel`, `location.{city,state}`, `atsLocation`, `isRemote`, `locationType`. No description and no posted date — `postedAt` is null; job URL is constructed as `https://{slug}.bamboohr.com/careers/{id}`.
+- **Gotchas:** Invalid subdomains 302-redirect to the `www.bamboohr.com` marketing site — the connector disables redirect following and the scraper maps 3xx to a slug-not-found error (`http_status: 404`) so redetect health tracking engages. `isRemote` is null on every posting observed live; `locationType === "1"` correlates with no-fixed-city roles and is treated as a remote signal.
+
 ---
 
 # Category 4: Signal Sources (Phase 4)
@@ -910,7 +918,7 @@ Each scraper builds its own Saloon connector (extending `ConfigurableConnector`,
 |---|---|---|
 | Greenhouse / Lever / Ashby (tracked companies) | 6 hours | Direct ATS data, want freshness |
 | Workable / Personio / Recruitee / Teamtailor | 12 hours | Lower-volume ATS |
-| Pinpoint | 12 hours | Lower-volume ATS |
+| Pinpoint / BambooHR | 12 hours | Lower-volume ATS |
 | Himalayas / Remotive / RemoteOK / WWR RSS / 4dayweek | 24 hours | Aggregator caching + ToS |
 | HN "Who is Hiring" | Monthly + day-5 | Thread posts on the 1st |
 | layoffs.fyi + TrueUp | Weekly | Negative signals don't move fast |
