@@ -18,4 +18,5 @@ enum AtsType: string
     case BAMBOOHR = 'bamboohr';
     case RIPPLING = 'rippling';
     case GEM = 'gem';
+    case WORKDAY = 'workday';
 }

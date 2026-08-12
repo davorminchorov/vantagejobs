@@ -63,6 +63,12 @@ final class AtsDetectorTest extends TestCase
             ['https://jobs.gem.com/acme', ['ats_type' => 'gem', 'ats_slug' => 'acme']],
             ['https://api.gem.com/job_board/v0/acme/job_posts/', ['ats_type' => 'gem', 'ats_slug' => 'acme']],
 
+            // Workday: two-part identity (tenant/site) plus the pod host.
+            // The site segment is case-sensitive and preserved as-is.
+            ['https://nvidia.wd5.myworkdayjobs.com/NVIDIAExternalCareerSite', ['ats_type' => 'workday', 'ats_slug' => 'nvidia/NVIDIAExternalCareerSite', 'ats_host' => 'nvidia.wd5.myworkdayjobs.com']],
+            ['https://acme.wd1.myworkdayjobs.com/en-US/External/job/Somewhere/Engineer_JR1', ['ats_type' => 'workday', 'ats_slug' => 'acme/External', 'ats_host' => 'acme.wd1.myworkdayjobs.com']],
+            ['https://acme.wd12.myworkdayjobs.com/wday/cxs/acme/External/jobs', ['ats_type' => 'workday', 'ats_slug' => 'acme/External', 'ats_host' => 'acme.wd12.myworkdayjobs.com']],
+
             ['https://example.com/careers', null],
             ['https://career.acme.com/', null],
             ['', null],

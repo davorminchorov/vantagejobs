@@ -1,0 +1,26 @@
+{
+  "total": 3,
+  "jobPostings": [
+    {
+      "title": "Chip Design Engineer",
+      "externalPath": "/job/Israel-Yokneam/Chip-Design-Engineer_JR2020627",
+      "locationsText": "2 Locations",
+      "postedOn": "Posted Today",
+      "bulletFields": ["JR2020627"]
+    },
+    {
+      "title": "Senior AI Product Engineer",
+      "externalPath": "/job/US-CA-Santa-Clara/Senior-AI-Product-Engineer_JR2023102",
+      "locationsText": "US, CA, Santa Clara",
+      "postedOn": "Posted Yesterday",
+      "bulletFields": ["JR2023102"]
+    },
+    {
+      "title": "Senior HPC Performance Engineer",
+      "externalPath": "/job/Germany-Remote/Senior-HPC-Performance-Engineer_JR2001201",
+      "locationsText": "Germany, Remote",
+      "postedOn": "Posted 5 Days Ago",
+      "bulletFields": ["JR2001201"]
+    }
+  ]
+}

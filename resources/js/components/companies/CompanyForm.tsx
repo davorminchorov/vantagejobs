@@ -14,6 +14,7 @@ export interface CompanyFormValues {
     domain: string;
     ats_type: string;
     ats_slug: string;
+    ats_host: string;
     tier: string;
     status: string;
 }
@@ -40,6 +41,7 @@ const EMPTY: CompanyFormValues = {
     domain: '',
     ats_type: '',
     ats_slug: '',
+    ats_host: '',
     tier: 'C',
     status: 'researching',
 };
@@ -93,12 +95,17 @@ export default function CompanyForm({ mode, initial, options, action, method = '
                     return;
                 }
 
-                const body = (await response.json()) as { detected: { ats_type: string; ats_slug: string } | null };
+                const body = (await response.json()) as {
+                    detected: { ats_type: string; ats_slug: string; ats_host?: string } | null;
+                };
                 if (body.detected) {
                     form.setData((prev) => ({
                         ...prev,
                         ats_type: prev.ats_type || body.detected!.ats_type,
                         ats_slug: prev.ats_slug || body.detected!.ats_slug,
+                        // Workday careers URLs also carry the numbered pod
+                        // host; storing it saves the scraper a probing pass.
+                        ats_host: prev.ats_host || (body.detected!.ats_host ?? ''),
                     }));
                     setDetectionHint(`Detected ${body.detected.ats_type} (slug: ${body.detected.ats_slug})`);
                 } else {

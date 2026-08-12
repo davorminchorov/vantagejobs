@@ -24,6 +24,7 @@ final class UpdateCompanyRequest extends FormRequest
             'domain' => ['nullable', 'string', 'max:255'],
             'ats_type' => ['nullable', Rule::in($atsValues)],
             'ats_slug' => ['nullable', 'string', 'max:255', 'required_with:ats_type'],
+            'ats_host' => ['nullable', 'string', 'max:255'],
             'tier' => ['required', Rule::in(['A', 'B', 'C', 'graveyard'])],
             'status' => ['required', Rule::in(['researching', 'watching', 'applied', 'in_process', 'rejected', 'offer', 'passed'])],
         ];

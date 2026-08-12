@@ -17,6 +17,7 @@ use App\Scrapers\ScraperRegistry;
 use App\Scrapers\SmartRecruiters\SmartRecruitersScraper;
 use App\Scrapers\Teamtailor\TeamtailorScraper;
 use App\Scrapers\Workable\WorkableScraper;
+use App\Scrapers\Workday\WorkdayScraper;
 use Illuminate\Support\ServiceProvider;
 
 /**
@@ -51,6 +52,7 @@ final class ScraperServiceProvider extends ServiceProvider
             $registry->register($app->make(BambooHrScraper::class));
             $registry->register($app->make(RipplingScraper::class));
             $registry->register($app->make(GemScraper::class));
+            $registry->register($app->make(WorkdayScraper::class));
 
             return $registry;
         });

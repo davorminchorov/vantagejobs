@@ -63,12 +63,40 @@ final class AtsDetector
     ];
 
     /**
-     * @return ?array{ats_type: string, ats_slug: string}
+     * Workday identity is two-part (tenant + site) and additionally carries a
+     * numbered pod host that is not derivable from either, so it bypasses the
+     * single-capture PATTERNS table: ats_slug is packed as "tenant/site" and
+     * the pod host is returned as ats_host so the scraper can skip probing.
+     * The site segment is case-sensitive on Workday's side and is preserved
+     * as-is; the CXS API form must be tried first so "wday" is never
+     * mistaken for a site name.
+     *
+     * @var list<string>
+     */
+    private const WORKDAY_PATTERNS = [
+        '#https?://([a-z0-9_-]+)\.(wd[0-9]+)\.myworkdayjobs\.com/wday/cxs/[a-z0-9_-]+/([A-Za-z0-9_-]+)#i',
+        '#https?://([a-z0-9_-]+)\.(wd[0-9]+)\.myworkdayjobs\.com/(?:[a-z]{2}-[A-Z]{2}/)?([A-Za-z0-9_-]+)#i',
+    ];
+
+    /**
+     * @return ?array{ats_type: string, ats_slug: string, ats_host?: string}
      */
     public function detect(?string $url): ?array
     {
         if (! is_string($url) || $url === '') {
             return null;
+        }
+
+        foreach (self::WORKDAY_PATTERNS as $regex) {
+            if (preg_match($regex, $url, $matches) === 1) {
+                $tenant = mb_strtolower($matches[1]);
+
+                return [
+                    'ats_type' => AtsType::WORKDAY->value,
+                    'ats_slug' => "{$tenant}/{$matches[3]}",
+                    'ats_host' => $tenant.'.'.mb_strtolower($matches[2]).'.myworkdayjobs.com',
+                ];
+            }
         }
 
         foreach (self::PATTERNS as $pattern) {

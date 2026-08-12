@@ -658,6 +658,15 @@ These are integrated only if Phase 1+2 coverage proves insufficient. Each follow
 - **Response shape:** Greenhouse-like posts: `id` (string, numeric or opaque base64), `title`, `absolute_url`, `content`/`content_plain`, `departments[]`, `offices[]` with nested `location.name`, `location_type` (`remote|hybrid|in_office`), `employment_type`, `requisition_id`, `created_at`/`updated_at`/`first_published_at`.
 - **Gotchas:** Unknown vanity path returns a 404 JSON object; a valid board with zero postings returns `200 []` (handled by the mass-close guard). No structured comp — comp language only appears inline in HTML content.
 
+## 3.13 Workday
+- **Verdict:** Integrated (verified live 2026-08-12 against NVIDIA, 2,000 postings). Undocumented but stable CXS endpoint; the only enterprise-segment ATS integrated.
+- **Endpoint:** `POST https://{tenant}.{wdN}.myworkdayjobs.com/wday/cxs/{tenant}/{site}/jobs` with body `{"appliedFacets":{},"limit":20,"offset":0,"searchText":""}`
+- **Auth:** None. **Pagination:** `offset` in the body against `total`; effective page size caps at 20 on many tenants regardless of `limit`. 100-page safety cap with truncation reporting.
+- **Identity:** two-part — `ats_slug` stores `{tenant}/{site}` (site is case-sensitive); `ats_host` caches the numbered pod host (`wd1`/`wd2`/`wd3`/`wd5`/`wd12`), probed on first scrape when the careers URL didn't reveal it.
+- **Detection:** `{tenant}.wd{n}.myworkdayjobs.com/[{locale}/]{site}` or the CXS API path; the detector also returns `ats_host`.
+- **Response shape:** `{"total":N,"jobPostings":[{"title","externalPath","locationsText","postedOn","bulletFields":["JR..."]}]}` — requisition id in `bulletFields[0]` becomes the external id; job URL is `https://{host}/en-US/{site}{externalPath}`.
+- **Gotchas:** `postedOn` is a relative phrase ("Posted Today", "Posted N Days Ago", "Posted 30+ Days Ago") — parsed to an approximate date, null for the 30+ form. No department or comp fields. No conditional GET (POST endpoint). Some tenants silently cap pagination depth.
+
 ---
 
 # Category 4: Signal Sources (Phase 4)
@@ -935,7 +944,7 @@ Each scraper builds its own Saloon connector (extending `ConfigurableConnector`,
 |---|---|---|
 | Greenhouse / Lever / Ashby (tracked companies) | 6 hours | Direct ATS data, want freshness |
 | Workable / Personio / Recruitee / Teamtailor | 12 hours | Lower-volume ATS |
-| Pinpoint / BambooHR / Rippling / Gem | 12 hours | Lower-volume ATS |
+| Pinpoint / BambooHR / Rippling / Gem / Workday | 12 hours | Lower-volume ATS (Workday: paginated fetches are costly, keep cadence modest) |
 | Himalayas / Remotive / RemoteOK / WWR RSS / 4dayweek | 24 hours | Aggregator caching + ToS |
 | HN "Who is Hiring" | Monthly + day-5 | Thread posts on the 1st |
 | layoffs.fyi + TrueUp | Weekly | Negative signals don't move fast |

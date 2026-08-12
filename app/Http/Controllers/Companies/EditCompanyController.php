@@ -22,6 +22,7 @@ final readonly class EditCompanyController
                 'domain' => $company->domain,
                 'ats_type' => $company->ats_type,
                 'ats_slug' => $company->ats_slug,
+                'ats_host' => $company->ats_host,
                 'tier' => $company->tier,
                 'status' => $company->status,
             ],

@@ -1,0 +1,25 @@
+{
+  "total": 25,
+  "jobPostings": [
+    { "title": "Software Engineer 1", "externalPath": "/job/US-CA-Santa-Clara/Software-Engineer-1_JR300001", "locationsText": "US, CA, Santa Clara", "postedOn": "Posted Today", "bulletFields": ["JR300001"] },
+    { "title": "Software Engineer 2", "externalPath": "/job/US-CA-Santa-Clara/Software-Engineer-2_JR300002", "locationsText": "US, CA, Santa Clara", "postedOn": "Posted Today", "bulletFields": ["JR300002"] },
+    { "title": "Software Engineer 3", "externalPath": "/job/US-CA-Santa-Clara/Software-Engineer-3_JR300003", "locationsText": "US, CA, Santa Clara", "postedOn": "Posted Today", "bulletFields": ["JR300003"] },
+    { "title": "Software Engineer 4", "externalPath": "/job/US-CA-Santa-Clara/Software-Engineer-4_JR300004", "locationsText": "US, CA, Santa Clara", "postedOn": "Posted Today", "bulletFields": ["JR300004"] },
+    { "title": "Software Engineer 5", "externalPath": "/job/US-CA-Santa-Clara/Software-Engineer-5_JR300005", "locationsText": "US, CA, Santa Clara", "postedOn": "Posted Today", "bulletFields": ["JR300005"] },
+    { "title": "Software Engineer 6", "externalPath": "/job/US-CA-Santa-Clara/Software-Engineer-6_JR300006", "locationsText": "US, CA, Santa Clara", "postedOn": "Posted Today", "bulletFields": ["JR300006"] },
+    { "title": "Software Engineer 7", "externalPath": "/job/US-CA-Santa-Clara/Software-Engineer-7_JR300007", "locationsText": "US, CA, Santa Clara", "postedOn": "Posted Today", "bulletFields": ["JR300007"] },
+    { "title": "Software Engineer 8", "externalPath": "/job/US-CA-Santa-Clara/Software-Engineer-8_JR300008", "locationsText": "US, CA, Santa Clara", "postedOn": "Posted Today", "bulletFields": ["JR300008"] },
+    { "title": "Software Engineer 9", "externalPath": "/job/US-CA-Santa-Clara/Software-Engineer-9_JR300009", "locationsText": "US, CA, Santa Clara", "postedOn": "Posted Today", "bulletFields": ["JR300009"] },
+    { "title": "Software Engineer 10", "externalPath": "/job/US-CA-Santa-Clara/Software-Engineer-10_JR300010", "locationsText": "US, CA, Santa Clara", "postedOn": "Posted Today", "bulletFields": ["JR300010"] },
+    { "title": "Software Engineer 11", "externalPath": "/job/US-CA-Santa-Clara/Software-Engineer-11_JR300011", "locationsText": "US, CA, Santa Clara", "postedOn": "Posted Today", "bulletFields": ["JR300011"] },
+    { "title": "Software Engineer 12", "externalPath": "/job/US-CA-Santa-Clara/Software-Engineer-12_JR300012", "locationsText": "US, CA, Santa Clara", "postedOn": "Posted Today", "bulletFields": ["JR300012"] },
+    { "title": "Software Engineer 13", "externalPath": "/job/US-CA-Santa-Clara/Software-Engineer-13_JR300013", "locationsText": "US, CA, Santa Clara", "postedOn": "Posted Today", "bulletFields": ["JR300013"] },
+    { "title": "Software Engineer 14", "externalPath": "/job/US-CA-Santa-Clara/Software-Engineer-14_JR300014", "locationsText": "US, CA, Santa Clara", "postedOn": "Posted Today", "bulletFields": ["JR300014"] },
+    { "title": "Software Engineer 15", "externalPath": "/job/US-CA-Santa-Clara/Software-Engineer-15_JR300015", "locationsText": "US, CA, Santa Clara", "postedOn": "Posted Today", "bulletFields": ["JR300015"] },
+    { "title": "Software Engineer 16", "externalPath": "/job/US-CA-Santa-Clara/Software-Engineer-16_JR300016", "locationsText": "US, CA, Santa Clara", "postedOn": "Posted Today", "bulletFields": ["JR300016"] },
+    { "title": "Software Engineer 17", "externalPath": "/job/US-CA-Santa-Clara/Software-Engineer-17_JR300017", "locationsText": "US, CA, Santa Clara", "postedOn": "Posted Today", "bulletFields": ["JR300017"] },
+    { "title": "Software Engineer 18", "externalPath": "/job/US-CA-Santa-Clara/Software-Engineer-18_JR300018", "locationsText": "US, CA, Santa Clara", "postedOn": "Posted Today", "bulletFields": ["JR300018"] },
+    { "title": "Software Engineer 19", "externalPath": "/job/US-CA-Santa-Clara/Software-Engineer-19_JR300019", "locationsText": "US, CA, Santa Clara", "postedOn": "Posted Today", "bulletFields": ["JR300019"] },
+    { "title": "Software Engineer 20", "externalPath": "/job/US-CA-Santa-Clara/Software-Engineer-20_JR300020", "locationsText": "US, CA, Santa Clara", "postedOn": "Posted Today", "bulletFields": ["JR300020"] }
+  ]
+}

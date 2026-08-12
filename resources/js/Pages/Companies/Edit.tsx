@@ -39,6 +39,7 @@ export default function EditCompanyPage({ company, options }: Props) {
                                 domain: company.domain ?? '',
                                 ats_type: company.ats_type ?? '',
                                 ats_slug: company.ats_slug ?? '',
+                                ats_host: company.ats_host ?? '',
                                 tier: company.tier ?? 'C',
                                 status: company.status ?? 'researching',
                             }}
