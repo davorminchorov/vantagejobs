@@ -205,6 +205,9 @@ final class SaveFixtureTest extends TestCase
 
         $this->app['env'] = 'production';
 
-        $this->actingAs($this->user)->post("/discover/{$listing->id}/save-fixture")->assertNotFound();
+        $this->actingAs($this->user)
+            ->withSession(['_token' => 'test-token'])
+            ->post("/discover/{$listing->id}/save-fixture", ['_token' => 'test-token'])
+            ->assertNotFound();
     }
 }
