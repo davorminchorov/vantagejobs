@@ -172,6 +172,24 @@ final class WorkdayScraperTest extends TestCase
     }
 
     #[Test]
+    public function wrong_pod_422_is_treated_as_a_miss_during_probing(): void
+    {
+        // Live behavior: a pod that doesn't host the tenant answers 422, not
+        // 404. Cached wd5 host 422s, the wd1 probe 422s, wd2 hits.
+        Saloon::fake([
+            MockResponse::make(body: '', status: 422),
+            MockResponse::make(body: '', status: 422),
+            MockResponse::make(body: $this->fixture(), status: 200),
+        ]);
+
+        $result = $this->scraper->run($this->company);
+
+        $this->assertFalse($result->hasErrors());
+        $this->assertSame(3, $result->fetched);
+        $this->assertSame('acme.wd2.myworkdayjobs.com', $this->company->fresh()->ats_host);
+    }
+
+    #[Test]
     public function exhausting_every_pod_reports_slug_not_found(): void
     {
         $this->company->ats_host = null;
@@ -291,6 +309,36 @@ final class WorkdayScraperTest extends TestCase
 
         // Page 2's roles are present, proving the walk didn't stop after page 1.
         $this->assertTrue(Role::query()->where('external_id', 'JR300025')->exists());
+    }
+
+    #[Test]
+    public function zero_total_on_later_pages_does_not_stop_the_walk_early(): void
+    {
+        // Live behavior: only the offset-0 page carries the real `total`;
+        // later pages report `total: 0` while still returning postings.
+        $makePage = static function (int $from, int $count, int $total): array {
+            return [
+                'total' => $total,
+                'jobPostings' => array_map(static fn (int $i): array => [
+                    'title' => "Engineer {$i}",
+                    'externalPath' => "/job/Somewhere/Engineer_{$i}",
+                    'locationsText' => 'Somewhere',
+                    'postedOn' => 'Posted Today',
+                    'bulletFields' => ["JR9{$i}"],
+                ], range($from, $from + $count - 1)),
+            ];
+        };
+
+        Saloon::fake([
+            MockResponse::make($makePage(1, 20, 45), 200),
+            MockResponse::make($makePage(21, 20, 0), 200),
+            MockResponse::make($makePage(41, 5, 0), 200),
+        ]);
+
+        $result = $this->scraper->run($this->company);
+
+        $this->assertFalse($result->hasErrors());
+        $this->assertSame(45, $result->fetched, 'The walk must continue past a later page reporting total 0.');
     }
 
     #[Test]

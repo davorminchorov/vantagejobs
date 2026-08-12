@@ -135,10 +135,17 @@ final readonly class WorkdayScraper implements AtsScraperInterface
 
     /**
      * Resolves the pod host to use for this company: the cached host if one
-     * is set and still responds (i.e. doesn't 404), otherwise a fresh probe
+     * is set and doesn't signal a pod mismatch, otherwise a fresh probe
      * across HOST_PROBE_PODS. Returns the resolved bare hostname alongside
      * the already-fetched first page (offset 0) so callers don't re-fetch it,
-     * or [null, null] if every candidate 404s (or fails outright).
+     * or [null, null] if every candidate misses (or fails outright).
+     *
+     * Live probing (NVIDIA, 2026-08-12): a pod that doesn't host the tenant
+     * answers 422 (not 404), and some pods don't resolve at all (connection
+     * failure), so a probe counts as a hit only on a 2xx/3xx response and a
+     * cached host is re-probed on 404 *or* 422. Other statuses (e.g. a
+     * transient 5xx) on a cached host are returned as-is so the run reports
+     * the real upstream failure instead of a bogus slug-not-found.
      *
      * @return array{0: ?string, 1: ?Response}
      */
@@ -149,7 +156,7 @@ final readonly class WorkdayScraper implements AtsScraperInterface
         if ($cachedHost !== null) {
             $response = (new WorkdayConnector("https://{$cachedHost}"))->send(new JobsRequest($tenant, $site, self::PAGE_SIZE, 0));
 
-            if ($response->status() !== 404) {
+            if (! in_array($response->status(), [404, 422], true)) {
                 return [$cachedHost, $response];
             }
         }
@@ -163,7 +170,7 @@ final readonly class WorkdayScraper implements AtsScraperInterface
                 continue;
             }
 
-            if ($response->status() !== 404) {
+            if ($response->status() < 400) {
                 return [$candidateHost, $response];
             }
         }
@@ -208,7 +215,18 @@ final readonly class WorkdayScraper implements AtsScraperInterface
             }
 
             $jobPostings = $payload['jobPostings'];
-            $total = isset($payload['total']) ? (int) $payload['total'] : $total;
+
+            // Live behavior (NVIDIA, 2026-08-12): only the offset-0 page
+            // carries the real `total`; later pages report `total: 0` while
+            // still returning postings. A zero total is therefore only
+            // trusted before any postings have been seen (a genuinely empty
+            // board), never as a stop signal mid-walk.
+            if (isset($payload['total'])) {
+                $pageTotal = (int) $payload['total'];
+                if ($pageTotal > 0 || $total === null) {
+                    $total = $pageTotal;
+                }
+            }
 
             if ($jobPostings === []) {
                 $pageCapHit = false;
