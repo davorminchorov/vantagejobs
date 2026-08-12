@@ -1,9 +1,19 @@
-import { router } from '@inertiajs/react';
+import { router, usePage } from '@inertiajs/react';
 import { Search } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { Badge } from '@/components/ui/badge';
+import {
+    ADMIN_ONLY_ITEMS,
+    IMPORT_ITEM,
+    INSIGHTS_ITEMS,
+    SETTINGS_ITEM,
+    TOP_LEVEL_ITEMS,
+    TRACKER_ITEMS,
+    type NavLinkItem,
+} from '@/lib/navigation';
 import { cn } from '@/lib/utils';
+import type { PageProps } from '@/types';
 
 interface CompanyHit {
     id: number;
@@ -45,7 +55,20 @@ function humanize(value: string): string {
     return value.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
+/** Every navigable page destination; Runs/Audit/Parser appended only for admins. Settings is not admin-gated. */
+const NON_ADMIN_PAGES: ReadonlyArray<NavLinkItem> = [
+    ...TOP_LEVEL_ITEMS,
+    ...TRACKER_ITEMS,
+    ...INSIGHTS_ITEMS,
+    SETTINGS_ITEM,
+    IMPORT_ITEM,
+];
+const ALL_PAGES: ReadonlyArray<NavLinkItem> = [...NON_ADMIN_PAGES, ...ADMIN_ONLY_ITEMS];
+
 export default function GlobalCommandPalette() {
+    const { props } = usePage<PageProps>();
+    const isAdmin = props.auth.user?.is_admin ?? false;
+
     const [open, setOpen] = useState(false);
     const [query, setQuery] = useState('');
     const [results, setResults] = useState<SearchResults>(EMPTY);
@@ -53,12 +76,22 @@ export default function GlobalCommandPalette() {
     const inputRef = useRef<HTMLInputElement | null>(null);
     const abortRef = useRef<AbortController | null>(null);
 
+    const pageHits = useMemo(() => {
+        const trimmed = query.trim().toLowerCase();
+        if (trimmed.length < 2) {
+            return [];
+        }
+        const pages = isAdmin ? ALL_PAGES : NON_ADMIN_PAGES;
+        return pages.filter((page) => page.name.toLowerCase().includes(trimmed));
+    }, [query, isAdmin]);
+
     const flatItems = useMemo(() => {
-        const items: { kind: 'company' | 'role'; href: string; key: string }[] = [];
+        const items: { kind: 'page' | 'company' | 'role'; href: string; key: string }[] = [];
+        pageHits.forEach((p) => items.push({ kind: 'page', href: p.href, key: `p-${p.href}` }));
         results.companies.forEach((c) => items.push({ kind: 'company', href: c.url, key: `c-${c.id}` }));
         results.roles.forEach((r) => items.push({ kind: 'role', href: r.url, key: `r-${r.id}` }));
         return items;
-    }, [results]);
+    }, [pageHits, results]);
 
     const close = useCallback(() => {
         setOpen(false);
@@ -178,7 +211,7 @@ export default function GlobalCommandPalette() {
                         value={query}
                         onChange={(e) => setQuery(e.target.value)}
                         onKeyDown={onKeyDown}
-                        placeholder="Search companies and roles…"
+                        placeholder="Search pages, companies, and roles…"
                         className="w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground"
                     />
                     <kbd className="hidden rounded border border-border bg-muted px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground sm:inline">
@@ -197,41 +230,63 @@ export default function GlobalCommandPalette() {
                         </div>
                     ) : (
                         <>
-                            {results.companies.length > 0 ? (
-                                <Group label="Companies">
-                                    {results.companies.map((hit, hitIndex) => (
+                            {pageHits.length > 0 ? (
+                                <Group label="Pages">
+                                    {pageHits.map((page, hitIndex) => (
                                         <ResultRow
-                                            key={`c-${hit.id}`}
+                                            key={`p-${page.href}`}
                                             active={activeIndex === hitIndex}
-                                            onSelect={() => navigateTo(hit.url)}
+                                            onSelect={() => navigateTo(page.href)}
                                         >
                                             <div className="flex min-w-0 flex-col">
-                                                <span className="truncate text-sm font-medium">{hit.name}</span>
-                                                {hit.domain ? (
-                                                    <span className="truncate text-xs text-muted-foreground">
-                                                        {hit.domain}
-                                                    </span>
-                                                ) : null}
-                                            </div>
-                                            <div className="flex items-center gap-1.5">
-                                                {hit.ats_type ? (
-                                                    <span className="text-xs text-muted-foreground">
-                                                        {humanize(hit.ats_type)}
-                                                    </span>
-                                                ) : null}
-                                                <Badge variant="outline">
-                                                    {hit.tier === 'graveyard' ? 'Graveyard' : `Tier ${hit.tier}`}
-                                                </Badge>
+                                                <span className="truncate text-sm font-medium">{page.name}</span>
+                                                <span className="truncate text-xs text-muted-foreground">
+                                                    {page.href}
+                                                </span>
                                             </div>
                                         </ResultRow>
                                     ))}
                                 </Group>
                             ) : null}
 
+                            {results.companies.length > 0 ? (
+                                <Group label="Companies">
+                                    {results.companies.map((hit, hitIndex) => {
+                                        const flatIdx = pageHits.length + hitIndex;
+                                        return (
+                                            <ResultRow
+                                                key={`c-${hit.id}`}
+                                                active={activeIndex === flatIdx}
+                                                onSelect={() => navigateTo(hit.url)}
+                                            >
+                                                <div className="flex min-w-0 flex-col">
+                                                    <span className="truncate text-sm font-medium">{hit.name}</span>
+                                                    {hit.domain ? (
+                                                        <span className="truncate text-xs text-muted-foreground">
+                                                            {hit.domain}
+                                                        </span>
+                                                    ) : null}
+                                                </div>
+                                                <div className="flex items-center gap-1.5">
+                                                    {hit.ats_type ? (
+                                                        <span className="text-xs text-muted-foreground">
+                                                            {humanize(hit.ats_type)}
+                                                        </span>
+                                                    ) : null}
+                                                    <Badge variant="outline">
+                                                        {hit.tier === 'graveyard' ? 'Graveyard' : `Tier ${hit.tier}`}
+                                                    </Badge>
+                                                </div>
+                                            </ResultRow>
+                                        );
+                                    })}
+                                </Group>
+                            ) : null}
+
                             {results.roles.length > 0 ? (
                                 <Group label="Roles">
                                     {results.roles.map((hit, hitIndex) => {
-                                        const flatIdx = results.companies.length + hitIndex;
+                                        const flatIdx = pageHits.length + results.companies.length + hitIndex;
                                         return (
                                             <ResultRow
                                                 key={`r-${hit.id}`}

@@ -11,11 +11,15 @@ import {
     DropdownMenuContent,
     DropdownMenuItem,
     DropdownMenuLabel,
+    DropdownMenuRadioGroup,
+    DropdownMenuRadioItem,
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Separator } from '@/components/ui/separator';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
+import { useAppearance, type Appearance } from '@/hooks/use-appearance';
+import { ADMIN_ONLY_ITEMS, INSIGHTS_ITEMS, SETTINGS_ITEM, TRACKER_ITEMS, type NavLinkItem } from '@/lib/navigation';
 import { cn } from '@/lib/utils';
 import type { PageProps, User } from '@/types';
 
@@ -25,31 +29,11 @@ interface AuthenticatedLayoutProps {
     header?: ReactNode;
 }
 
-interface NavLinkItem {
-    readonly name: string;
-    readonly href: string;
-}
-
-const TRACKER_ITEMS: ReadonlyArray<NavLinkItem> = [
-    { name: 'Pipeline', href: '/pipeline' },
-    { name: 'Contacts', href: '/contacts' },
-    { name: 'Follow-ups', href: '/follow-ups' },
-    { name: 'Templates', href: '/templates' },
-    { name: 'Calendar', href: '/calendar' },
-];
-
-const INSIGHTS_ITEMS: ReadonlyArray<NavLinkItem> = [
-    { name: 'Hiring trends', href: '/insights/hiring' },
-    { name: 'Compensation', href: '/insights/comp' },
-    { name: 'Funding candidates', href: '/insights/funding-candidates' },
-];
-
-const ADMIN_ITEMS: ReadonlyArray<NavLinkItem> = [
-    { name: 'Settings', href: '/settings/profile' },
-    { name: 'Runs', href: '/admin/runs' },
-    { name: 'Audit', href: '/admin/audit' },
-    { name: 'Parser', href: '/admin/parser' },
-];
+const APPEARANCE_LABEL: Record<Appearance, string> = {
+    light: 'Light',
+    dark: 'Dark',
+    system: 'System',
+};
 
 function isActive(currentUrl: string, href: string): boolean {
     if (href === '/settings/profile') {
@@ -160,6 +144,41 @@ function MobileNavLink({
     );
 }
 
+function MobileAppearanceSection({
+    appearance,
+    onChange,
+}: {
+    appearance: Appearance;
+    onChange: (next: Appearance) => void;
+}) {
+    return (
+        <div className="flex flex-col gap-1">
+            <div className="text-muted-foreground px-3 pb-1 pt-3 font-mono text-xs font-medium uppercase tracking-wide">
+                Appearance
+            </div>
+            <div className="flex gap-1 px-3" role="radiogroup" aria-label="Appearance">
+                {(Object.keys(APPEARANCE_LABEL) as Appearance[]).map((value) => (
+                    <button
+                        key={value}
+                        type="button"
+                        role="radio"
+                        aria-checked={appearance === value}
+                        onClick={() => onChange(value)}
+                        className={cn(
+                            'min-h-11 flex-1 rounded-md border px-3 text-sm font-medium transition-colors',
+                            appearance === value
+                                ? 'border-primary bg-primary text-primary-foreground'
+                                : 'border-border text-muted-foreground hover:text-foreground',
+                        )}
+                    >
+                        {APPEARANCE_LABEL[value]}
+                    </button>
+                ))}
+            </div>
+        </div>
+    );
+}
+
 function MobileNavSection({
     label,
     items,
@@ -197,6 +216,7 @@ export default function AuthenticatedLayout({ children, header }: AuthenticatedL
     const currentUrl = page.url.split('?')[0] ?? '/';
     const [mobileOpen, setMobileOpen] = useState(false);
     const closeMobile = () => setMobileOpen(false);
+    const { appearance, setAppearance } = useAppearance();
 
     return (
         <div className="bg-background text-foreground flex min-h-svh flex-col">
@@ -262,10 +282,20 @@ export default function AuthenticatedLayout({ children, header }: AuthenticatedL
                                         Bookmarks
                                     </MobileNavLink>
 
+                                    <MobileNavLink
+                                        href={SETTINGS_ITEM.href}
+                                        active={isActive(currentUrl, SETTINGS_ITEM.href)}
+                                        onNavigate={closeMobile}
+                                    >
+                                        {SETTINGS_ITEM.name}
+                                    </MobileNavLink>
+
+                                    <MobileAppearanceSection appearance={appearance} onChange={setAppearance} />
+
                                     {user?.is_admin ? (
                                         <MobileNavSection
                                             label="Admin"
-                                            items={ADMIN_ITEMS}
+                                            items={ADMIN_ONLY_ITEMS}
                                             currentUrl={currentUrl}
                                             onNavigate={closeMobile}
                                         />
@@ -359,13 +389,31 @@ export default function AuthenticatedLayout({ children, header }: AuthenticatedL
                                     <DropdownMenuLabel className="truncate">
                                         {user.name ?? user.email}
                                     </DropdownMenuLabel>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuLabel className="font-mono text-xs font-normal uppercase tracking-wide text-muted-foreground">
+                                        Appearance
+                                    </DropdownMenuLabel>
+                                    <DropdownMenuRadioGroup
+                                        value={appearance}
+                                        onValueChange={(value) => setAppearance(value as Appearance)}
+                                    >
+                                        {(Object.keys(APPEARANCE_LABEL) as Appearance[]).map((value) => (
+                                            <DropdownMenuRadioItem key={value} value={value}>
+                                                {APPEARANCE_LABEL[value]}
+                                            </DropdownMenuRadioItem>
+                                        ))}
+                                    </DropdownMenuRadioGroup>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem asChild>
+                                        <Link href={SETTINGS_ITEM.href}>{SETTINGS_ITEM.name}</Link>
+                                    </DropdownMenuItem>
                                     {user.is_admin ? (
                                         <>
                                             <DropdownMenuSeparator />
                                             <DropdownMenuLabel className="font-mono text-xs font-normal uppercase tracking-wide text-muted-foreground">
                                                 Admin
                                             </DropdownMenuLabel>
-                                            {ADMIN_ITEMS.map((item) => (
+                                            {ADMIN_ONLY_ITEMS.map((item) => (
                                                 <DropdownMenuItem key={item.href} asChild>
                                                     <Link href={item.href}>{item.name}</Link>
                                                 </DropdownMenuItem>
