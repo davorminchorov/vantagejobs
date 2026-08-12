@@ -45,22 +45,22 @@ function fmtUsd(value: number | null): string {
     return `$${k}k`;
 }
 
-const OTHER_LABEL = 'Other';
+const UNCLASSIFIED_LABEL = 'Unclassified';
 
 /**
- * Sorts the "Other" bucket to the end while preserving the backend's
- * sample_count-descending order among the tracked role families.
+ * Sorts the "Unclassified" bucket to the end while preserving the backend's
+ * sample_count-descending order among the tracked buckets.
  */
-function sortOtherLast(rows: BucketRow[]): BucketRow[] {
+function sortUnclassifiedLast(rows: BucketRow[]): BucketRow[] {
     return [...rows].sort((a, b) => {
-        if (a.label === OTHER_LABEL && b.label !== OTHER_LABEL) return 1;
-        if (b.label === OTHER_LABEL && a.label !== OTHER_LABEL) return -1;
+        if (a.label === UNCLASSIFIED_LABEL && b.label !== UNCLASSIFIED_LABEL) return 1;
+        if (b.label === UNCLASSIFIED_LABEL && a.label !== UNCLASSIFIED_LABEL) return -1;
         return 0;
     });
 }
 
 function BucketTable({ rows, unclassifyOther = false }: { rows: BucketRow[]; unclassifyOther?: boolean }) {
-    const sortedRows = unclassifyOther ? sortOtherLast(rows) : rows;
+    const sortedRows = unclassifyOther ? sortUnclassifiedLast(rows) : rows;
 
     if (sortedRows.length === 0) {
         return <EmptyState>No compensation samples yet for this breakdown.</EmptyState>;
@@ -79,7 +79,7 @@ function BucketTable({ rows, unclassifyOther = false }: { rows: BucketRow[]; unc
             </TableHeader>
             <TableBody>
                 {sortedRows.map((r) => {
-                    const isUnclassified = unclassifyOther && r.label === OTHER_LABEL;
+                    const isUnclassified = unclassifyOther && r.label === UNCLASSIFIED_LABEL;
                     return (
                         <TableRow key={r.label}>
                             <TableCell
@@ -138,7 +138,7 @@ export default function CompInsightsPage({ byRoleFamily, byGeography, byCompany 
                         </CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <BucketTable rows={byGeography} />
+                        <BucketTable rows={byGeography} unclassifyOther />
                     </CardContent>
                 </Card>
 

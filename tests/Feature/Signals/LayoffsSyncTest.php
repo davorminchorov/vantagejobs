@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Signals;
 
+use App\Enums\EventType;
 use App\Models\Company;
 use App\Models\Event;
 use App\Scrapers\Aggregator\CompanyKeyNormalizer;
@@ -77,11 +78,11 @@ CSV;
             '--path' => $this->fixturePath,
         ]);
 
-        $this->assertSame(2, Event::query()->where('type', 'layoff')->count());
+        $this->assertSame(2, Event::query()->where('type', EventType::LAYOFF->value)->count());
 
         $acme = Company::query()->where('name', 'Acme Corp')->firstOrFail();
         $acmeEvent = Event::query()->where('company_id', $acme->id)->firstOrFail();
-        $this->assertSame('layoff', $acmeEvent->type);
+        $this->assertSame(EventType::LAYOFF->value, $acmeEvent->type);
         $body = json_decode((string) $acmeEvent->body, true);
         $this->assertSame(120, $body['headcount']);
         $this->assertEquals(10.0, $body['percent']);
@@ -106,7 +107,7 @@ CSV;
             '--path' => $this->fixturePath,
         ]);
 
-        $this->assertSame(2, Event::query()->where('type', 'layoff')->count());
+        $this->assertSame(2, Event::query()->where('type', EventType::LAYOFF->value)->count());
     }
 
     #[Test]
@@ -139,7 +140,7 @@ CSV;
 
         // UnrelatedCo has no company row, so no event for it.
         $this->assertSame(0, Event::query()
-            ->where('type', 'layoff')
+            ->where('type', EventType::LAYOFF->value)
             ->where('title', 'like', '%UnrelatedCo%')
             ->count());
     }

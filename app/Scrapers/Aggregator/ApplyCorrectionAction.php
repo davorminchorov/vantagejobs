@@ -93,6 +93,7 @@ final readonly class ApplyCorrectionAction
             $listing->parsed = $parsed;
 
             $this->syncDenormalizedColumns($listing, $field, $newValue);
+            $this->backfillDiscipline($listing, $parsed);
             $this->recomputeMatchingKeys($listing);
 
             $listing->save();
@@ -194,6 +195,25 @@ final readonly class ApplyCorrectionAction
     }
 
     /**
+     * `discipline` is not a user-correctable field (not in self::FIELDS), so
+     * it has no slot key of its own to sync above. But DisciplineExtractor
+     * has always populated the `discipline` slot inside the `parsed` jsonb
+     * blob; the denormalized column is new, so any listing parsed before it
+     * existed carries the value in `parsed` without it on the column. Every
+     * correction already loads `parsed` and saves the model, so piggyback
+     * here to backfill the column from the existing slot at no extra cost.
+     *
+     * @param  array<string, mixed>  $parsed
+     */
+    private function backfillDiscipline(AggregatorListing $listing, array $parsed): void
+    {
+        $slot = $parsed['discipline'] ?? null;
+        $value = is_array($slot) ? ($slot['value'] ?? null) : null;
+
+        $listing->discipline = $this->asString($value);
+    }
+
+    /**
      * normalized_company_key, normalized_role_key, and role_hash are set
      * once at ingest time by AggregatorListingPersister::buildAttributes()
      * and never touched again by default — a correction that changes
@@ -218,5 +238,10 @@ final readonly class ApplyCorrectionAction
         }
 
         return $a === $b;
+    }
+
+    private function asString(mixed $value): ?string
+    {
+        return is_string($value) && $value !== '' ? $value : null;
     }
 }

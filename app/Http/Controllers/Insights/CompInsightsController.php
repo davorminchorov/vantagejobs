@@ -34,11 +34,19 @@ final readonly class CompInsightsController
         $baseWhere = implode(' AND ', $baseFilters);
         $bindings = [$tenantId, ...$excludedStatuses];
 
+        // Role family: composes parsed_seniority x discipline (the columns
+        // DisciplineExtractor / SeniorityExtractor already populate), e.g.
+        // "Senior Backend", "Staff Fullstack", or a discipline-only label
+        // when seniority is missing. Rows parsed before the `discipline`
+        // column existed fall back to the original title-regex heuristic
+        // until reparse:reparse-all backfills them.
         $byRoleFamilyRows = $this->db->select(
             <<<SQL
             WITH base AS (
                 SELECT
                     parsed_role_title,
+                    parsed_seniority,
+                    discipline,
                     (parsed_comp_min_usd + parsed_comp_max_usd) / 2.0 AS midpoint
                 FROM aggregator_listings
                 WHERE {$baseWhere}
@@ -46,13 +54,42 @@ final readonly class CompInsightsController
             labelled AS (
                 SELECT
                     CASE
+                        WHEN discipline IS NOT NULL THEN
+                            TRIM(
+                                (CASE parsed_seniority
+                                    WHEN 'intern' THEN 'Intern '
+                                    WHEN 'junior' THEN 'Junior '
+                                    WHEN 'mid' THEN 'Mid '
+                                    WHEN 'senior' THEN 'Senior '
+                                    WHEN 'staff' THEN 'Staff '
+                                    WHEN 'principal' THEN 'Principal '
+                                    WHEN 'lead' THEN 'Lead '
+                                    WHEN 'director' THEN 'Director '
+                                    ELSE ''
+                                END)
+                                ||
+                                (CASE discipline
+                                    WHEN 'backend' THEN 'Backend'
+                                    WHEN 'frontend' THEN 'Frontend'
+                                    WHEN 'fullstack' THEN 'Fullstack'
+                                    WHEN 'mobile' THEN 'Mobile'
+                                    WHEN 'devops' THEN 'DevOps'
+                                    WHEN 'data' THEN 'Data'
+                                    WHEN 'ml' THEN 'ML'
+                                    WHEN 'security' THEN 'Security'
+                                    WHEN 'qa' THEN 'QA'
+                                    WHEN 'design' THEN 'Design'
+                                    WHEN 'engineering' THEN 'Engineering'
+                                    ELSE INITCAP(discipline)
+                                END)
+                            )
                         WHEN parsed_role_title ~* '(staff|principal).*(full[- ]?stack)' THEN 'Staff Fullstack'
                         WHEN parsed_role_title ~* '(staff|principal).*(back[- ]?end)' THEN 'Staff Backend'
                         WHEN parsed_role_title ~* '(senior|sr\.?).*(back[- ]?end)' THEN 'Senior Backend'
                         WHEN parsed_role_title ~* '(senior|sr\.?).*(front[- ]?end)' THEN 'Senior Frontend'
                         WHEN parsed_role_title ~* '(senior|sr\.?).*(full[- ]?stack)' THEN 'Senior Fullstack'
                         WHEN parsed_role_title ~* '(engineering[ -]?manager|^em\\b|head of engineering)' THEN 'Engineering Manager'
-                        ELSE 'Other'
+                        ELSE 'Unclassified'
                     END AS label,
                     midpoint
                 FROM base
@@ -70,6 +107,11 @@ final readonly class CompInsightsController
             $bindings,
         );
 
+        // Geography: location_bucket is authoritative and exactly one of
+        // worldwide|emea|us|apac|americas. Rows parsed before RegionExtractor
+        // covered their source (location_bucket IS NULL) fall back to the
+        // coarser parsed_remote_type heuristic until reparse:reparse-all
+        // backfills them.
         $byGeographyRows = $this->db->select(
             <<<SQL
             WITH base AS (
@@ -83,10 +125,15 @@ final readonly class CompInsightsController
             labelled AS (
                 SELECT
                     CASE
-                        WHEN parsed_remote_type ILIKE '%us%' OR location_bucket ILIKE '%united states%' OR location_bucket ILIKE '%us%' THEN 'US'
-                        WHEN parsed_remote_type ILIKE '%eu%' OR location_bucket ILIKE '%europe%' OR location_bucket ILIKE '%eu%' THEN 'EU'
-                        WHEN parsed_remote_type ILIKE '%remote%' OR location_bucket ILIKE '%worldwide%' OR location_bucket ILIKE '%global%' THEN 'Global Remote'
-                        ELSE 'Other'
+                        WHEN location_bucket = 'us' THEN 'US'
+                        WHEN location_bucket = 'emea' THEN 'EMEA'
+                        WHEN location_bucket = 'apac' THEN 'APAC'
+                        WHEN location_bucket = 'americas' THEN 'Americas'
+                        WHEN location_bucket = 'worldwide' THEN 'Worldwide'
+                        WHEN location_bucket IS NULL AND parsed_remote_type ILIKE '%us%' THEN 'US'
+                        WHEN location_bucket IS NULL AND parsed_remote_type ILIKE '%eu%' THEN 'EMEA'
+                        WHEN location_bucket IS NULL AND parsed_remote_type ILIKE '%remote%' THEN 'Worldwide'
+                        ELSE 'Unclassified'
                     END AS label,
                     midpoint
                 FROM base
@@ -105,7 +152,7 @@ final readonly class CompInsightsController
         );
 
         $byCompanyRows = $this->db->select(
-            <<<SQL
+            <<<'SQL'
             WITH base AS (
                 SELECT
                     l.matched_company_id,

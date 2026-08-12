@@ -84,6 +84,7 @@ final readonly class ReparseAction
         $listing->parsed_company_name = $this->asString($parsed->value('company_name'));
         $listing->parsed_role_title = $this->asString($parsed->value('role_title'));
         $listing->parsed_seniority = $this->asString($parsed->value('seniority'));
+        $listing->discipline = $this->asString($parsed->value('discipline'));
         $listing->parsed_remote_type = is_array($remote) ? ($remote['type'] ?? null) : null;
         $listing->parsed_comp_min_usd = is_int($minUsd) ? $minUsd : null;
         $listing->parsed_comp_max_usd = is_int($maxUsd) ? $maxUsd : null;

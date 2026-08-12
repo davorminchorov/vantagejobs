@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Signals\Layoffs;
 
+use App\Enums\EventType;
 use App\Models\Company;
 use App\Models\Event;
 use App\Scrapers\Aggregator\CompanyKeyNormalizer;
@@ -61,7 +62,7 @@ final readonly class LayoffsSync
 
             $exists = Event::query()
                 ->where('company_id', $companyId)
-                ->where('type', 'layoff')
+                ->where('type', EventType::LAYOFF->value)
                 ->where('body', 'like', '%"signature":"'.$signature.'"%')
                 ->exists();
 
@@ -73,7 +74,7 @@ final readonly class LayoffsSync
 
             Event::query()->create([
                 'company_id' => $companyId,
-                'type' => 'layoff',
+                'type' => EventType::LAYOFF->value,
                 'title' => $this->formatTitle($record),
                 'body' => (string) json_encode([
                     'headcount' => $record->headcount,

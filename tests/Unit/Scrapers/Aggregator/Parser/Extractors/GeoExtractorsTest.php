@@ -20,7 +20,7 @@ final class GeoExtractorsTest extends TestCase
     #[Test]
     public function location_from_himalayas_array(): void
     {
-        $field = (new LocationExtractor())->extract($this->ctx(['locationRestrictions' => ['Worldwide', 'EMEA']]));
+        $field = (new LocationExtractor)->extract($this->ctx(['locationRestrictions' => ['Worldwide', 'EMEA']]));
         $this->assertSame('Worldwide, EMEA', $field->value);
         $this->assertSame(ExtractionSource::EXPLICIT, $field->source);
     }
@@ -28,19 +28,19 @@ final class GeoExtractorsTest extends TestCase
     #[Test]
     public function location_from_remotive_field(): void
     {
-        $this->assertSame('USA Only', (new LocationExtractor())->extract($this->ctx(['candidate_required_location' => 'USA Only']))->value);
+        $this->assertSame('USA Only', (new LocationExtractor)->extract($this->ctx(['candidate_required_location' => 'USA Only']))->value);
     }
 
     #[Test]
     public function location_from_remoteok_field(): void
     {
-        $this->assertSame('Berlin, Germany', (new LocationExtractor())->extract($this->ctx(['location' => 'Berlin, Germany']))->value);
+        $this->assertSame('Berlin, Germany', (new LocationExtractor)->extract($this->ctx(['location' => 'Berlin, Germany']))->value);
     }
 
     #[Test]
     public function location_worldwide_gets_lower_confidence(): void
     {
-        $field = (new LocationExtractor())->extract($this->ctx(['location' => 'Worldwide']));
+        $field = (new LocationExtractor)->extract($this->ctx(['location' => 'Worldwide']));
 
         $this->assertSame(0.6, $field->confidence);
     }
@@ -48,7 +48,7 @@ final class GeoExtractorsTest extends TestCase
     #[Test]
     public function location_missing_when_blank(): void
     {
-        $this->assertTrue((new LocationExtractor())->extract($this->ctx(['location' => '   ']))->isMissing());
+        $this->assertTrue((new LocationExtractor)->extract($this->ctx(['location' => '   ']))->isMissing());
     }
 
     /* ----- Region ----- */
@@ -56,31 +56,79 @@ final class GeoExtractorsTest extends TestCase
     #[Test]
     public function region_worldwide(): void
     {
-        $this->assertSame('worldwide', (new RegionExtractor())->extract($this->ctx(['location' => 'Anywhere in the world']))->value);
+        $this->assertSame('worldwide', (new RegionExtractor)->extract($this->ctx(['location' => 'Anywhere in the world']))->value);
     }
 
     #[Test]
     public function region_emea(): void
     {
-        $this->assertSame('emea', (new RegionExtractor())->extract($this->ctx(['candidate_required_location' => 'EMEA']))->value);
+        $this->assertSame('emea', (new RegionExtractor)->extract($this->ctx(['candidate_required_location' => 'EMEA']))->value);
     }
 
     #[Test]
     public function region_us_from_united_states(): void
     {
-        $this->assertSame('us', (new RegionExtractor())->extract($this->ctx(['location' => 'United States']))->value);
+        $this->assertSame('us', (new RegionExtractor)->extract($this->ctx(['location' => 'United States']))->value);
     }
 
     #[Test]
     public function region_worldwide_beats_us_in_compound_string(): void
     {
-        $this->assertSame('worldwide', (new RegionExtractor())->extract($this->ctx(['location' => 'Worldwide (US time zone preferred)']))->value);
+        $this->assertSame('worldwide', (new RegionExtractor)->extract($this->ctx(['location' => 'Worldwide (US time zone preferred)']))->value);
     }
 
     #[Test]
     public function region_missing_on_unknown(): void
     {
-        $this->assertTrue((new RegionExtractor())->extract($this->ctx(['location' => 'Mars Colony']))->isMissing());
+        $this->assertTrue((new RegionExtractor)->extract($this->ctx(['location' => 'Mars Colony']))->isMissing());
+    }
+
+    #[Test]
+    public function region_from_bare_country_name_in_emea(): void
+    {
+        $this->assertSame('emea', (new RegionExtractor)->extract($this->ctx(['location' => 'Germany']))->value);
+    }
+
+    #[Test]
+    public function region_from_bare_country_name_in_americas(): void
+    {
+        $this->assertSame('americas', (new RegionExtractor)->extract($this->ctx(['candidate_required_location' => 'Brazil']))->value);
+    }
+
+    #[Test]
+    public function region_from_bare_country_name_in_apac(): void
+    {
+        $this->assertSame('apac', (new RegionExtractor)->extract($this->ctx(['location' => 'India']))->value);
+    }
+
+    #[Test]
+    public function region_from_us_state_name(): void
+    {
+        $this->assertSame('us', (new RegionExtractor)->extract($this->ctx(['location' => 'Texas']))->value);
+    }
+
+    #[Test]
+    public function region_from_city_dictionary_miss_that_the_original_120_entries_lacked(): void
+    {
+        $this->assertSame('emea', (new RegionExtractor)->extract($this->ctx(['location' => 'Cottbus']))->value);
+    }
+
+    #[Test]
+    public function region_multi_word_city_wins_over_a_shorter_key_it_contains(): void
+    {
+        // "Porto Alegre" (Brazil, americas) contains "Porto" (Portugal,
+        // emea) as a word-bounded substring — the longer, more specific
+        // key must win.
+        $this->assertSame('americas', (new RegionExtractor)->extract($this->ctx(['location' => 'Porto Alegre, Brazil']))->value);
+        $this->assertSame('emea', (new RegionExtractor)->extract($this->ctx(['location' => 'Porto, Portugal']))->value);
+    }
+
+    #[Test]
+    public function region_stays_missing_for_ambiguous_place_names(): void
+    {
+        // "Georgia" is both a US state and a country — deliberately not in
+        // the dictionary rather than risk a wrong guess either way.
+        $this->assertTrue((new RegionExtractor)->extract($this->ctx(['location' => 'Georgia']))->isMissing());
     }
 
     /* ----- Remote ----- */
@@ -88,7 +136,7 @@ final class GeoExtractorsTest extends TestCase
     #[Test]
     public function remote_type_detected_from_title_keyword(): void
     {
-        $field = (new RemoteExtractor())->extract($this->ctx(['title' => 'Senior Backend Engineer (Remote)']));
+        $field = (new RemoteExtractor)->extract($this->ctx(['title' => 'Senior Backend Engineer (Remote)']));
 
         $this->assertSame('remote', $field->value['type']);
         $this->assertSame(ExtractionSource::INFERRED, $field->source);
@@ -97,7 +145,7 @@ final class GeoExtractorsTest extends TestCase
     #[Test]
     public function remote_type_hybrid_beats_remote_when_both_appear(): void
     {
-        $field = (new RemoteExtractor())->extract($this->ctx(['title' => 'Hybrid role with some remote days']));
+        $field = (new RemoteExtractor)->extract($this->ctx(['title' => 'Hybrid role with some remote days']));
 
         $this->assertSame('hybrid', $field->value['type']);
     }
@@ -105,7 +153,7 @@ final class GeoExtractorsTest extends TestCase
     #[Test]
     public function remote_type_on_site_from_keyword(): void
     {
-        $field = (new RemoteExtractor())->extract($this->ctx(['title' => 'On-site Software Engineer, NYC']));
+        $field = (new RemoteExtractor)->extract($this->ctx(['title' => 'On-site Software Engineer, NYC']));
 
         $this->assertSame('on_site', $field->value['type']);
     }
@@ -113,7 +161,7 @@ final class GeoExtractorsTest extends TestCase
     #[Test]
     public function remote_with_himalayas_timezone_data_is_explicit(): void
     {
-        $field = (new RemoteExtractor())->extract($this->ctx([
+        $field = (new RemoteExtractor)->extract($this->ctx([
             'title' => 'Senior Engineer',
             'timezoneRestrictions' => ['UTC+01:00', 'UTC+02:00'],
             'locationRestrictions' => ['EMEA'],
@@ -128,7 +176,7 @@ final class GeoExtractorsTest extends TestCase
     #[Test]
     public function remote_geo_normalizes_us_only(): void
     {
-        $field = (new RemoteExtractor())->extract($this->ctx(['candidate_required_location' => 'USA Only']));
+        $field = (new RemoteExtractor)->extract($this->ctx(['candidate_required_location' => 'USA Only']));
 
         $this->assertSame(['US'], $field->value['geo_restrictions']);
     }
@@ -136,7 +184,7 @@ final class GeoExtractorsTest extends TestCase
     #[Test]
     public function remote_geo_drops_worldwide(): void
     {
-        $field = (new RemoteExtractor())->extract($this->ctx(['location' => 'Worldwide']));
+        $field = (new RemoteExtractor)->extract($this->ctx(['location' => 'Worldwide']));
 
         $this->assertSame([], $field->value['geo_restrictions']);
     }
@@ -144,7 +192,7 @@ final class GeoExtractorsTest extends TestCase
     #[Test]
     public function remote_missing_when_nothing_detected(): void
     {
-        $this->assertTrue((new RemoteExtractor())->extract($this->ctx(['title' => 'Engineer']))->isMissing());
+        $this->assertTrue((new RemoteExtractor)->extract($this->ctx(['title' => 'Engineer']))->isMissing());
     }
 
     /**

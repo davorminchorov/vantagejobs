@@ -184,6 +184,79 @@ final class CompanyFormsTest extends TestCase
     }
 
     #[Test]
+    public function update_emits_graveyarded_event_when_tier_is_set_to_graveyard(): void
+    {
+        $company = Company::factory()->create(['tier' => 'C', 'status' => 'researching']);
+
+        $this->actingAs($this->user)
+            ->put("/companies/{$company->id}", [
+                'name' => $company->name,
+                'tier' => 'graveyard',
+                'status' => 'researching',
+            ])
+            ->assertRedirect('/companies');
+
+        $this->assertSame('graveyard', $company->fresh()->tier);
+        $this->assertSame(1, Event::query()
+            ->where('company_id', $company->id)
+            ->where('type', EventType::GRAVEYARDED->value)
+            ->count());
+    }
+
+    #[Test]
+    public function update_emits_restored_event_when_tier_leaves_graveyard(): void
+    {
+        $company = Company::factory()->create(['tier' => 'graveyard', 'status' => 'researching']);
+
+        $this->actingAs($this->user)
+            ->put("/companies/{$company->id}", [
+                'name' => $company->name,
+                'tier' => 'B',
+                'status' => 'researching',
+            ])
+            ->assertRedirect('/companies');
+
+        $this->assertSame('B', $company->fresh()->tier);
+        $this->assertSame(1, Event::query()
+            ->where('company_id', $company->id)
+            ->where('type', EventType::RESTORED->value)
+            ->count());
+    }
+
+    #[Test]
+    public function update_emits_no_event_for_a_plain_tier_bump(): void
+    {
+        $company = Company::factory()->create(['tier' => 'B', 'status' => 'researching']);
+
+        $this->actingAs($this->user)
+            ->put("/companies/{$company->id}", [
+                'name' => $company->name,
+                'tier' => 'A',
+                'status' => 'researching',
+            ])
+            ->assertRedirect('/companies');
+
+        $this->assertSame('A', $company->fresh()->tier);
+        $this->assertSame(0, Event::query()->where('company_id', $company->id)->count());
+    }
+
+    #[Test]
+    public function update_emits_no_event_when_nothing_changed(): void
+    {
+        $company = Company::factory()->create(['tier' => 'B', 'status' => 'watching']);
+
+        $this->actingAs($this->user)
+            ->put("/companies/{$company->id}", [
+                'name' => $company->name,
+                'tier' => 'B',
+                'status' => 'watching',
+            ])
+            ->assertRedirect('/companies');
+
+        $this->assertSame(0, Event::query()->where('company_id', $company->id)->count());
+    }
+
+    #[Test]
     public function update_blocks_other_tenants_company(): void
     {
         $otherTenant = Tenant::factory()->create();

@@ -24,6 +24,7 @@ use Illuminate\Database\Eloquent\Relations\MorphMany;
     'parsed_company_name',
     'parsed_role_title',
     'parsed_seniority',
+    'discipline',
     'parsed_remote_type',
     'parsed_comp_min_usd',
     'parsed_comp_max_usd',
