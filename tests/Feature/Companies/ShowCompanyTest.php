@@ -132,4 +132,89 @@ final class ShowCompanyTest extends TestCase
                 ->has('roles.data', 15)
                 ->where('roles.total', 20));
     }
+
+    #[Test]
+    public function roles_tab_filters_by_title_search(): void
+    {
+        $company = Company::factory()->create();
+        Role::factory()->create(['company_id' => $company->id, 'title' => 'Senior Backend Engineer']);
+        Role::factory()->create(['company_id' => $company->id, 'title' => 'Product Designer']);
+
+        $this->actingAs($this->user)
+            ->get("/companies/{$company->id}?roles_q=backend")
+            ->assertInertia(fn ($page) => $page
+                ->has('roles.data', 1)
+                ->where('roles.data.0.title', 'Senior Backend Engineer')
+                ->where('roles_filters.q', 'backend')
+                ->where('roles_filters.state', null));
+    }
+
+    #[Test]
+    public function roles_tab_filters_by_state(): void
+    {
+        $company = Company::factory()->create();
+        Role::factory()->create(['company_id' => $company->id, 'is_open' => true]);
+        Role::factory()->create(['company_id' => $company->id, 'is_open' => false]);
+
+        $this->actingAs($this->user)
+            ->get("/companies/{$company->id}?roles_state=closed")
+            ->assertInertia(fn ($page) => $page
+                ->has('roles.data', 1)
+                ->where('roles.data.0.is_open', false)
+                ->where('roles_filters.q', null)
+                ->where('roles_filters.state', 'closed'));
+    }
+
+    #[Test]
+    public function roles_tab_ignores_an_invalid_state_value(): void
+    {
+        $company = Company::factory()->create();
+        Role::factory()->count(2)->create(['company_id' => $company->id]);
+
+        $this->actingAs($this->user)
+            ->get("/companies/{$company->id}?roles_state=bogus")
+            ->assertInertia(fn ($page) => $page
+                ->has('roles.data', 2)
+                ->where('roles_filters.state', null));
+    }
+
+    #[Test]
+    public function timeline_items_include_the_related_role_title(): void
+    {
+        $company = Company::factory()->create();
+        $role = Role::factory()->create(['company_id' => $company->id, 'title' => 'Staff Platform Engineer']);
+
+        Event::query()->create([
+            'company_id' => $company->id,
+            'role_id' => $role->id,
+            'type' => EventType::ROLE_CLOSED->value,
+            'title' => 'Role closed',
+            'body' => null,
+            'occurred_at' => CarbonImmutable::now(),
+        ]);
+
+        $this->actingAs($this->user)
+            ->get("/companies/{$company->id}")
+            ->assertInertia(fn ($page) => $page
+                ->where('timeline.0.role_id', $role->id)
+                ->where('timeline.0.role_title', 'Staff Platform Engineer'));
+    }
+
+    #[Test]
+    public function timeline_items_without_a_role_have_a_null_role_title(): void
+    {
+        $company = Company::factory()->create();
+
+        Note::factory()->create([
+            'company_id' => $company->id,
+            'author_id' => $this->user->id,
+            'body' => 'No role attached',
+        ]);
+
+        $this->actingAs($this->user)
+            ->get("/companies/{$company->id}")
+            ->assertInertia(fn ($page) => $page
+                ->where('timeline.0.role_id', null)
+                ->where('timeline.0.role_title', null));
+    }
 }

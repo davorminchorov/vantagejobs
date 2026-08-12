@@ -9,15 +9,23 @@ use App\Models\CompanyGraveyardReason;
 use App\Models\CompanySnapshot;
 use App\Models\Event;
 use App\Models\Note;
+use App\Models\Role;
 use Carbon\CarbonImmutable;
+use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
 final readonly class ShowCompanyController
 {
-    public function __invoke(Company $company): Response
+    public function __invoke(Request $request, Company $company): Response
     {
+        $rolesQ = $this->nonEmptyString($request->query('roles_q'));
+        $rolesState = $this->inSet($request->query('roles_state'), ['open', 'closed']);
+
         $roles = $company->roles()
+            ->when($rolesQ !== null, fn ($query) => $query->where('title', 'ilike', '%'.$rolesQ.'%'))
+            ->when($rolesState === 'open', fn ($query) => $query->where('is_open', true))
+            ->when($rolesState === 'closed', fn ($query) => $query->where('is_open', false))
             ->orderByDesc('is_open')
             ->orderByDesc('last_seen_at')
             ->orderByDesc('posted_at')
@@ -58,6 +66,15 @@ final readonly class ShowCompanyController
             ->sortByDesc('at')
             ->values()
             ->take(50);
+
+        $roleIds = $timeline->pluck('role_id')->filter()->unique()->values();
+        $roleTitles = Role::query()->whereIn('id', $roleIds)->pluck('title', 'id');
+
+        $timeline = $timeline->map(function (array $item) use ($roleTitles) {
+            $item['role_title'] = $item['role_id'] !== null ? ($roleTitles->get($item['role_id']) ?? null) : null;
+
+            return $item;
+        });
 
         $openCount = $company->roles()->where('is_open', true)->count();
         $totalCount = $company->roles()->count();
@@ -115,6 +132,10 @@ final readonly class ShowCompanyController
                 'eng_blog_rss_url' => $company->eng_blog_rss_url,
             ],
             'roles' => $roles,
+            'roles_filters' => [
+                'q' => $rolesQ,
+                'state' => $rolesState,
+            ],
             'timeline' => $timeline,
             'tags' => $tags,
             'counts' => [
@@ -135,5 +156,28 @@ final readonly class ShowCompanyController
                 'snapshot_date' => $latestSnapshot->snapshot_date?->toDateString(),
             ],
         ]);
+    }
+
+    private function nonEmptyString(mixed $value): ?string
+    {
+        if (! is_string($value)) {
+            return null;
+        }
+
+        $trimmed = trim($value);
+
+        return $trimmed === '' ? null : $trimmed;
+    }
+
+    /**
+     * @param  list<string>  $set
+     */
+    private function inSet(mixed $value, array $set): ?string
+    {
+        if (! is_string($value) || $value === '') {
+            return null;
+        }
+
+        return in_array($value, $set, true) ? $value : null;
     }
 }

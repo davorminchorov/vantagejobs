@@ -11,6 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { RelativeDate } from '@/lib/dates';
 import { cn } from '@/lib/utils';
 
 interface CompanyRow {
@@ -278,15 +279,12 @@ export default function CompaniesIndexPage({ companies, filters, options }: Prop
                 <div className="flex flex-wrap items-center gap-2" aria-label="Quick filters">
                     {QUICK_CHIPS.map((chip) => {
                         const active = chipMatches(local, chip);
-                        const isPlaceholder = Object.keys(chip.filters).length === 0;
                         return (
                             <Button
                                 key={chip.key}
                                 size="sm"
                                 variant={active ? 'default' : 'outline'}
-                                disabled={isPlaceholder}
                                 onClick={() => applyChip(chip)}
-                                title={isPlaceholder ? 'Deferred to Phase 4' : undefined}
                                 className="rounded-full"
                             >
                                 {chip.label}
@@ -296,9 +294,9 @@ export default function CompaniesIndexPage({ companies, filters, options }: Prop
                 </div>
 
                 <div className="grid gap-6 md:grid-cols-[18rem_1fr]">
-                    <aside className="hidden md:block">{filterPanel}</aside>
+                    <aside className="hidden min-w-0 md:block">{filterPanel}</aside>
 
-                    <div className="space-y-3">
+                    <div className="min-w-0 space-y-3">
                         <div className="flex items-center justify-between md:hidden">
                             <Sheet>
                                 <SheetTrigger asChild>
@@ -376,7 +374,7 @@ export default function CompaniesIndexPage({ companies, filters, options }: Prop
                                                             </Link>
                                                             {company.domain ? (
                                                                 <span className="font-mono text-xs text-muted-foreground">
-                                                                    {company.domain}
+                                                                    {bareDomain(company.domain)}
                                                                 </span>
                                                             ) : null}
                                                         </div>
@@ -417,11 +415,14 @@ export default function CompaniesIndexPage({ companies, filters, options }: Prop
                                                         )}
                                                     </TableCell>
                                                     <TableCell>
-                                                        <span className="font-mono text-xs tabular-nums text-muted-foreground">
-                                                            {company.last_checked_at
-                                                                ? new Date(company.last_checked_at).toLocaleString()
-                                                                : 'Never'}
-                                                        </span>
+                                                        {company.last_checked_at ? (
+                                                            <RelativeDate
+                                                                iso={company.last_checked_at}
+                                                                className="font-mono text-xs tabular-nums text-muted-foreground"
+                                                            />
+                                                        ) : (
+                                                            <span className="font-mono text-xs tabular-nums text-muted-foreground">Never</span>
+                                                        )}
                                                     </TableCell>
                                                     <TableCell className="text-right">
                                                         <Link
@@ -458,6 +459,11 @@ function humanize(value: string): string {
     return value.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
+/** Strips a leading protocol and trailing slash so every domain renders bare, e.g. "https://hospitable.com/" -> "hospitable.com". */
+function bareDomain(domain: string): string {
+    return domain.replace(/^[a-z][a-z0-9+.-]*:\/\//i, '').replace(/\/+$/, '');
+}
+
 interface FilterPanelProps {
     local: CompanyFilters;
     options: Options;
@@ -480,6 +486,17 @@ function FilterPanel({ local, options, patchFilters, onClear, hasAny }: FilterPa
                 </div>
             </CardHeader>
             <CardContent className="space-y-4">
+                <div className="space-y-1.5">
+                    <label className="font-mono text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                        Search
+                    </label>
+                    <Input
+                        type="search"
+                        placeholder="Name, domain, slug…"
+                        value={local.q ?? ''}
+                        onChange={(e) => patchFilters({ q: e.target.value === '' ? null : e.target.value })}
+                    />
+                </div>
                 <MultiCheckboxGroup
                     label="Tier"
                     selected={local.tier}
@@ -540,27 +557,6 @@ function FilterPanel({ local, options, patchFilters, onClear, hasAny }: FilterPa
                         value={local.domain ?? ''}
                         onChange={(e) => patchFilters({ domain: e.target.value === '' ? null : e.target.value })}
                     />
-                </div>
-                <div className="space-y-1.5">
-                    <label className="font-mono text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                        Search
-                    </label>
-                    <Input
-                        type="search"
-                        placeholder="Name, domain, slug…"
-                        value={local.q ?? ''}
-                        onChange={(e) => patchFilters({ q: e.target.value === '' ? null : e.target.value })}
-                    />
-                </div>
-
-                <div className="space-y-2 border-t pt-3">
-                    <p className="font-mono text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                        Coming in Phase 5+
-                    </p>
-                    <DeferredRow label="Size" title="Headcount not yet tracked" />
-                    <DeferredRow label="Remote policy" title="Lives at role/listing level; needs rollup" />
-                    <DeferredRow label="Primary stack" title="Needs aggregation of listing stack tags" />
-                    <DeferredRow label="Quality score" title="Quality scoring deferred" />
                 </div>
             </CardContent>
         </Card>
@@ -624,18 +620,6 @@ function SingleSelect({ label, value, onChange, options }: SingleSelectProps) {
                     </option>
                 ))}
             </select>
-        </div>
-    );
-}
-
-function DeferredRow({ label, title }: { label: string; title?: string }) {
-    return (
-        <div
-            className="flex items-center justify-between text-xs text-muted-foreground"
-            title={title ?? 'Coming in Phase 5+'}
-        >
-            <span>{label}</span>
-            <span className="italic">n/a</span>
         </div>
     );
 }
