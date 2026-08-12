@@ -81,6 +81,32 @@ final class ShowCompanyTest extends TestCase
     }
 
     #[Test]
+    public function show_exposes_ats_status_for_a_healthy_company(): void
+    {
+        $company = Company::factory()->create(['ats_type' => 'greenhouse', 'ats_slug' => 'acme']);
+
+        $this->actingAs($this->user)
+            ->get("/companies/{$company->id}")
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page->where('company.ats_status', 'ok'));
+    }
+
+    #[Test]
+    public function show_exposes_ats_status_for_a_redetect_failed_company(): void
+    {
+        $company = Company::factory()->create([
+            'ats_type' => 'greenhouse',
+            'ats_slug' => 'acme',
+            'ats_status' => 'redetect_failed',
+        ]);
+
+        $this->actingAs($this->user)
+            ->get("/companies/{$company->id}")
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page->where('company.ats_status', 'redetect_failed'));
+    }
+
+    #[Test]
     public function timeline_orders_events_and_notes_by_recency_desc(): void
     {
         $company = Company::factory()->create();

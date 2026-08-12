@@ -120,6 +120,7 @@ final readonly class ShowCompanyController
                 'domain' => $company->domain,
                 'ats_type' => $company->ats_type,
                 'ats_slug' => $company->ats_slug,
+                'ats_status' => $company->ats_status,
                 'tier' => $company->tier,
                 'status' => $company->status,
                 'is_active' => (bool) $company->is_active,

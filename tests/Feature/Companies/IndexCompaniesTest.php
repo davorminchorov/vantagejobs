@@ -92,6 +92,16 @@ final class IndexCompaniesTest extends TestCase
     }
 
     #[Test]
+    public function index_exposes_ats_status_per_row(): void
+    {
+        Company::factory()->create(['name' => 'Flagged Co', 'ats_status' => 'redetect_failed']);
+
+        $this->actingAs($this->user)
+            ->get('/companies')
+            ->assertInertia(fn ($page) => $page->where('companies.data.0.ats_status', 'redetect_failed'));
+    }
+
+    #[Test]
     public function filters_by_ats_type(): void
     {
         Company::factory()->create(['ats_type' => 'greenhouse', 'name' => 'GH Co']);

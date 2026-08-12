@@ -1,3 +1,4 @@
+import type { FormDataConvertible } from '@inertiajs/core';
 import { Head, Link, router } from '@inertiajs/react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
@@ -21,6 +22,7 @@ interface CompanyRow {
     domain: string | null;
     ats_type: string | null;
     ats_slug: string | null;
+    ats_status: string;
     tier: 'A' | 'B' | 'C' | 'graveyard';
     status: string;
     last_checked_at: string | null;
@@ -264,7 +266,7 @@ export default function CompaniesIndexPage({ companies, filters, options }: Prop
                     <div className="flex flex-wrap items-center gap-2">
                         <SaveViewButton
                             entity="companies"
-                            filters={local as unknown as Record<string, unknown>}
+                            filters={local as unknown as Record<string, FormDataConvertible>}
                             disabled={!hasAnyFilter}
                         />
                         <Button asChild variant="outline">
@@ -391,16 +393,21 @@ export default function CompaniesIndexPage({ companies, filters, options }: Prop
                                                     </TableCell>
                                                     <TableCell>
                                                         {company.ats_type ? (
-                                                            <div className="flex flex-col">
+                                                            <div className="flex flex-col gap-0.5">
                                                                 <span className="text-sm">{humanize(company.ats_type)}</span>
                                                                 {company.ats_slug ? (
                                                                     <span className="font-mono text-xs text-muted-foreground">
                                                                         {company.ats_slug}
                                                                     </span>
                                                                 ) : null}
+                                                                {company.ats_status === 'redetect_failed' ? (
+                                                                    <Badge variant="warning" className="w-fit">
+                                                                        redetection failed
+                                                                    </Badge>
+                                                                ) : null}
                                                             </div>
                                                         ) : (
-                                                            <span className="text-xs text-muted-foreground">—</span>
+                                                            <Badge variant="warning">no ATS</Badge>
                                                         )}
                                                     </TableCell>
                                                     <TableCell>

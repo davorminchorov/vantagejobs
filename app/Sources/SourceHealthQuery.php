@@ -27,12 +27,15 @@ use Illuminate\Support\Collection;
  *    but material drop (half the threshold) is YELLOW. This catches a source
  *    that still returns 200s but whose markup changed under us.
  *
- *  ATS companies (summary() only, mirroring Admin\Runs\IndexController::sourceHealth()):
+ *  ATS companies (perAtsCompany(), mirroring Admin\Runs\IndexController::sourceHealth()):
  *  - A company's most recent ATS scrape in the last 24h ended in `error`
  *    (RED) or `partial` (YELLOW).
  *  - A company flagged by the ATS-switch detector: `ats_status` of
  *    `redetect_failed` (RED, manual review) or `needs_redetection` (YELLOW,
  *    awaiting automated redetection).
+ *  perAtsCompany() merges those two row sets by company_id (a company can
+ *  trip both at once) and feeds both summary() and monitor:source-health's
+ *  company-scoped alerting.
  *
  * RED outranks YELLOW outranks GREEN. The most severe reason wins, and the
  * full reason list is carried so the dashboard tile and the alert email can
@@ -137,8 +140,7 @@ final readonly class SourceHealthQuery
 
         $sources = [
             ...$aggregatorRows,
-            ...$this->atsRunFailureRows($now),
-            ...$this->atsSwitchFlagRows(),
+            ...$this->perAtsCompany($now),
         ];
 
         usort($sources, static function (array $a, array $b): int {
@@ -169,6 +171,67 @@ final readonly class SourceHealthQuery
             'total' => count($sources),
             'sources' => $sources,
         ];
+    }
+
+    /**
+     * Per-ATS-company health, worst-first, for the active tenant: the union
+     * of atsRunFailureRows() and atsSwitchFlagRows(), merged by company_id so
+     * a company flagged by both never appears twice (a company can be both
+     * mid-redetection and have just posted an `error` run). Consumed by
+     * monitor:source-health for company-scoped alerting, mirroring perSource().
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function perAtsCompany(?CarbonImmutable $now = null): array
+    {
+        $now ??= CarbonImmutable::now();
+
+        $rows = [...$this->atsRunFailureRows($now), ...$this->atsSwitchFlagRows()];
+
+        if ($rows === []) {
+            return [];
+        }
+
+        $rank = static fn (string $status): int => match ($status) {
+            'red' => 2,
+            'yellow' => 1,
+            default => 0,
+        };
+
+        $merged = [];
+        foreach ($rows as $row) {
+            $companyId = $row['company_id'];
+
+            if (! isset($merged[$companyId])) {
+                $merged[$companyId] = $row;
+
+                continue;
+            }
+
+            $existing = $merged[$companyId];
+
+            $merged[$companyId] = [
+                ...$existing,
+                'status' => $rank($row['status']) > $rank($existing['status']) ? $row['status'] : $existing['status'],
+                'reasons' => array_values(array_unique([...$existing['reasons'], ...$row['reasons']])),
+                'consecutive_failures' => max($existing['consecutive_failures'], $row['consecutive_failures']),
+                'last_run_at' => $existing['last_run_at'] ?? $row['last_run_at'],
+            ];
+        }
+
+        $out = array_values($merged);
+
+        usort($out, static function (array $a, array $b): int {
+            $sortRank = static fn (string $status): int => match ($status) {
+                'red' => 0,
+                'yellow' => 1,
+                default => 2,
+            };
+
+            return [$sortRank($a['status']), $a['name']] <=> [$sortRank($b['status']), $b['name']];
+        });
+
+        return $out;
     }
 
     /**

@@ -10,4 +10,5 @@ enum NotificationKind: string
     case A_TIER_ALERT = 'a_tier_alert';
     case WEEKLY_SUMMARY = 'weekly_summary';
     case SOURCE_HEALTH = 'source_health';
+    case ATS_HEALTH = 'ats_health';
 }

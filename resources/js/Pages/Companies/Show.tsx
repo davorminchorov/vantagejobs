@@ -24,6 +24,7 @@ interface CompanyDetail {
     domain: string | null;
     ats_type: string | null;
     ats_slug: string | null;
+    ats_status: string;
     tier: 'A' | 'B' | 'C' | 'graveyard';
     status: string;
     is_active: boolean;
@@ -209,6 +210,7 @@ export default function ShowCompanyPage({
                 </header>
 
                 {graveyard ? <GraveyardBanner info={graveyard} /> : null}
+                {! graveyard && isUnscrapeable(company) ? <UnscrapeableBanner company={company} /> : null}
 
                 <Tabs value={tab} onValueChange={(v) => setTab(v as typeof tab)}>
                     <TabsList>
@@ -683,6 +685,28 @@ function TimelineGroupRow({ group }: { group: TimelineGroup }) {
                 </ul>
             </details>
         </li>
+    );
+}
+
+function isUnscrapeable(company: CompanyDetail): boolean {
+    return !company.ats_type || !company.ats_slug || company.ats_status === 'redetect_failed';
+}
+
+function UnscrapeableBanner({ company }: { company: CompanyDetail }) {
+    const reason =
+        company.ats_status === 'redetect_failed'
+            ? 'ATS redetection gave up after repeated failures. Update the careers URL, then set the ATS type and slug and reset the ATS status to retry.'
+            : 'No ATS type or slug is set, so this company is never picked up by a scrape run. Set the ATS type and slug to start tracking postings automatically.';
+
+    return (
+        <Card className="rounded-2xl border-amber-400/40 bg-amber-50/50 dark:bg-amber-900/10">
+            <CardContent className="space-y-2 py-4 text-sm">
+                <div className="flex flex-wrap items-center gap-2">
+                    <Badge variant="warning">Not being scraped</Badge>
+                </div>
+                <p className="text-muted-foreground">{reason}</p>
+            </CardContent>
+        </Card>
     );
 }
 

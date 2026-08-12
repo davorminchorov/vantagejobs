@@ -6,8 +6,10 @@ namespace Tests\Feature\Sources;
 
 use App\Enums\AggregatorSourceType;
 use App\Enums\NotificationKind;
+use App\Mail\AtsHealthMail;
 use App\Mail\SourceHealthMail;
 use App\Models\AggregatorSource;
+use App\Models\Company;
 use App\Models\NotificationLogEntry;
 use App\Models\ParserConfidenceDaily;
 use App\Models\User;
@@ -312,6 +314,92 @@ final class SourceHealthTest extends TestCase
         $exitCode = Artisan::call('monitor:source-health', ['--tenant' => 'nope']);
 
         $this->assertSame(1, $exitCode);
+    }
+
+    #[Test]
+    public function the_monitor_command_queues_an_ats_health_alert_for_a_redetect_failed_company(): void
+    {
+        Mail::fake();
+
+        $company = Company::factory()->create([
+            'name' => 'Acme Corp',
+            'ats_status' => 'redetect_failed',
+            'ats_redetect_attempts' => 3,
+        ]);
+
+        Artisan::call('monitor:source-health', ['--tenant' => 'primary']);
+
+        Mail::assertQueued(
+            AtsHealthMail::class,
+            fn (AtsHealthMail $mail): bool => $mail->companyId === $company->id
+                && $mail->companyName === 'Acme Corp'
+                && $mail->hasTo('owner@example.test'),
+        );
+
+        $this->assertDatabaseHas('notification_log', [
+            'kind' => NotificationKind::ATS_HEALTH->value,
+            'company_id' => $company->id,
+            'recipient' => 'owner@example.test',
+        ]);
+    }
+
+    #[Test]
+    public function the_monitor_command_dedupes_a_sustained_ats_health_alert(): void
+    {
+        Mail::fake();
+
+        Company::factory()->create(['ats_status' => 'redetect_failed']);
+
+        Artisan::call('monitor:source-health', ['--tenant' => 'primary']);
+        Artisan::call('monitor:source-health', ['--tenant' => 'primary']);
+
+        Mail::assertQueued(AtsHealthMail::class, 1);
+        $this->assertSame(1, NotificationLogEntry::query()
+            ->where('kind', NotificationKind::ATS_HEALTH)
+            ->count());
+    }
+
+    #[Test]
+    public function the_monitor_command_re_alerts_ats_health_after_a_recovery(): void
+    {
+        Mail::fake();
+
+        $company = Company::factory()->create(['ats_status' => 'redetect_failed']);
+
+        Artisan::call('monitor:source-health', ['--tenant' => 'primary']);
+        Mail::assertQueued(AtsHealthMail::class, 1);
+
+        // The company recovers on its own.
+        $company->fill(['ats_status' => 'ok'])->save();
+
+        Artisan::call('monitor:source-health', ['--tenant' => 'primary']);
+
+        $this->assertDatabaseHas('notification_log', [
+            'kind' => NotificationKind::ATS_HEALTH->value,
+            'company_id' => $company->id,
+            'context->recovered' => true,
+        ]);
+        Mail::assertQueued(AtsHealthMail::class, 1);
+
+        // It degrades again: this time it alerts, because the recovery row
+        // re-armed alreadyAlertedForCompany().
+        $company->fill(['ats_status' => 'redetect_failed'])->save();
+
+        Artisan::call('monitor:source-health', ['--tenant' => 'primary']);
+
+        Mail::assertQueued(AtsHealthMail::class, 2);
+    }
+
+    #[Test]
+    public function the_monitor_command_does_not_alert_ats_health_for_a_healthy_company(): void
+    {
+        Mail::fake();
+
+        Company::factory()->create(['ats_status' => 'ok']);
+
+        Artisan::call('monitor:source-health', ['--tenant' => 'primary']);
+
+        Mail::assertNothingQueued();
     }
 
     #[Test]
