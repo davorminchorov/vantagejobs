@@ -1,0 +1,191 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # pnpm/lint/typecheck/build on a Linux (case-sensitive) runner. This also
+  # guards resources/js/Pages: git tracks only the capital-P casing, and a
+  # bad import that only works on macOS's case-folding APFS fails here.
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+      - run: pnpm typecheck
+      - run: pnpm build
+
+  # PHPUnit against the ci compose stack (docker-compose.yml + docker-compose.ci.yml).
+  backend:
+    runs-on: ubuntu-latest
+    env:
+      COMPOSE: docker compose -f docker-compose.yml -f docker-compose.ci.yml
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      # The root blade view resolves @vite tags against public/build/manifest.json;
+      # that directory is gitignored, so it must be built before any full-page
+      # Inertia response is rendered (assertInertia() requests aren't XHR-only,
+      # they hit the same blade view PHPUnit's TestResponse renders).
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+
+      - name: Configure environment
+        run: cp .env.example .env
+
+      - name: Start Postgres
+        run: $COMPOSE up -d --build postgres
+
+      - name: Wait for Postgres
+        run: |
+          for i in $(seq 1 30); do
+            if $COMPOSE exec -T postgres pg_isready -U postgres -d laravel; then
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "Postgres did not become ready in time" >&2
+          exit 1
+
+      - name: Install PHP dependencies
+        run: $COMPOSE run --rm -T php composer install --no-interaction --prefer-dist
+
+      - name: Generate app key
+        run: $COMPOSE run --rm -T php php artisan key:generate --no-interaction
+
+      - name: Run backend test suite
+        run: $COMPOSE run --rm -T php php artisan test --compact --parallel --recreate-databases
+
+      - name: Tear down
+        if: always()
+        run: $COMPOSE down -v
+
+  # Playwright specs against a real, seeded app. Neither Playwright nor
+  # axe-core is a project dependency (see the specs' own docblocks); both are
+  # fetched ad hoc with pnpm dlx. Hasn't run in CI before, so it doesn't gate
+  # the pipeline yet.
+  browser:
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    env:
+      COMPOSE: docker compose -f docker-compose.yml -f docker-compose.ci.yml
+      APP_URL: http://localhost:8080
+      STORAGE_STATE: ${{ runner.temp }}/vj-auth.json
+      LOGIN_EMAIL: admin@vantagejobs.test
+      LOGIN_PASSWORD: ci-only-throwaway-password-2026
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+
+      - name: Configure environment
+        run: |
+          cp .env.example .env
+          sed -i "s#^APP_URL=.*#APP_URL=${APP_URL}#" .env
+          sed -i "s/^INITIAL_USER_EMAIL=.*/INITIAL_USER_EMAIL=${LOGIN_EMAIL}/" .env
+          sed -i "s/^INITIAL_USER_PASSWORD=.*/INITIAL_USER_PASSWORD=${LOGIN_PASSWORD}/" .env
+          # .env.example's DB_DATABASE/DB_USERNAME/DB_PASSWORD (vantagejobs)
+          # are the local dev postgres role; docker-compose.ci.yml provisions
+          # a different one (POSTGRES_DB=laravel, POSTGRES_USER=postgres).
+          sed -i "s/^DB_DATABASE=.*/DB_DATABASE=laravel/" .env
+          sed -i "s/^DB_USERNAME=.*/DB_USERNAME=postgres/" .env
+          sed -i "s/^DB_PASSWORD=.*/DB_PASSWORD=postgrespassword/" .env
+          # docker-compose.ci.yml doesn't set a redis requirepass (unlike the
+          # dev override), so the password .env.example ships for local dev
+          # would make Laravel's redis client send an AUTH the ci redis rejects.
+          sed -i "s/^REDIS_PASSWORD=.*/REDIS_PASSWORD=/" .env
+
+      - name: Start Postgres and Redis
+        run: $COMPOSE up -d --build postgres redis
+
+      - name: Wait for Postgres
+        run: |
+          for i in $(seq 1 30); do
+            if $COMPOSE exec -T postgres pg_isready -U postgres -d laravel; then
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "Postgres did not become ready in time" >&2
+          exit 1
+
+      - name: Install PHP dependencies
+        run: $COMPOSE run --rm -T php composer install --no-interaction --prefer-dist
+
+      - name: Generate app key
+        run: $COMPOSE run --rm -T php php artisan key:generate --no-interaction
+
+      - name: Migrate
+        run: $COMPOSE run --rm -T php php artisan migrate --force --no-interaction
+
+      - name: Seed a tenant, an admin user, and example companies
+        run: |
+          $COMPOSE run --rm -T php php artisan db:seed --class=CreateInitialTenantSeeder --no-interaction --force
+          $COMPOSE run --rm -T php php artisan db:seed --class=CreateAdminUserSeeder --no-interaction --force
+          $COMPOSE run --rm -T php php artisan db:seed --class=ExampleCompaniesSeeder --no-interaction --force
+
+      - name: Start the app server
+        run: $COMPOSE run --rm -d -p 8080:8080 --name vj-ci-app php php artisan octane:start --server=frankenphp --port=8080
+
+      - name: Wait for the app server
+        run: |
+          for i in $(seq 1 30); do
+            if curl -sf "${APP_URL}/login" -o /dev/null; then
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "App server did not become ready in time" >&2
+          exit 1
+
+      - name: Install Playwright browsers
+        run: pnpm dlx playwright@latest install --with-deps chromium
+
+      - name: Capture an authenticated storage state
+        run: pnpm dlx playwright@latest test tests/browser/capture-auth-state.ts
+
+      # Both specs run in one invocation per their own docblocks; axe.spec.ts
+      # imports @axe-core/playwright, so it's pulled in as a second dlx
+      # package alongside playwright itself.
+      - name: Run responsive and a11y specs
+        run: pnpm dlx --package playwright@latest --package @axe-core/playwright playwright test tests/responsive/viewport.spec.ts tests/a11y/axe.spec.ts
+
+      - name: Dump app logs on failure
+        if: failure()
+        run: $COMPOSE logs php
+
+      - name: Tear down
+        if: always()
+        run: |
+          docker rm -f vj-ci-app || true
+          $COMPOSE down -v

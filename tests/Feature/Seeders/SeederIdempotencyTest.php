@@ -74,7 +74,15 @@ final class SeederIdempotencyTest extends TestCase
         $stripe = Company::withoutTenantScope()->where('domain', 'stripe.com')->sole();
         $this->assertSame('greenhouse', $stripe->ats_type);
         $this->assertSame('stripe', $stripe->ats_slug);
-        $this->assertSame('watching', $stripe->status);
+        $this->assertSame('offer', $stripe->status);
+
+        // Seeded statuses span the lifecycle so dev screens exercise every state.
+        $statuses = Company::withoutTenantScope()->pluck('status')->unique();
+        $this->assertGreaterThanOrEqual(5, $statuses->count());
+        $this->assertSame(
+            1,
+            Company::withoutTenantScope()->where('tier', 'graveyard')->count(),
+        );
 
         $linear = Company::withoutTenantScope()->where('domain', 'linear.app')->sole();
         $this->assertSame('ashby', $linear->ats_type);

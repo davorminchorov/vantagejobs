@@ -12,6 +12,10 @@ spin run php artisan test --compact --parallel --recreate-databases
 
 When the Boost rules below show `php artisan ...` or `vendor/bin/pint ...`, mentally rewrite them with the `spin run php` prefix before running.
 
+## Repo quirks
+
+`resources/js/pages` vs `resources/js/Pages` is not a symlink: it's APFS case-folding on macOS. Git tracks only `Pages`, and all imports must reference `Pages`. CI runs on a case-sensitive Linux runner, which enforces this.
+
 <laravel-boost-guidelines>
 === foundation rules ===
 

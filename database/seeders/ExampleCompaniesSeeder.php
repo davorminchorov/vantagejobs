@@ -28,6 +28,7 @@ final class ExampleCompaniesSeeder extends Seeder
             'ats_type' => 'greenhouse',
             'ats_slug' => 'stripe',
             'tier' => 'A',
+            'status' => 'offer',
         ],
         [
             'name' => 'Airbnb',
@@ -37,6 +38,7 @@ final class ExampleCompaniesSeeder extends Seeder
             'ats_type' => 'greenhouse',
             'ats_slug' => 'airbnb',
             'tier' => 'A',
+            'status' => 'in_process',
         ],
         [
             'name' => 'Discord',
@@ -46,6 +48,7 @@ final class ExampleCompaniesSeeder extends Seeder
             'ats_type' => 'greenhouse',
             'ats_slug' => 'discord',
             'tier' => 'B',
+            'status' => 'watching',
         ],
         [
             'name' => 'Vercel',
@@ -55,6 +58,7 @@ final class ExampleCompaniesSeeder extends Seeder
             'ats_type' => 'greenhouse',
             'ats_slug' => 'vercel',
             'tier' => 'A',
+            'status' => 'applied',
         ],
         [
             'name' => 'HashiCorp',
@@ -64,6 +68,7 @@ final class ExampleCompaniesSeeder extends Seeder
             'ats_type' => 'greenhouse',
             'ats_slug' => 'hashicorp',
             'tier' => 'B',
+            'status' => 'watching',
         ],
 
         // Lever — 3
@@ -75,6 +80,7 @@ final class ExampleCompaniesSeeder extends Seeder
             'ats_type' => 'lever',
             'ats_slug' => 'mixpanel',
             'tier' => 'B',
+            'status' => 'researching',
         ],
         [
             'name' => 'Plaid',
@@ -84,6 +90,7 @@ final class ExampleCompaniesSeeder extends Seeder
             'ats_type' => 'lever',
             'ats_slug' => 'plaid',
             'tier' => 'B',
+            'status' => 'watching',
         ],
         [
             'name' => 'Replit',
@@ -93,6 +100,7 @@ final class ExampleCompaniesSeeder extends Seeder
             'ats_type' => 'lever',
             'ats_slug' => 'replit',
             'tier' => 'C',
+            'status' => 'rejected',
         ],
 
         // Ashby — 2
@@ -104,6 +112,7 @@ final class ExampleCompaniesSeeder extends Seeder
             'ats_type' => 'ashby',
             'ats_slug' => 'linear',
             'tier' => 'A',
+            'status' => 'watching',
         ],
         [
             'name' => 'Vanta',
@@ -112,7 +121,8 @@ final class ExampleCompaniesSeeder extends Seeder
             'domain' => 'vanta.com',
             'ats_type' => 'ashby',
             'ats_slug' => 'vanta',
-            'tier' => 'C',
+            'tier' => 'graveyard',
+            'status' => 'graveyard',
         ],
     ];
 
@@ -129,20 +139,26 @@ final class ExampleCompaniesSeeder extends Seeder
                 ->where('domain', $row['domain'])
                 ->exists();
 
+            $attributes = [
+                'name' => $row['name'],
+                'website' => $row['website'],
+                'careers_url' => $row['careers_url'],
+                'ats_type' => $row['ats_type'],
+                'ats_slug' => $row['ats_slug'],
+                'tier' => $row['tier'],
+                'status' => $row['status'],
+            ];
+
+            if ($row['status'] === 'graveyard') {
+                $attributes['is_active'] = false;
+            }
+
             Company::query()->updateOrCreate(
                 [
                     'tenant_id' => $tenant->id,
                     'domain' => $row['domain'],
                 ],
-                [
-                    'name' => $row['name'],
-                    'website' => $row['website'],
-                    'careers_url' => $row['careers_url'],
-                    'ats_type' => $row['ats_type'],
-                    'ats_slug' => $row['ats_slug'],
-                    'tier' => $row['tier'],
-                    'status' => 'watching',
-                ],
+                $attributes,
             );
 
             $existed ? $updated++ : $created++;
