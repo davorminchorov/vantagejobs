@@ -11,6 +11,7 @@ use App\Scrapers\Aggregator\Parser\Extractors\DisciplineExtractor;
 use App\Scrapers\Aggregator\Parser\Extractors\RoleTitleExtractor;
 use App\Scrapers\Aggregator\Parser\Extractors\SeniorityExtractor;
 use App\Scrapers\Aggregator\Parser\SourceContext;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
@@ -50,6 +51,46 @@ final class IdentityExtractorsTest extends TestCase
     public function company_name_missing_when_no_key_present(): void
     {
         $this->assertTrue((new CompanyNameExtractor())->extract($this->ctx([]))->isMissing());
+    }
+
+    /**
+     * @return list<array{0: string}>
+     */
+    public static function placeholderCompanyNames(): array
+    {
+        return [
+            ['name'],
+            ['Name'],
+            ['company'],
+            ['Company'],
+            ['company name'],
+            ['Company Name'],
+            ['n/a'],
+            ['N/A'],
+            ['unknown'],
+            ['Unknown'],
+            ['null'],
+            ['Null'],
+            ['  '],
+        ];
+    }
+
+    #[Test]
+    #[DataProvider('placeholderCompanyNames')]
+    public function company_name_missing_when_value_is_a_placeholder(string $placeholder): void
+    {
+        $this->assertTrue((new CompanyNameExtractor())->extract($this->ctx(['company_name' => $placeholder]))->isMissing());
+    }
+
+    #[Test]
+    public function company_name_falls_through_to_next_key_when_first_key_is_a_placeholder(): void
+    {
+        $field = (new CompanyNameExtractor())->extract($this->ctx([
+            'company_name' => 'N/A',
+            'companyName' => 'Globex',
+        ]));
+
+        $this->assertSame('Globex', $field->value);
     }
 
     /* ----- RoleTitle ----- */

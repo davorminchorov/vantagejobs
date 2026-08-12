@@ -196,4 +196,15 @@ final class SaveFixtureTest extends TestCase
 
         $this->post("/discover/{$listing->id}/save-fixture")->assertRedirect('/login');
     }
+
+    #[Test]
+    public function save_fixture_is_not_found_outside_local_and_testing_environments(): void
+    {
+        $source = AggregatorSource::factory()->ofType(AggregatorSourceType::REMOTIVE)->create();
+        $listing = AggregatorListing::factory()->create(['source_id' => $source->id]);
+
+        $this->app['env'] = 'production';
+
+        $this->actingAs($this->user)->post("/discover/{$listing->id}/save-fixture")->assertNotFound();
+    }
 }

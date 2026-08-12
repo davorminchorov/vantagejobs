@@ -25,6 +25,23 @@ final class CompanyNameExtractor implements Extractor
 {
     public const FIELD = 'company_name';
 
+    /**
+     * Source-supplied placeholder strings that aren't a real company name —
+     * a field label leaking into the value, or an explicit "no data" marker.
+     * Matched case-insensitively; the caller falls back to the existing
+     * "(company unknown)" path when this extractor reports missing.
+     *
+     * @var list<string>
+     */
+    private const PLACEHOLDER_VALUES = [
+        'name',
+        'company',
+        'company name',
+        'n/a',
+        'unknown',
+        'null',
+    ];
+
     public function field(): string
     {
         return self::FIELD;
@@ -38,7 +55,7 @@ final class CompanyNameExtractor implements Extractor
                 continue;
             }
             $name = trim($raw);
-            if ($name === '') {
+            if ($name === '' || in_array(strtolower($name), self::PLACEHOLDER_VALUES, true)) {
                 continue;
             }
 

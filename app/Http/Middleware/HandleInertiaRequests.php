@@ -44,6 +44,7 @@ final class HandleInertiaRequests extends Middleware
                 'error' => $request->session()->get('error'),
             ],
             'savedViews' => fn (): array => $this->savedViewsFor($request),
+            'debug' => app()->environment('local'),
         ];
     }
 

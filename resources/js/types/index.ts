@@ -40,4 +40,5 @@ export type PageProps<T extends Record<string, unknown> = Record<string, unknown
         tenant: SharedTenant | null;
         flash: SharedFlash;
         savedViews: SharedSavedView[];
+        debug: boolean;
     };

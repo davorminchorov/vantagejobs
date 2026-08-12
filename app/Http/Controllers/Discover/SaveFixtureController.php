@@ -23,6 +23,8 @@ final readonly class SaveFixtureController
 
     public function __invoke(Request $request, int $listing): RedirectResponse
     {
+        abort_unless(app()->environment(['local', 'testing']), 404);
+
         /** @var AggregatorListing $row */
         $row = AggregatorListing::query()->findOrFail($listing);
 

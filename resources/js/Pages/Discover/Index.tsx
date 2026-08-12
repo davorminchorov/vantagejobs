@@ -1,4 +1,4 @@
-import { Head, Link, router } from '@inertiajs/react';
+import { Head, Link, router, usePage } from '@inertiajs/react';
 import { useEffect, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 
@@ -7,7 +7,9 @@ import BulkActionBar from '@/components/bulk/BulkActionBar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
+import type { PageProps } from '@/types';
 
 interface SourceRef {
     id: number;
@@ -79,7 +81,15 @@ type EditableField =
     | 'comp_max_usd'
     | 'stack_tags';
 
-const STATUS_TABS = ['new', 'kept', 'dismissed', 'snoozed', 'linked', 'auto_dismissed', 'overflow', 'duplicate'] as const;
+const VISIBLE_STATUS_TABS = ['new', 'kept', 'snoozed', 'dismissed'] as const;
+const MORE_STATUS_TABS = ['linked', 'auto_dismissed', 'overflow', 'duplicate'] as const;
+
+function titleCaseStatus(status: string): string {
+    return status
+        .split('_')
+        .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' ');
+}
 
 const PARSED_SLOT_FOR_FIELD: Record<EditableField, string> = {
     company_name: 'company_name',
@@ -93,6 +103,7 @@ const PARSED_SLOT_FOR_FIELD: Record<EditableField, string> = {
 };
 
 export default function DiscoverIndex({ listings, filters, options }: Props) {
+    const { debug } = usePage<PageProps>().props;
     const [focusIndex, setFocusIndex] = useState<number>(-1);
     const [editing, setEditing] = useState<{ listingId: number; field: EditableField } | null>(null);
     const [selectedIds, setSelectedIds] = useState<number[]>([]);
@@ -246,7 +257,8 @@ export default function DiscoverIndex({ listings, filters, options }: Props) {
                     <div>
                         <h1 className="text-2xl font-semibold tracking-tight text-foreground">Discover</h1>
                         <p className="text-sm text-muted-foreground">
-                            <span className="font-mono tabular-nums">{listings.total}</span> {listings.total === 1 ? 'listing' : 'listings'} · J/↓ next · ↑ prev · K keep · X dismiss · S snooze · B bookmark
+                            <span className="font-mono tabular-nums">{listings.total}</span> {listings.total === 1 ? 'listing' : 'listings'}
+                            <span className="hidden md:inline"> · J/↓ next · ↑ prev · K keep · X dismiss · S snooze · B bookmark</span>
                         </p>
                     </div>
                     <form onSubmit={onSearchSubmit} className="flex w-full gap-2 sm:w-auto">
@@ -277,6 +289,7 @@ export default function DiscoverIndex({ listings, filters, options }: Props) {
                                         cardRefs.current[idx] = el;
                                     }}
                                     listing={listing}
+                                    debug={debug}
                                     isFocused={idx === focusIndex}
                                     isSelected={selectedIds.includes(listing.id)}
                                     onToggleSelect={() => toggleSelected(listing.id)}
@@ -308,9 +321,11 @@ export default function DiscoverIndex({ listings, filters, options }: Props) {
 }
 
 function StatusTabs({ current, onChange }: { current: string; onChange: (s: string) => void }) {
+    const moreActive = (MORE_STATUS_TABS as readonly string[]).includes(current);
+
     return (
-        <div className="mb-4 flex flex-wrap gap-1 border-b border-border">
-            {STATUS_TABS.map((status) => {
+        <div className="mb-4 flex flex-wrap items-center gap-1 border-b border-border">
+            {VISIBLE_STATUS_TABS.map((status) => {
                 const active = current === status;
                 return (
                     <button
@@ -318,16 +333,39 @@ function StatusTabs({ current, onChange }: { current: string; onChange: (s: stri
                         type="button"
                         onClick={() => onChange(status)}
                         className={
-                            'px-3 py-2 text-sm capitalize transition-colors ' +
+                            'px-3 py-2 text-sm transition-colors ' +
                             (active
                                 ? 'border-b-2 border-primary text-foreground'
                                 : 'text-muted-foreground hover:text-foreground')
                         }
                     >
-                        {status.replace('_', ' ')}
+                        {titleCaseStatus(status)}
                     </button>
                 );
             })}
+            <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                    <button
+                        type="button"
+                        className={
+                            'px-3 py-2 text-sm transition-colors ' +
+                            (moreActive
+                                ? 'border-b-2 border-primary text-foreground'
+                                : 'text-muted-foreground hover:text-foreground')
+                        }
+                        aria-label="More status tabs"
+                    >
+                        {moreActive ? titleCaseStatus(current) : 'More'} <span aria-hidden="true">⌄</span>
+                    </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start">
+                    {MORE_STATUS_TABS.map((status) => (
+                        <DropdownMenuItem key={status} onSelect={() => onChange(status)}>
+                            {titleCaseStatus(status)}
+                        </DropdownMenuItem>
+                    ))}
+                </DropdownMenuContent>
+            </DropdownMenu>
         </div>
     );
 }
@@ -380,6 +418,7 @@ function FilterBar({
 
 interface ListingCardProps {
     listing: Listing;
+    debug: boolean;
     isFocused: boolean;
     isSelected: boolean;
     onToggleSelect: () => void;
@@ -396,6 +435,7 @@ interface ListingCardProps {
 
 function ListingCard({
     listing,
+    debug,
     isFocused,
     isSelected,
     onToggleSelect,
@@ -468,8 +508,9 @@ function ListingCard({
                             <EditablePill
                                 listing={listing}
                                 field="seniority"
-                                label={listing.parsed_seniority ?? 'seniority?'}
+                                label={listing.parsed_seniority ?? 'add seniority'}
                                 emphasis="muted"
+                                placeholder={listing.parsed_seniority == null}
                                 onEdit={onEdit}
                             />
                         </div>
@@ -490,15 +531,17 @@ function ListingCard({
                             <EditablePill
                                 listing={listing}
                                 field="remote_type"
-                                label={listing.parsed_remote_type?.replace('_', ' ') ?? 'remote?'}
+                                label={listing.parsed_remote_type?.replace('_', ' ') ?? 'add remote type'}
                                 emphasis="muted"
+                                placeholder={listing.parsed_remote_type == null}
                                 onEdit={onEdit}
                             />
                             <EditablePill
                                 listing={listing}
                                 field="region"
-                                label={listing.location_bucket ?? 'region?'}
+                                label={listing.location_bucket ?? 'add region'}
                                 emphasis="muted"
+                                placeholder={listing.location_bucket == null}
                                 onEdit={onEdit}
                             />
                             <EditablePill
@@ -546,7 +589,7 @@ function ListingCard({
                                 <span className="text-xs text-muted-foreground/60 hover:text-foreground">edit</span>
                             </div>
                         )}
-                        {listing.parser_version != null && (
+                        {debug && listing.parser_version != null && (
                             <p className="pt-1 font-mono text-[10px] uppercase tracking-wide text-muted-foreground/60">
                                 parsed by v<span className="tabular-nums">{listing.parser_version}</span>
                             </p>
@@ -632,23 +675,26 @@ function ListingCard({
                     <CorrectionEditor
                         listing={listing}
                         field={editingField}
+                        debug={debug}
                         onSave={(value) => onSave(editingField, value)}
                         onCancel={onCancelEdit}
                         onSaveFixture={onSaveFixture}
                     />
                 )}
                 <div className="relative flex items-center justify-end gap-3">
-                    <button
-                        type="button"
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            onSaveFixture();
-                        }}
-                        className="font-mono text-[10px] uppercase tracking-wide text-muted-foreground/60 hover:text-foreground"
-                        title="Save as test fixture"
-                    >
-                        save fixture
-                    </button>
+                    {debug && (
+                        <button
+                            type="button"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                onSaveFixture();
+                            }}
+                            className="font-mono text-[10px] uppercase tracking-wide text-muted-foreground/60 hover:text-foreground"
+                            title="Save as test fixture"
+                        >
+                            save fixture
+                        </button>
+                    )}
                     <button
                         type="button"
                         onClick={(e) => {
@@ -703,14 +749,20 @@ interface EditablePillProps {
     field: EditableField;
     label: string;
     emphasis?: 'default' | 'muted';
+    placeholder?: boolean;
     onEdit: (field: EditableField) => void;
 }
 
-function EditablePill({ listing, field, label, emphasis = 'default', onEdit }: EditablePillProps) {
+function EditablePill({ listing, field, label, emphasis = 'default', placeholder = false, onEdit }: EditablePillProps) {
     const slot = listing.parsed?.[PARSED_SLOT_FOR_FIELD[field]] ?? null;
     const confidence = slot?.confidence;
     const muted = emphasis === 'muted';
     const isNumeric = field === 'comp_min_usd' || field === 'comp_max_usd';
+    const toneClass = placeholder
+        ? 'rounded-full border border-dashed border-muted-foreground/25 font-mono text-xs uppercase tracking-wide text-muted-foreground/50 hover:border-muted-foreground/40 hover:text-muted-foreground'
+        : muted
+          ? 'font-mono text-xs uppercase tracking-wide text-muted-foreground'
+          : '';
 
     return (
         <button
@@ -719,14 +771,11 @@ function EditablePill({ listing, field, label, emphasis = 'default', onEdit }: E
                 e.stopPropagation();
                 onEdit(field);
             }}
-            className={
-                'group inline-flex items-center gap-1 rounded px-1 hover:bg-muted/60 ' +
-                (muted ? 'font-mono text-xs uppercase tracking-wide text-muted-foreground' : '')
-            }
-            title={`Edit ${field.replace('_', ' ')}`}
+            className={`group inline-flex items-center gap-1 rounded px-1 hover:bg-muted/60 ${toneClass}`}
+            title={placeholder ? `Add ${field.replace('_', ' ')}` : `Edit ${field.replace('_', ' ')}`}
         >
             <span className={isNumeric ? 'font-mono tabular-nums' : undefined}>{label}</span>
-            {confidence != null && confidence < 0.7 && (
+            {!placeholder && confidence != null && confidence < 0.7 && (
                 <Badge variant="warning" className="hidden px-1 py-0 text-[10px] group-hover:inline-flex">
                     {Math.round(confidence * 100)}%
                 </Badge>
@@ -739,12 +788,13 @@ function EditablePill({ listing, field, label, emphasis = 'default', onEdit }: E
 interface CorrectionEditorProps {
     listing: Listing;
     field: EditableField;
+    debug: boolean;
     onSave: (value: unknown) => void;
     onCancel: () => void;
     onSaveFixture: () => void;
 }
 
-function CorrectionEditor({ listing, field, onSave, onCancel, onSaveFixture }: CorrectionEditorProps) {
+function CorrectionEditor({ listing, field, debug, onSave, onCancel, onSaveFixture }: CorrectionEditorProps) {
     const slot = listing.parsed?.[PARSED_SLOT_FOR_FIELD[field]] ?? null;
     const currentValue = currentValueFor(listing, field);
     const [value, setValue] = useState<unknown>(currentValue);
@@ -788,9 +838,11 @@ function CorrectionEditor({ listing, field, onSave, onCancel, onSaveFixture }: C
                 <Button type="button" size="sm" variant="ghost" onClick={onCancel}>
                     Cancel
                 </Button>
-                <Button type="button" size="sm" variant="outline" onClick={onSaveFixture}>
-                    Save as fixture
-                </Button>
+                {debug && (
+                    <Button type="button" size="sm" variant="outline" onClick={onSaveFixture}>
+                        Save as fixture
+                    </Button>
+                )}
                 <button
                     type="button"
                     onClick={() => setShowRaw((v) => !v)}
