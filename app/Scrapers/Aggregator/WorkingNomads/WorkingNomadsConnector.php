@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace App\Scrapers\Aggregator\WorkingNomads;
 
 use App\Scrapers\Aggregator\Artifacts\RecordResponseArtifact;
+use App\Scrapers\Support\ConfigurableConnector;
 use Illuminate\Container\Container;
-use Saloon\Http\Connector;
 use Saloon\Http\PendingRequest;
 
 /**
@@ -15,10 +15,17 @@ use Saloon\Http\PendingRequest;
  * Per SOURCES.md §3.7: anonymous GET against
  * workingnomads.co/api/exposed_jobs/. Returns the full job list in a single
  * flat JSON array — no pagination, no auth. Concurrency stays at 1 to be a
- * polite citizen against a small unmonetized aggregator.
+ * polite citizen against a small unmonetized aggregator. Retries
+ * (config('scrapers.aggregators.workingnomads.retry_times'/'retry_sleep_ms'))
+ * are wired via ConfigurableConnector.
  */
-final class WorkingNomadsConnector extends Connector
+final class WorkingNomadsConnector extends ConfigurableConnector
 {
+    protected function configKey(): string
+    {
+        return 'aggregators.workingnomads';
+    }
+
     public function resolveBaseUrl(): string
     {
         return 'https://www.workingnomads.co';

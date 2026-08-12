@@ -200,4 +200,48 @@ final class AdzunaScraperTest extends TestCase
         $this->assertSame(0, $result->newCount);
         $this->assertSame(0, AggregatorListing::query()->count());
     }
+
+    #[Test]
+    public function pagination_truncated_at_pages_per_country_cap_is_recorded_as_an_error(): void
+    {
+        $payload = $this->payload();
+        // A full 50-result page (not a short page) with `count` far above what
+        // pages_per_country=1 lets us fetch - the cap, not end-of-list, is why
+        // the loop stops.
+        $fullPage = array_fill(0, 50, $payload['results'][0]);
+        foreach ($fullPage as $index => &$result) {
+            $result['id'] = (string) (2000 + $index);
+        }
+        unset($result);
+
+        Saloon::fake([
+            SearchRequest::class => MockResponse::make(['count' => 500, 'results' => $fullPage], 200),
+        ]);
+
+        $result = $this->scraper->run($this->source);
+
+        $this->assertTrue($result->hasErrors());
+        $this->assertSame(50, $result->fetched);
+        $lastError = $result->errors[array_key_last($result->errors)];
+        $this->assertStringContainsString('truncated for [gb]', $lastError['message']);
+        $this->assertSame(50, $lastError['context']['fetched']);
+        $this->assertSame(500, $lastError['context']['total']);
+    }
+
+    #[Test]
+    public function what_filter_is_omitted_by_default_but_included_when_configured(): void
+    {
+        Saloon::fake([
+            SearchRequest::class => MockResponse::make(['count' => 0, 'results' => []], 200),
+        ]);
+        $this->scraper->run($this->source);
+        Saloon::assertSent(fn (SearchRequest $request): bool => $request->query()->get('what') === null);
+
+        config(['scrapers.aggregators.adzuna.what' => 'software']);
+        Saloon::fake([
+            SearchRequest::class => MockResponse::make(['count' => 0, 'results' => []], 200),
+        ]);
+        $this->scraper->run($this->source);
+        Saloon::assertSent(fn (SearchRequest $request): bool => $request->query()->get('what') === 'software');
+    }
 }

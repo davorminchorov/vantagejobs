@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace App\Scrapers\Aggregator\RemoteOk;
 
 use App\Scrapers\Aggregator\Artifacts\RecordResponseArtifact;
+use App\Scrapers\Support\ConfigurableConnector;
 use Illuminate\Container\Container;
-use Saloon\Http\Connector;
 use Saloon\Http\PendingRequest;
 
 /**
@@ -14,10 +14,17 @@ use Saloon\Http\PendingRequest;
  *
  * Per SOURCES.md §2.5: anonymous GET against remoteok.com/api. Rate limits
  * are undocumented; polite daily polling is fine. Concurrency capped at 1
- * in config('scrapers.aggregators.remoteok.concurrency').
+ * in config('scrapers.aggregators.remoteok.concurrency'). Retries
+ * (config('scrapers.aggregators.remoteok.retry_times'/'retry_sleep_ms')) are
+ * wired via ConfigurableConnector.
  */
-final class RemoteOkConnector extends Connector
+final class RemoteOkConnector extends ConfigurableConnector
 {
+    protected function configKey(): string
+    {
+        return 'aggregators.remoteok';
+    }
+
     public function resolveBaseUrl(): string
     {
         return 'https://remoteok.com';

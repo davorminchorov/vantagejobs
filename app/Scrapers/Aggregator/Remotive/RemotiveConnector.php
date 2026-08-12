@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace App\Scrapers\Aggregator\Remotive;
 
 use App\Scrapers\Aggregator\Artifacts\RecordResponseArtifact;
+use App\Scrapers\Support\ConfigurableConnector;
 use Illuminate\Container\Container;
-use Saloon\Http\Connector;
 use Saloon\Http\PendingRequest;
 
 /**
@@ -15,9 +15,16 @@ use Saloon\Http\PendingRequest;
  * Per SOURCES.md §2.2: anonymous GET against remotive.com/api/remote-jobs.
  * Strict rate limit (≤ 2 req/min); concurrency capped at 1 in
  * config('scrapers.aggregators.remotive.concurrency'), polled once daily.
+ * Retries (config('scrapers.aggregators.remotive.retry_times'/
+ * 'retry_sleep_ms')) are wired via ConfigurableConnector.
  */
-final class RemotiveConnector extends Connector
+final class RemotiveConnector extends ConfigurableConnector
 {
+    protected function configKey(): string
+    {
+        return 'aggregators.remotive';
+    }
+
     public function resolveBaseUrl(): string
     {
         return 'https://remotive.com';

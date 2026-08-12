@@ -65,6 +65,15 @@ final readonly class AdzunaScraper implements AggregatorScraperInterface
             $connector = new AdzunaConnector();
 
             foreach ($countries as $country) {
+                $countryFetched = 0;
+                $countryTotal = null;
+                // Stays true only if the inner loop runs out of
+                // pages_per_country without ever reaching a legitimate
+                // stopping point (a short page, a fetch error already
+                // recorded above) - i.e. Adzuna genuinely has more results
+                // for this country than the page cap lets us fetch.
+                $countryPagesExhausted = true;
+
                 for ($page = 1; $page <= $pagesPerCountry; $page++) {
                     try {
                         $response = $connector->send(new SearchRequest($country, $page));
@@ -73,6 +82,7 @@ final readonly class AdzunaScraper implements AggregatorScraperInterface
                             'message' => $e->getMessage(),
                             'context' => ['country' => $country, 'page' => $page],
                         ];
+                        $countryPagesExhausted = false;
                         break;
                     }
 
@@ -81,11 +91,13 @@ final readonly class AdzunaScraper implements AggregatorScraperInterface
                             'message' => 'Adzuna HTTP '.$response->status(),
                             'context' => ['country' => $country, 'page' => $page],
                         ];
+                        $countryPagesExhausted = false;
                         break;
                     }
 
                     $payload = $response->json();
                     $results = is_array($payload['results'] ?? null) ? $payload['results'] : [];
+                    $countryTotal = is_int($payload['count'] ?? null) ? (int) $payload['count'] : $countryTotal;
 
                     foreach ($results as $result) {
                         if (! is_array($result)) {
@@ -97,6 +109,7 @@ final readonly class AdzunaScraper implements AggregatorScraperInterface
                         }
 
                         $fetched++;
+                        $countryFetched++;
 
                         try {
                             $context = $this->contextBuilder->build($result, $country);
@@ -118,8 +131,21 @@ final readonly class AdzunaScraper implements AggregatorScraperInterface
                     }
 
                     if (count($results) < self::RESULTS_PER_PAGE) {
+                        $countryPagesExhausted = false;
                         break;
                     }
+                }
+
+                if ($countryPagesExhausted && $countryTotal !== null && $countryFetched < $countryTotal) {
+                    $errors[] = [
+                        'message' => "Adzuna pagination truncated for [{$country}] at pages_per_country cap ({$countryFetched} of {$countryTotal} fetched).",
+                        'context' => [
+                            'country' => $country,
+                            'pages_per_country' => $pagesPerCountry,
+                            'fetched' => $countryFetched,
+                            'total' => $countryTotal,
+                        ],
+                    ];
                 }
             }
         } catch (Throwable $e) {

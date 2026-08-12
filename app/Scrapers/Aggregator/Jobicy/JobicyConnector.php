@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace App\Scrapers\Aggregator\Jobicy;
 
 use App\Scrapers\Aggregator\Artifacts\RecordResponseArtifact;
+use App\Scrapers\Support\ConfigurableConnector;
 use Illuminate\Container\Container;
-use Saloon\Http\Connector;
 use Saloon\Http\PendingRequest;
 
 /**
@@ -15,10 +15,16 @@ use Saloon\Http\PendingRequest;
  * Anonymous GET. Jobicy publishes a 1-request-per-hour soft limit; daily
  * cadence (config('scrapers.aggregators.jobicy.concurrency') = 1,
  * AggregatorSourceType::JOBICY->defaultCadenceMinutes() = 1440) keeps us
- * well inside it.
+ * well inside it. Retries (config('scrapers.aggregators.jobicy.retry_times'/
+ * 'retry_sleep_ms')) are wired via ConfigurableConnector.
  */
-final class JobicyConnector extends Connector
+final class JobicyConnector extends ConfigurableConnector
 {
+    protected function configKey(): string
+    {
+        return 'aggregators.jobicy';
+    }
+
     public function resolveBaseUrl(): string
     {
         return 'https://jobicy.com';

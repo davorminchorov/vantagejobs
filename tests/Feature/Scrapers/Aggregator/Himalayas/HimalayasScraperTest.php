@@ -188,4 +188,63 @@ final class HimalayasScraperTest extends TestCase
         $this->assertSame('himalayas 429', $result->errors[0]['message']);
         $this->assertSame(0, AggregatorListing::query()->count());
     }
+
+    #[Test]
+    public function http_error_status_mid_pagination_stops_and_records_error(): void
+    {
+        $page = 0;
+
+        Saloon::fake([
+            JobsSearchRequest::class => function (PendingRequest $request) use (&$page): MockResponse {
+                $page++;
+                if ($page === 1) {
+                    return MockResponse::make([
+                        'jobs' => [$this->fixture()['jobs'][0]],
+                        'totalCount' => 100,
+                        'offset' => 0,
+                        'limit' => 20,
+                    ], 200);
+                }
+
+                return MockResponse::make(body: 'Service Unavailable', status: 503);
+            },
+        ]);
+
+        $result = $this->scraper->run($this->source);
+
+        $this->assertTrue($result->hasErrors());
+        $this->assertSame(503, $result->errors[0]['context']['http_status']);
+        $this->assertSame(1, $result->fetched);
+        $this->assertSame(1, AggregatorListing::query()->count());
+    }
+
+    #[Test]
+    public function pagination_truncated_at_max_pages_is_recorded_as_an_error(): void
+    {
+        // totalCount always claims far more than MAX_PAGES * PAGE_SIZE (1,000)
+        // can ever fetch, so the loop runs out the safety cap instead of ever
+        // reaching a legitimate stopping point.
+        Saloon::fake([
+            JobsSearchRequest::class => function (PendingRequest $request): MockResponse {
+                $job = $this->fixture()['jobs'][0];
+                $offset = (int) ($request->query()->get('offset') ?? 0);
+                $job['guid'] = "job-at-offset-{$offset}";
+
+                return MockResponse::make([
+                    'jobs' => [$job],
+                    'totalCount' => 100_000,
+                    'offset' => $offset,
+                    'limit' => 20,
+                ], 200);
+            },
+        ]);
+
+        $result = $this->scraper->run($this->source);
+
+        $this->assertTrue($result->hasErrors());
+        $lastError = $result->errors[array_key_last($result->errors)];
+        $this->assertStringContainsString('truncated at MAX_PAGES', $lastError['message']);
+        $this->assertSame(50, $lastError['context']['max_pages']);
+        $this->assertSame(50, $result->fetched);
+    }
 }

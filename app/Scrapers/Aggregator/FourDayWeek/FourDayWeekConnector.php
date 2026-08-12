@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace App\Scrapers\Aggregator\FourDayWeek;
 
 use App\Scrapers\Aggregator\Artifacts\RecordResponseArtifact;
+use App\Scrapers\Support\ConfigurableConnector;
 use Illuminate\Container\Container;
-use Saloon\Http\Connector;
 use Saloon\Http\PendingRequest;
 
 /**
@@ -15,9 +15,16 @@ use Saloon\Http\PendingRequest;
  * Per SOURCES.md §3.6: anonymous GET against 4dayweek.io/jobs.rss — a curated
  * feed (~2,500 entries) of reduced-schedule employers. Concurrency capped at
  * 1 in config('scrapers.aggregators.fourdayweek.concurrency'); polled daily.
+ * Retries (config('scrapers.aggregators.fourdayweek.retry_times'/
+ * 'retry_sleep_ms')) are wired via ConfigurableConnector.
  */
-final class FourDayWeekConnector extends Connector
+final class FourDayWeekConnector extends ConfigurableConnector
 {
+    protected function configKey(): string
+    {
+        return 'aggregators.fourdayweek';
+    }
+
     public function resolveBaseUrl(): string
     {
         return 'https://4dayweek.io';

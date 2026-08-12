@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Scrapers\Greenhouse;
 
-use Saloon\Http\Connector;
+use App\Scrapers\Support\ConfigurableConnector;
 
 /**
  * Saloon connector for the Greenhouse public job board API.
@@ -12,12 +12,16 @@ use Saloon\Http\Connector;
  * Per SOURCES.md §1.1: anonymous GET against
  * https://boards-api.greenhouse.io/v1/boards/{board_token}/jobs.
  *
- * Retries are intentionally left to the surrounding orchestrator (scrape:all
- * pool layer) rather than embedded here, so they can be coordinated against
- * the per-source concurrency cap in config/scrapers.php.
+ * Retries (config('scrapers.sources.greenhouse.retry_times'/'retry_sleep_ms'))
+ * are wired via ConfigurableConnector.
  */
-final class GreenhouseConnector extends Connector
+final class GreenhouseConnector extends ConfigurableConnector
 {
+    protected function configKey(): string
+    {
+        return 'sources.greenhouse';
+    }
+
     public function resolveBaseUrl(): string
     {
         return 'https://boards-api.greenhouse.io';

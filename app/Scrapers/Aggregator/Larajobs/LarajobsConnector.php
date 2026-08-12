@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace App\Scrapers\Aggregator\Larajobs;
 
 use App\Scrapers\Aggregator\Artifacts\RecordResponseArtifact;
+use App\Scrapers\Support\ConfigurableConnector;
 use Illuminate\Container\Container;
-use Saloon\Http\Connector;
 use Saloon\Http\PendingRequest;
 
 /**
@@ -14,10 +14,17 @@ use Saloon\Http\PendingRequest;
  *
  * Anonymous GET against larajobs.com/feed — a small curated feed of
  * Laravel-specific job postings. Concurrency capped at 1 in
- * config('scrapers.aggregators.larajobs.concurrency'); polled daily.
+ * config('scrapers.aggregators.larajobs.concurrency'); polled daily. Retries
+ * (config('scrapers.aggregators.larajobs.retry_times'/'retry_sleep_ms')) are
+ * wired via ConfigurableConnector.
  */
-final class LarajobsConnector extends Connector
+final class LarajobsConnector extends ConfigurableConnector
 {
+    protected function configKey(): string
+    {
+        return 'aggregators.larajobs';
+    }
+
     public function resolveBaseUrl(): string
     {
         return 'https://larajobs.com';

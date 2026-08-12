@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace App\Scrapers\Aggregator\Adzuna;
 
 use App\Scrapers\Aggregator\Artifacts\RecordResponseArtifact;
+use App\Scrapers\Support\ConfigurableConnector;
 use Illuminate\Container\Container;
-use Saloon\Http\Connector;
 use Saloon\Http\PendingRequest;
 
 /**
@@ -15,10 +15,17 @@ use Saloon\Http\PendingRequest;
  * Per SOURCES.md §3.8: authenticated GET against api.adzuna.com requiring
  * app_id + app_key (free developer registration). One request returns up to
  * 50 results for a single country; the scraper pages through
- * `pages_per_country` pages for each configured country code.
+ * `pages_per_country` pages for each configured country code. Retries
+ * (config('scrapers.aggregators.adzuna.retry_times'/'retry_sleep_ms')) are
+ * wired via ConfigurableConnector.
  */
-final class AdzunaConnector extends Connector
+final class AdzunaConnector extends ConfigurableConnector
 {
+    protected function configKey(): string
+    {
+        return 'aggregators.adzuna';
+    }
+
     public function resolveBaseUrl(): string
     {
         return 'https://api.adzuna.com';

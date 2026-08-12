@@ -5,18 +5,25 @@ declare(strict_types=1);
 namespace App\Scrapers\Aggregator\Arbeitnow;
 
 use App\Scrapers\Aggregator\Artifacts\RecordResponseArtifact;
+use App\Scrapers\Support\ConfigurableConnector;
 use Illuminate\Container\Container;
-use Saloon\Http\Connector;
 use Saloon\Http\PendingRequest;
 
 /**
  * Saloon connector for arbeitnow.com's job-board JSON API.
  *
  * Anonymous GET. EU/Germany-focused. No published rate limit; we run daily
- * with concurrency 1 to stay polite.
+ * with concurrency 1 to stay polite. Retries
+ * (config('scrapers.aggregators.arbeitnow.retry_times'/'retry_sleep_ms')) are
+ * wired via ConfigurableConnector.
  */
-final class ArbeitnowConnector extends Connector
+final class ArbeitnowConnector extends ConfigurableConnector
 {
+    protected function configKey(): string
+    {
+        return 'aggregators.arbeitnow';
+    }
+
     public function resolveBaseUrl(): string
     {
         return 'https://www.arbeitnow.com';

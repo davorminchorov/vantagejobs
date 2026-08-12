@@ -5,20 +5,27 @@ declare(strict_types=1);
 namespace App\Scrapers\Aggregator\HexHire;
 
 use App\Scrapers\Aggregator\Artifacts\RecordResponseArtifact;
+use App\Scrapers\Support\ConfigurableConnector;
 use Illuminate\Container\Container;
-use Saloon\Http\Connector;
 use Saloon\Http\PendingRequest;
 
 /**
  * Saloon connector for the HexHire (Elixir-focused) RSS feed.
  *
  * Anonymous GET against hexhire.io/rss/jobs.xml. Concurrency 1, daily.
+ * Retries (config('scrapers.aggregators.hexhire.retry_times'/
+ * 'retry_sleep_ms')) are wired via ConfigurableConnector.
  *
  * NOTE: the server returns 406 if `Accept: application/rss+xml` is sent.
  * Omit Accept; default `*\/*` works.
  */
-final class HexHireConnector extends Connector
+final class HexHireConnector extends ConfigurableConnector
 {
+    protected function configKey(): string
+    {
+        return 'aggregators.hexhire';
+    }
+
     public function resolveBaseUrl(): string
     {
         return 'https://hexhire.io';

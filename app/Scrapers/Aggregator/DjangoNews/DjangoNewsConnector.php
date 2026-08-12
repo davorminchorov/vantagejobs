@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace App\Scrapers\Aggregator\DjangoNews;
 
 use App\Scrapers\Aggregator\Artifacts\RecordResponseArtifact;
+use App\Scrapers\Support\ConfigurableConnector;
 use Illuminate\Container\Container;
-use Saloon\Http\Connector;
 use Saloon\Http\PendingRequest;
 
 /**
@@ -14,10 +14,17 @@ use Saloon\Http\PendingRequest;
  *
  * Anonymous GET against djangojobboard.com/feed/ (originally hosted at
  * jobs.django-news.com — that domain now redirects here). Concurrency
- * capped at 1 in config; polled daily.
+ * capped at 1 in config; polled daily. Retries
+ * (config('scrapers.aggregators.django_news.retry_times'/'retry_sleep_ms'))
+ * are wired via ConfigurableConnector.
  */
-final class DjangoNewsConnector extends Connector
+final class DjangoNewsConnector extends ConfigurableConnector
 {
+    protected function configKey(): string
+    {
+        return 'aggregators.django_news';
+    }
+
     public function resolveBaseUrl(): string
     {
         return 'https://djangojobboard.com';

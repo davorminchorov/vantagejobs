@@ -46,7 +46,6 @@ final readonly class HexHireScraper implements AggregatorScraperInterface
     {
         try {
             $response = (new HexHireConnector())->send(new JobsRssRequest());
-            $body = (string) $response->body();
         } catch (Throwable $e) {
             return new AggregatorRunResult(
                 fetched: 0,
@@ -54,6 +53,19 @@ final readonly class HexHireScraper implements AggregatorScraperInterface
                 errors: [['message' => $e->getMessage()]],
             );
         }
+
+        if ($response->status() >= 400) {
+            return new AggregatorRunResult(
+                fetched: 0,
+                newCount: 0,
+                errors: [[
+                    'message' => "HexHire RSS feed returned HTTP {$response->status()}.",
+                    'context' => ['http_status' => $response->status()],
+                ]],
+            );
+        }
+
+        $body = (string) $response->body();
 
         $items = $this->parseItems($body);
         if ($items === null) {
@@ -127,7 +139,11 @@ final readonly class HexHireScraper implements AggregatorScraperInterface
 
         $channel = $xml->channel ?? null;
         if ($channel === null) {
-            return [];
+            // Schema drift (feed structure changed) is indistinguishable from
+            // "no jobs today" if we return []; treat it as an error like
+            // malformed XML so the run surfaces as partial/error, not a quiet
+            // completed run with fetched: 0.
+            return null;
         }
 
         $items = [];

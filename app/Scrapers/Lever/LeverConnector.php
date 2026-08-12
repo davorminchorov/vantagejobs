@@ -4,19 +4,29 @@ declare(strict_types=1);
 
 namespace App\Scrapers\Lever;
 
+use App\Scrapers\Support\ConfigurableConnector;
 use Illuminate\Contracts\Config\Repository as ConfigRepository;
-use Saloon\Http\Connector;
 
 /**
  * Connector for the Lever public Postings API.
  *
  * Endpoint base: https://api.lever.co
  * Identifies the agent via the configured User-Agent and applies the
- * per-source timeouts from config/scrapers.php.
+ * per-source timeouts from config/scrapers.php. Retries
+ * (config('scrapers.sources.lever.retry_times'/'retry_sleep_ms')) are wired
+ * via ConfigurableConnector.
  */
-final class LeverConnector extends Connector
+final class LeverConnector extends ConfigurableConnector
 {
-    public function __construct(private readonly ConfigRepository $appConfig) {}
+    public function __construct(private readonly ConfigRepository $appConfig)
+    {
+        $this->applyRetryConfig($this->configKey());
+    }
+
+    protected function configKey(): string
+    {
+        return 'sources.lever';
+    }
 
     public function resolveBaseUrl(): string
     {

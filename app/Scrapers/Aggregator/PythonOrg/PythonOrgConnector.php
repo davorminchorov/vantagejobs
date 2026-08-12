@@ -5,18 +5,25 @@ declare(strict_types=1);
 namespace App\Scrapers\Aggregator\PythonOrg;
 
 use App\Scrapers\Aggregator\Artifacts\RecordResponseArtifact;
+use App\Scrapers\Support\ConfigurableConnector;
 use Illuminate\Container\Container;
-use Saloon\Http\Connector;
 use Saloon\Http\PendingRequest;
 
 /**
  * Saloon connector for the Python.org official jobs RSS feed.
  *
  * Anonymous GET. Plain RSS 2.0 endpoint at /jobs/feed/rss/. Concurrency
- * capped at 1 in config; polled daily.
+ * capped at 1 in config; polled daily. Retries
+ * (config('scrapers.aggregators.python_org.retry_times'/'retry_sleep_ms')) are
+ * wired via ConfigurableConnector.
  */
-final class PythonOrgConnector extends Connector
+final class PythonOrgConnector extends ConfigurableConnector
 {
+    protected function configKey(): string
+    {
+        return 'aggregators.python_org';
+    }
+
     public function resolveBaseUrl(): string
     {
         return 'https://www.python.org';

@@ -172,8 +172,10 @@ final class RemoteOkScraperTest extends TestCase
     #[Test]
     public function metadata_at_index_zero_is_explicitly_skipped(): void
     {
+        // Per SOURCES.md §2.5, the real legal/metadata envelope carries no
+        // `id` key at all - that absence is what the scraper keys off.
         $payload = [
-            ['legal' => 'Terms apply', 'warning' => 'Sponsored postings appear first', 'id' => 'should-be-ignored'],
+            ['legal' => 'Terms apply', 'warning' => 'Sponsored postings appear first'],
             [
                 'id' => 'rok-77777',
                 'company' => 'Solo Corp',
@@ -201,8 +203,37 @@ final class RemoteOkScraperTest extends TestCase
 
         $row = AggregatorListing::query()->firstOrFail();
         $this->assertSame('rok-77777', $row->external_id);
-        // The metadata's "should-be-ignored" id must not have produced a row.
-        $this->assertSame(0, AggregatorListing::query()->where('external_id', 'should-be-ignored')->count());
+    }
+
+    #[Test]
+    public function a_real_job_at_index_zero_is_processed_not_dropped(): void
+    {
+        // If RemoteOK ever ships the envelope without the metadata element,
+        // a real job landing at index 0 (it has an `id`) must not be
+        // silently discarded just because of its position in the array.
+        $payload = [
+            [
+                'id' => 'rok-88888',
+                'company' => 'No Envelope Inc',
+                'position' => 'Frontend Engineer',
+                'tags' => ['react'],
+                'description' => '<p>A frontend role.</p>',
+                'location' => 'Worldwide',
+                'apply_url' => 'https://remoteok.com/remote-jobs/rok-88888/apply',
+                'url' => 'https://remoteok.com/remote-jobs/rok-88888',
+                'date' => '2026-05-13T12:00:00+00:00',
+            ],
+        ];
+
+        Saloon::fake([
+            JobsRequest::class => MockResponse::make($payload, 200),
+        ]);
+
+        $result = $this->scraper->run($this->source);
+
+        $this->assertSame(1, $result->fetched);
+        $this->assertSame(1, $result->newCount);
+        $this->assertSame('rok-88888', AggregatorListing::query()->firstOrFail()->external_id);
     }
 
     #[Test]
@@ -218,6 +249,20 @@ final class RemoteOkScraperTest extends TestCase
 
         $this->assertTrue($result->hasErrors());
         $this->assertSame('remoteok 503', $result->errors[0]['message']);
+        $this->assertSame(0, AggregatorListing::query()->count());
+    }
+
+    #[Test]
+    public function http_error_status_is_recorded_without_persisting(): void
+    {
+        Saloon::fake([
+            JobsRequest::class => MockResponse::make(body: 'Service Unavailable', status: 500),
+        ]);
+
+        $result = $this->scraper->run($this->source);
+
+        $this->assertTrue($result->hasErrors());
+        $this->assertSame(500, $result->errors[0]['context']['http_status']);
         $this->assertSame(0, AggregatorListing::query()->count());
     }
 }

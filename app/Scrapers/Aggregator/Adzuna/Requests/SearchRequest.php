@@ -12,8 +12,9 @@ use Saloon\Http\Request;
  *
  * Returns `{ count, results[] }`. Up to 50 results per page; the scraper
  * pages until either pages_per_country is reached or a short page comes
- * back. `what=software` keeps the result set scoped — VantageJobs is for
- * backend / fullstack roles, not the full IT category.
+ * back. `category=it-jobs` scopes to tech roles; an optional free-text
+ * `what` filter (config('scrapers.aggregators.adzuna.what')) narrows further
+ * when set - empty by default so category alone decides the result set.
  */
 final class SearchRequest extends Request
 {
@@ -34,12 +35,18 @@ final class SearchRequest extends Request
      */
     protected function defaultQuery(): array
     {
-        return [
+        $query = [
             'app_id' => (string) config('scrapers.aggregators.adzuna.app_id'),
             'app_key' => (string) config('scrapers.aggregators.adzuna.app_key'),
             'results_per_page' => 50,
             'category' => 'it-jobs',
-            'what' => 'software',
         ];
+
+        $what = (string) config('scrapers.aggregators.adzuna.what', '');
+        if ($what !== '') {
+            $query['what'] = $what;
+        }
+
+        return $query;
     }
 }

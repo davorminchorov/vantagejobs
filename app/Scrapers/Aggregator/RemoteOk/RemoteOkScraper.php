@@ -48,7 +48,6 @@ final readonly class RemoteOkScraper implements AggregatorScraperInterface
     {
         try {
             $response = (new RemoteOkConnector())->send(new JobsRequest());
-            $payload = $response->json();
         } catch (Throwable $e) {
             return new AggregatorRunResult(
                 fetched: 0,
@@ -56,6 +55,19 @@ final readonly class RemoteOkScraper implements AggregatorScraperInterface
                 errors: [['message' => $e->getMessage()]],
             );
         }
+
+        if ($response->status() >= 400) {
+            return new AggregatorRunResult(
+                fetched: 0,
+                newCount: 0,
+                errors: [[
+                    'message' => "RemoteOK API returned HTTP {$response->status()}.",
+                    'context' => ['http_status' => $response->status()],
+                ]],
+            );
+        }
+
+        $payload = $response->json();
 
         if (! is_array($payload)) {
             return new AggregatorRunResult(fetched: 0, newCount: 0);
@@ -69,11 +81,13 @@ final readonly class RemoteOkScraper implements AggregatorScraperInterface
         $errors = [];
 
         foreach ($items as $index => $item) {
-            // Skip the metadata/legal envelope at index 0 per SOURCES.md §2.5.
-            if ($index === 0) {
+            if (! is_array($item)) {
                 continue;
             }
-            if (! is_array($item)) {
+            // Skip the metadata/legal envelope at index 0 per SOURCES.md §2.5
+            // - it carries no `id` key. If a future API response ever puts a
+            // real job first (no envelope), process it instead of dropping it.
+            if ($index === 0 && ! array_key_exists('id', $item)) {
                 continue;
             }
             $externalId = isset($item['id']) ? (string) $item['id'] : '';

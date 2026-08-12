@@ -25,11 +25,16 @@ use Throwable;
  *   ]
  *
  * Per SOURCES.md §3.6 the title format is loose — sometimes "Company - Role",
- * sometimes "Role at Company". We pass the raw title through structured so
- * downstream CompanyNameExtractor / RoleTitleExtractor can do their best with
- * the body text and title in parallel. No salary or structured tags in the
- * feed — comp falls through as MISSING and stack tags fall back to body-text
- * inference.
+ * sometimes "Role at Company". We split it here (tried in that order: " at "
+ * first, then " - ") and set structured.company_name / structured.title from
+ * the halves, the same way WeWorkRemotelyContextBuilder and
+ * HexHireContextBuilder split their own loose titles. Without this split,
+ * CompanyNameExtractor never has a company_name/companyName/company key to
+ * read (it does not parse title text itself), so normalized_company_key stays
+ * null for every 4dayweek.io listing and the auto-dismiss, dedup, auto-link,
+ * and boomerang gates all silently no-op for this entire source. No salary or
+ * structured tags in the feed — comp falls through as MISSING and stack tags
+ * fall back to body-text inference.
  */
 final readonly class FourDayWeekContextBuilder
 {
@@ -38,6 +43,9 @@ final readonly class FourDayWeekContextBuilder
      */
     public function build(array $item): SourceContext
     {
+        $rawTitle = isset($item['title']) && is_string($item['title']) ? trim($item['title']) : '';
+        [$companyName, $roleTitle] = $this->splitTitle($rawTitle);
+
         $descriptionHtml = isset($item['description']) && is_string($item['description']) ? $item['description'] : '';
         $bodyText = $this->stripHtml($descriptionHtml);
 
@@ -56,15 +64,55 @@ final readonly class FourDayWeekContextBuilder
         $externalId = $guid !== '' ? $guid : ($link !== '' ? $link : null);
         $url = $link !== '' ? $link : null;
 
+        $structured = $item;
+        $structured['title'] = $roleTitle !== '' ? $roleTitle : $rawTitle;
+        if ($companyName !== '') {
+            $structured['company_name'] = $companyName;
+        }
+
         return new SourceContext(
             sourceType: AggregatorSourceType::FOURDAYWEEK,
-            structured: $item,
+            structured: $structured,
             bodyText: $bodyText,
             bodyHtml: $descriptionHtml,
             postedAt: $postedAt,
             externalId: $externalId,
             url: $url,
         );
+    }
+
+    /**
+     * Split a loose "Role at Company" or "Company - Role" title. " at " is
+     * tried first since it cannot appear in the "Company - Role" shape's
+     * separator; falls back to " - ". When neither separator is present,
+     * returns ['', $title] so the whole string becomes the role and company
+     * falls through to MISSING rather than guessing.
+     *
+     * @return array{0: string, 1: string} [companyName, roleTitle]
+     */
+    private function splitTitle(string $title): array
+    {
+        if ($title === '') {
+            return ['', ''];
+        }
+
+        $pos = mb_strpos($title, ' at ');
+        if ($pos !== false) {
+            return [
+                trim(mb_substr($title, $pos + 4)),
+                trim(mb_substr($title, 0, $pos)),
+            ];
+        }
+
+        $pos = mb_strpos($title, ' - ');
+        if ($pos !== false) {
+            return [
+                trim(mb_substr($title, 0, $pos)),
+                trim(mb_substr($title, $pos + 3)),
+            ];
+        }
+
+        return ['', $title];
     }
 
     private function stripHtml(string $html): string

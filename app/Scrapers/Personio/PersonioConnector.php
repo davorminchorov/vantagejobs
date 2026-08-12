@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Scrapers\Personio;
 
-use Saloon\Http\Connector;
+use App\Scrapers\Support\ConfigurableConnector;
 
 /**
  * Saloon connector for the Personio public job feed.
@@ -13,11 +13,21 @@ use Saloon\Http\Connector;
  * https://{company}.jobs.personio.{de|com}/xml?language=en.
  *
  * The base URL is constructed per-request because the host varies per company
- * (the slug is the customer subdomain and the TLD can be .de or .com).
+ * (the slug is the customer subdomain and the TLD can be .de or .com). Retries
+ * (config('scrapers.sources.personio.retry_times'/'retry_sleep_ms')) are
+ * wired via ConfigurableConnector.
  */
-final class PersonioConnector extends Connector
+final class PersonioConnector extends ConfigurableConnector
 {
-    public function __construct(private readonly string $baseUrl) {}
+    public function __construct(private readonly string $baseUrl)
+    {
+        $this->applyRetryConfig($this->configKey());
+    }
+
+    protected function configKey(): string
+    {
+        return 'sources.personio';
+    }
 
     public function resolveBaseUrl(): string
     {

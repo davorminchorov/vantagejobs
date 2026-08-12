@@ -151,4 +151,59 @@ final class ElixirJobsScraperTest extends TestCase
         $this->assertSame(0, $result->fetched);
         $this->assertSame(0, AggregatorListing::query()->count());
     }
+
+    #[Test]
+    public function http_error_status_is_recorded_without_persisting(): void
+    {
+        Saloon::fake([
+            JobsRssRequest::class => MockResponse::make(body: 'Service Unavailable', status: 503),
+        ]);
+
+        $result = $this->scraper->run($this->source);
+
+        $this->assertTrue($result->hasErrors());
+        $this->assertSame(503, $result->errors[0]['context']['http_status']);
+        $this->assertSame(0, AggregatorListing::query()->count());
+    }
+
+    #[Test]
+    public function feed_missing_channel_element_is_a_structured_error_not_a_quiet_run(): void
+    {
+        Saloon::fake([
+            JobsRssRequest::class => MockResponse::make(
+                '<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"></rss>',
+                200,
+                ['Content-Type' => 'application/rss+xml'],
+            ),
+        ]);
+
+        $result = $this->scraper->run($this->source);
+
+        $this->assertTrue($result->hasErrors());
+        $this->assertSame(0, $result->fetched);
+        $this->assertSame(0, AggregatorListing::query()->count());
+    }
+
+    #[Test]
+    public function items_missing_both_guid_and_link_are_counted_in_one_aggregate_error(): void
+    {
+        Saloon::fake([
+            JobsRssRequest::class => MockResponse::make(
+                '<?xml version="1.0" encoding="utf-8"?><rss version="2.0"><channel>'
+                .'<title>Elixir Jobs</title><link>https://elixirjobs.net/</link><description>none</description>'
+                .'<item><title>No identifiers</title><description>d</description></item>'
+                .'<item><title>Also no identifiers</title><description>d</description></item>'
+                .'</channel></rss>',
+                200,
+                ['Content-Type' => 'application/rss+xml'],
+            ),
+        ]);
+
+        $result = $this->scraper->run($this->source);
+
+        $this->assertTrue($result->hasErrors());
+        $this->assertSame(0, $result->fetched);
+        $this->assertSame(0, AggregatorListing::query()->count());
+        $this->assertSame(2, $result->errors[0]['context']['skipped_no_id']);
+    }
 }

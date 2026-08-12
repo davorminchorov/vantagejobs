@@ -57,28 +57,49 @@ final readonly class HimalayasScraper implements AggregatorScraperInterface
         $errors = [];
         /** @var array<string, true> $seenGuids */
         $seenGuids = [];
+        $lastTotalCount = null;
+        // Stays true only if the loop runs out of MAX_PAGES iterations without
+        // ever reaching a legitimate stopping point (empty page, totalCount
+        // satisfied, or a fetch error already recorded above) - i.e. the API
+        // genuinely has more data than the safety cap allows us to fetch.
+        $pagesExhausted = true;
 
         for ($page = 0; $page < self::MAX_PAGES; $page++) {
             $offset = $page * self::PAGE_SIZE;
 
             try {
                 $response = $connector->send(new JobsSearchRequest($offset));
-                $payload = $response->json();
             } catch (Throwable $e) {
                 $errors[] = [
                     'message' => $e->getMessage(),
                     'context' => ['offset' => $offset],
                 ];
+                $pagesExhausted = false;
 
                 break;
             }
 
+            if ($response->status() >= 400) {
+                $errors[] = [
+                    'message' => "Himalayas API returned HTTP {$response->status()}.",
+                    'context' => ['http_status' => $response->status(), 'offset' => $offset],
+                ];
+                $pagesExhausted = false;
+
+                break;
+            }
+
+            $payload = $response->json();
+
             $jobs = is_array($payload['jobs'] ?? null) ? $payload['jobs'] : [];
             if ($jobs === []) {
+                $pagesExhausted = false;
+
                 break;
             }
 
             $totalCount = is_int($payload['totalCount'] ?? null) ? (int) $payload['totalCount'] : null;
+            $lastTotalCount = $totalCount ?? $lastTotalCount;
 
             foreach ($jobs as $job) {
                 if (! is_array($job)) {
@@ -107,8 +128,17 @@ final readonly class HimalayasScraper implements AggregatorScraperInterface
             }
 
             if ($totalCount !== null && $fetched >= $totalCount) {
+                $pagesExhausted = false;
+
                 break;
             }
+        }
+
+        if ($pagesExhausted && $lastTotalCount !== null && $fetched < $lastTotalCount) {
+            $errors[] = [
+                'message' => "Himalayas pagination truncated at MAX_PAGES ({$fetched} of {$lastTotalCount} fetched).",
+                'context' => ['max_pages' => self::MAX_PAGES, 'fetched' => $fetched, 'total_count' => $lastTotalCount],
+            ];
         }
 
         $this->persister->capRun($createdIds);

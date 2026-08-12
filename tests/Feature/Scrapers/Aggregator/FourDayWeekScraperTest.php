@@ -73,6 +73,19 @@ final class FourDayWeekScraperTest extends TestCase
         // No salary in RSS — comp is MISSING.
         $this->assertFalse($acme->has_comp);
         $this->assertNull($acme->parsed_comp_min_usd);
+
+        // "Company - Role" title shape.
+        $this->assertSame('Acme Corp', $acme->parsed_company_name);
+        $this->assertSame('Senior Backend Engineer', $acme->parsed_role_title);
+        $this->assertSame('acme', $acme->normalized_company_key);
+
+        // "Role at Company" title shape.
+        $globex = AggregatorListing::query()
+            ->where('external_id', 'https://4dayweek.io/jobs/globex-staff-platform-engineer-002')
+            ->firstOrFail();
+        $this->assertSame('Globex', $globex->parsed_company_name);
+        $this->assertSame('Staff Platform Engineer', $globex->parsed_role_title);
+        $this->assertSame('globex', $globex->normalized_company_key);
     }
 
     #[Test]
@@ -164,6 +177,41 @@ final class FourDayWeekScraperTest extends TestCase
 
         $this->assertTrue($result->hasErrors());
         $this->assertSame('fourdayweek 503', $result->errors[0]['message']);
+        $this->assertSame(0, $result->fetched);
+        $this->assertSame(0, AggregatorListing::query()->count());
+    }
+
+    #[Test]
+    public function http_error_status_is_recorded_without_persisting(): void
+    {
+        Saloon::fake([
+            JobsRssRequest::class => MockResponse::make(body: 'Service Unavailable', status: 503),
+        ]);
+
+        $result = $this->scraper->run($this->source);
+
+        $this->assertTrue($result->hasErrors());
+        $this->assertSame(503, $result->errors[0]['context']['http_status']);
+        $this->assertSame(0, $result->fetched);
+        $this->assertSame(0, AggregatorListing::query()->count());
+    }
+
+    #[Test]
+    public function feed_missing_channel_element_is_a_structured_error_not_a_quiet_run(): void
+    {
+        // Well-formed XML, but the <channel> element the parser expects is
+        // gone - schema drift, not "no jobs today". Must not look like a
+        // clean completed run with fetched: 0.
+        Saloon::fake([
+            JobsRssRequest::class => MockResponse::make(
+                '<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"></rss>',
+                200,
+            ),
+        ]);
+
+        $result = $this->scraper->run($this->source);
+
+        $this->assertTrue($result->hasErrors());
         $this->assertSame(0, $result->fetched);
         $this->assertSame(0, AggregatorListing::query()->count());
     }

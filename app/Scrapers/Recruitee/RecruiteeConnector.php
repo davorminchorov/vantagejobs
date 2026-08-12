@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Scrapers\Recruitee;
 
-use Saloon\Http\Connector;
+use App\Scrapers\Support\ConfigurableConnector;
 
 /**
  * Saloon connector for the Recruitee public offers API.
@@ -13,11 +13,21 @@ use Saloon\Http\Connector;
  * https://{company}.recruitee.com/api/offers/.
  *
  * The base URL is constructed per-request because the host varies per company
- * (the slug is the customer subdomain).
+ * (the slug is the customer subdomain). Retries
+ * (config('scrapers.sources.recruitee.retry_times'/'retry_sleep_ms')) are
+ * wired via ConfigurableConnector.
  */
-final class RecruiteeConnector extends Connector
+final class RecruiteeConnector extends ConfigurableConnector
 {
-    public function __construct(private readonly string $baseUrl) {}
+    public function __construct(private readonly string $baseUrl)
+    {
+        $this->applyRetryConfig($this->configKey());
+    }
+
+    protected function configKey(): string
+    {
+        return 'sources.recruitee';
+    }
 
     public function resolveBaseUrl(): string
     {

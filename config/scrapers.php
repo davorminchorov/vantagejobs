@@ -192,6 +192,11 @@ return [
             'app_key' => env('ADZUNA_APP_KEY'),
             'countries' => env('ADZUNA_COUNTRIES', 'gb,de,nl,fr,at,ch,pl'),
             'pages_per_country' => env('ADZUNA_PAGES_PER_COUNTRY', 3),
+            // Free-text filter appended to the search query. Empty by default:
+            // category=it-jobs already scopes results, and a hardcoded
+            // `what=software` was excluding real postings (e.g. "Senior
+            // Backend Engineer") that never use the literal word "software".
+            'what' => env('ADZUNA_WHAT', ''),
         ],
         'jobicy' => [
             'concurrency' => 1,
@@ -201,6 +206,10 @@ return [
             'retry_sleep_ms' => 2000,
             // Jobicy documents a 1-req/hr poll limit; daily cadence
             // (defaultCadenceMinutes) keeps us well inside it.
+            // 50 is the API's documented per-request cap - it offers no
+            // pagination/cursor and no total-count field, so there is no way
+            // to detect or recover truncation beyond this value.
+            'count' => env('JOBICY_COUNT', 50),
         ],
         'arbeitnow' => [
             'concurrency' => 1,
