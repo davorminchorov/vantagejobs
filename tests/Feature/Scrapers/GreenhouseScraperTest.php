@@ -212,4 +212,42 @@ final class GreenhouseScraperTest extends TestCase
         $this->assertSame(0, $result->closedCount);
         $this->assertTrue($openRole->fresh()->is_open);
     }
+
+    #[Test]
+    public function eu_api_host_cached_on_ats_host_is_preferred_over_the_us_default(): void
+    {
+        $this->company->ats_host = 'boards.eu.greenhouse.io';
+        $this->company->save();
+
+        $requestedUrl = null;
+        Saloon::fake([
+            BoardJobsRequest::class => function (PendingRequest $request) use (&$requestedUrl): MockResponse {
+                $requestedUrl = $request->getUrl();
+
+                return MockResponse::make(body: $this->fixture(), status: 200);
+            },
+        ]);
+
+        $result = $this->scraper->run($this->company);
+
+        $this->assertFalse($result->hasErrors());
+        $this->assertStringStartsWith('https://boards.eu.greenhouse.io/v1/boards/acme/jobs', (string) $requestedUrl);
+    }
+
+    #[Test]
+    public function us_api_host_is_used_when_no_ats_host_is_cached(): void
+    {
+        $requestedUrl = null;
+        Saloon::fake([
+            BoardJobsRequest::class => function (PendingRequest $request) use (&$requestedUrl): MockResponse {
+                $requestedUrl = $request->getUrl();
+
+                return MockResponse::make(body: $this->fixture(), status: 200);
+            },
+        ]);
+
+        $this->scraper->run($this->company);
+
+        $this->assertStringStartsWith('https://boards-api.greenhouse.io/v1/boards/acme/jobs', (string) $requestedUrl);
+    }
 }

@@ -12,11 +12,20 @@ use App\Scrapers\Support\ConfigurableConnector;
  * Per SOURCES.md §1.1: anonymous GET against
  * https://boards-api.greenhouse.io/v1/boards/{board_token}/jobs.
  *
+ * EU-hosted boards (boards.eu.greenhouse.io) are served from a parallel API
+ * host, cached on `Company::$ats_host` at detection time and passed in as
+ * $baseUrl; null keeps the default US host.
+ *
  * Retries (config('scrapers.sources.greenhouse.retry_times'/'retry_sleep_ms'))
  * are wired via ConfigurableConnector.
  */
 final class GreenhouseConnector extends ConfigurableConnector
 {
+    public function __construct(private readonly ?string $baseUrl = null)
+    {
+        $this->applyRetryConfig($this->configKey());
+    }
+
     protected function configKey(): string
     {
         return 'sources.greenhouse';
@@ -24,7 +33,7 @@ final class GreenhouseConnector extends ConfigurableConnector
 
     public function resolveBaseUrl(): string
     {
-        return 'https://boards-api.greenhouse.io';
+        return $this->baseUrl ?? 'https://boards-api.greenhouse.io';
     }
 
     /**

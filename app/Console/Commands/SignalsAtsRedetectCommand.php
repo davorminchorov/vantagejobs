@@ -136,7 +136,7 @@ final class SignalsAtsRedetectCommand extends Command
     }
 
     /**
-     * @param  array{ats_type: string, ats_slug: string}  $detected
+     * @param  array{ats_type: string, ats_slug: string, ats_host?: string}  $detected
      */
     private function applySuccess(Company $company, array $detected): void
     {
@@ -150,11 +150,13 @@ final class SignalsAtsRedetectCommand extends Command
         $company->ats_consecutive_404s = 0;
         $company->ats_redetect_attempts = 0;
         $company->ats_status = 'ok';
-        // Clear conditional-GET caches and the cached Personio host so the
-        // next scrape starts fresh against the newly detected board.
+        // Clear conditional-GET caches so the next scrape starts fresh
+        // against the newly detected board. The host carries over when the
+        // new board encodes one (Workday pods, EU Greenhouse/Lever, regional
+        // Teamtailor); otherwise the stale cached host is cleared too.
         $company->etag = null;
         $company->last_modified = null;
-        $company->ats_host = null;
+        $company->ats_host = $detected['ats_host'] ?? null;
         $company->save();
 
         Event::query()->create([

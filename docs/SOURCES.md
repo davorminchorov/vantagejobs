@@ -75,6 +75,7 @@ Sources fall into three categories:
 - The token is the slug in `https://boards.greenhouse.io/{board_token}` or `https://job-boards.greenhouse.io/{board_token}`.
 - Many companies embed it: look for `<iframe src="https://boards.greenhouse.io/embed/job_board?for={board_token}">` on the careers page.
 - Detection regex: `(?:boards|job-boards)\.greenhouse\.io/(?:embed/job_board\?for=)?([a-z0-9_-]+)`.
+- EU instance: boards on `boards.eu.greenhouse.io` / `job-boards.eu.greenhouse.io` (same URL shapes), served by the parallel API host `https://boards.eu.greenhouse.io`. Detection regex: `(?:boards|job-boards)\.eu\.greenhouse\.io/(?:embed/job_board\?for=)?([a-z0-9_-]+)`; the detector returns the API host as `ats_host` (URL-derived, no probing — contrast Workday §3.13) and the scraper prefers it over the US default.
 
 **Auth:** None for GET. POST (application submission) requires HTTP Basic with a Job Board API key — out of scope for v1.
 
@@ -132,8 +133,8 @@ Sources fall into three categories:
 
 **Finding `{site}`:**
 - The slug in `https://jobs.lever.co/{site}`.
-- EU instance: parallel URL pattern; detect by following careers-page link.
 - Detection regex: `jobs\.lever\.co/([a-z0-9_-]+)`.
+- EU instance: boards at `https://jobs.eu.lever.co/{site}`, API at `https://api.eu.lever.co/v0/postings/{site}`. Detection regex: `jobs\.eu\.lever\.co/([a-z0-9_-]+)`; the detector returns `api.eu.lever.co` as `ats_host` (URL-derived, no probing) and the scraper prefers it over the US default.
 
 **Server-side filters:**
 - `team`, `department`, `location`, `commitment`, `level`, `skip`, `limit`
@@ -605,7 +606,8 @@ These are integrated only if Phase 1+2 coverage proves insufficient. Each follow
 - **Concurrency:** 5.
 
 ## 3.5 Teamtailor
-- **Endpoint:** Per-customer XML feed when enabled.
+- **Endpoint:** Per-customer XML feed when enabled: `GET https://{company}.teamtailor.com/jobs.rss`.
+- **Regional subdomains:** some customers live on `https://{company}.{region}.teamtailor.com` (e.g. `.na.` for North America). The detector returns the full regional host as `ats_host` (URL-derived, no probing) and the scraper prefers it over the global host.
 - **Authenticated JSON:** `GET https://api.teamtailor.com/v1/jobs` with `Authorization: Token token=...` and `X-Api-Version: 20240404` (customer-only).
 - **Coverage:** Nordic-heavy (Klarna, Tink, Voi).
 

@@ -10,7 +10,6 @@ use App\Enums\WorkplaceType;
 use App\Models\Company;
 use App\Models\Event;
 use App\Models\Role;
-use App\Scrapers\Lever\LeverConnector;
 use App\Scrapers\Lever\LeverScraper;
 use App\Scrapers\Lever\Requests\PostingsRequest;
 use App\Tenancy\Tenant;
@@ -20,6 +19,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\Attributes\Test;
 use Saloon\Http\Faking\MockClient;
 use Saloon\Http\Faking\MockResponse;
+use Saloon\Http\PendingRequest;
 use Tests\TestCase;
 
 final class LeverScraperTest extends TestCase
@@ -201,22 +201,16 @@ final class LeverScraperTest extends TestCase
     #[Test]
     public function exception_during_send_returns_error_result_and_preserves_company_state(): void
     {
-        // No mock client registered → Saloon will throw on send.
         $this->company->etag = '"unchanged"';
         $this->company->last_modified = 'Mon, 01 Jan 2024 00:00:00 GMT';
         $this->company->save();
 
-        // Force a failure by stubbing the connector with a closure that throws.
-        $this->app->bind(LeverConnector::class, function () {
-            $connector = new LeverConnector($this->app->make('config'));
-            $connector->withMockClient(new MockClient([
-                PostingsRequest::class => function (): never {
-                    throw new \RuntimeException('boom');
-                },
-            ]));
-
-            return $connector;
-        });
+        // Force a failure with a mock that throws on send.
+        MockClient::global([
+            PostingsRequest::class => function (): never {
+                throw new \RuntimeException('boom');
+            },
+        ]);
 
         $result = $this->scraper()->run($this->company);
 
@@ -263,5 +257,43 @@ final class LeverScraperTest extends TestCase
         $this->assertNotEmpty($result->errors);
         $this->assertSame(0, $result->closedCount);
         $this->assertTrue($openRole->fresh()->is_open);
+    }
+
+    #[Test]
+    public function eu_api_host_cached_on_ats_host_is_preferred_over_the_us_default(): void
+    {
+        $this->company->ats_host = 'api.eu.lever.co';
+        $this->company->save();
+
+        $requestedUrl = null;
+        MockClient::global([
+            PostingsRequest::class => function (PendingRequest $request) use (&$requestedUrl): MockResponse {
+                $requestedUrl = $request->getUrl();
+
+                return MockResponse::make($this->happyFixture(), 200);
+            },
+        ]);
+
+        $result = $this->scraper()->run($this->company);
+
+        $this->assertEmpty($result->errors);
+        $this->assertStringStartsWith('https://api.eu.lever.co/v0/postings/acme', (string) $requestedUrl);
+    }
+
+    #[Test]
+    public function us_api_host_is_used_when_no_ats_host_is_cached(): void
+    {
+        $requestedUrl = null;
+        MockClient::global([
+            PostingsRequest::class => function (PendingRequest $request) use (&$requestedUrl): MockResponse {
+                $requestedUrl = $request->getUrl();
+
+                return MockResponse::make($this->happyFixture(), 200);
+            },
+        ]);
+
+        $this->scraper()->run($this->company);
+
+        $this->assertStringStartsWith('https://api.lever.co/v0/postings/acme', (string) $requestedUrl);
     }
 }

@@ -35,7 +35,13 @@ final readonly class GreenhouseScraper implements AtsScraperInterface
     public function run(Company $company): ScraperRunResult
     {
         try {
-            $connector = new GreenhouseConnector();
+            // ats_host carries the EU API host when the board was detected on
+            // boards.eu.greenhouse.io; null targets the default US host.
+            $baseUrl = is_string($company->ats_host) && $company->ats_host !== ''
+                ? "https://{$company->ats_host}"
+                : null;
+
+            $connector = new GreenhouseConnector($baseUrl);
             $request = new BoardJobsRequest(
                 boardToken: (string) $company->ats_slug,
                 ifNoneMatch: $company->etag,

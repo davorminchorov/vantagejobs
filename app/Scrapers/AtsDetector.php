@@ -20,12 +20,23 @@ use App\Enums\AtsType;
 final class AtsDetector
 {
     /**
-     * @var list<array{type: AtsType, regex: string}>
+     * Each entry may carry an optional `host` template: when present, the
+     * detection result includes `ats_host`, built by vsprintf() over the
+     * regex captures (%1$s = slug, %2$s = second capture). Used where the
+     * board lives on a non-default host that the scraper must target (EU
+     * Greenhouse/Lever API hosts, regional Teamtailor subdomains).
+     *
+     * @var list<array{type: AtsType, regex: string, host?: string}>
      */
     private const PATTERNS = [
+        // Greenhouse EU: parallel host pair boards.eu.greenhouse.io /
+        // job-boards.eu.greenhouse.io, served by its own API host.
+        ['type' => AtsType::GREENHOUSE, 'regex' => '#(?:boards|job-boards)\.eu\.greenhouse\.io/(?:embed/job_board\?for=)?([a-z0-9_-]+)#i', 'host' => 'boards.eu.greenhouse.io'],
         // Greenhouse: boards.greenhouse.io/{slug}, job-boards.greenhouse.io/{slug},
         // or the embed param form boards.greenhouse.io/embed/job_board?for={slug}.
         ['type' => AtsType::GREENHOUSE, 'regex' => '#(?:boards|job-boards)\.greenhouse\.io/(?:embed/job_board\?for=)?([a-z0-9_-]+)#i'],
+        // Lever EU: jobs.eu.lever.co/{slug}, API on api.eu.lever.co.
+        ['type' => AtsType::LEVER, 'regex' => '#jobs\.eu\.lever\.co/([a-z0-9_-]+)#i', 'host' => 'api.eu.lever.co'],
         // Lever: jobs.lever.co/{slug}
         ['type' => AtsType::LEVER, 'regex' => '#jobs\.lever\.co/([a-z0-9_-]+)#i'],
         // Ashby: jobs.ashbyhq.com/{slug}
@@ -43,6 +54,10 @@ final class AtsDetector
         ['type' => AtsType::PERSONIO, 'regex' => '#https?://([a-z0-9_-]+)\.jobs\.personio\.(?:de|com)#i'],
         // Recruitee: {slug}.recruitee.com (the api/offers/ path optional).
         ['type' => AtsType::RECRUITEE, 'regex' => '#https?://([a-z0-9_-]+)\.recruitee\.com#i'],
+        // Teamtailor regional: {slug}.{region}.teamtailor.com (e.g. the North
+        // American ".na." boards). The full regional host is returned as
+        // ats_host so the scraper hits the right region.
+        ['type' => AtsType::TEAMTAILOR, 'regex' => '#https?://([a-z0-9_-]+)\.([a-z]{2})\.teamtailor\.com#i', 'host' => '%1$s.%2$s.teamtailor.com'],
         // Teamtailor: {slug}.teamtailor.com. The career.{slug}.com variant
         // is intentionally NOT auto-detected — too easily a false positive
         // (any career.* domain), so it must be set manually.
@@ -101,10 +116,16 @@ final class AtsDetector
 
         foreach (self::PATTERNS as $pattern) {
             if (preg_match($pattern['regex'], $url, $matches) === 1) {
-                return [
+                $result = [
                     'ats_type' => $pattern['type']->value,
                     'ats_slug' => mb_strtolower($matches[1]),
                 ];
+
+                if (isset($pattern['host'])) {
+                    $result['ats_host'] = mb_strtolower(vsprintf($pattern['host'], array_slice($matches, 1)));
+                }
+
+                return $result;
             }
         }
 

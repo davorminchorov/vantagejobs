@@ -275,6 +275,35 @@ final class AtsRedetectTest extends TestCase
         );
     }
 
+    #[Test]
+    public function successful_switch_to_a_host_carrying_board_persists_the_detected_ats_host(): void
+    {
+        $flagged = Company::factory()->create([
+            'ats_type' => 'greenhouse',
+            'ats_slug' => 'oldslug',
+            'careers_url' => 'https://acme.example.com/careers',
+            'ats_status' => 'needs_redetection',
+            'ats_consecutive_404s' => 7,
+            'ats_redetect_attempts' => 0,
+            'ats_host' => null,
+        ]);
+
+        Http::fake([
+            'acme.example.com/careers' => Http::response(
+                '<html><body><a href="https://jobs.eu.lever.co/acme-new">Jobs</a></body></html>',
+                200,
+            ),
+        ]);
+
+        Artisan::call('signals:ats:redetect', ['--tenant' => 'primary']);
+
+        $reloaded = $flagged->fresh();
+        $this->assertSame('lever', $reloaded->ats_type);
+        $this->assertSame('acme-new', $reloaded->ats_slug);
+        $this->assertSame('api.eu.lever.co', $reloaded->ats_host);
+        $this->assertSame('ok', $reloaded->ats_status);
+    }
+
     private function fourOhFourScraper(AtsType $type): AtsScraperInterface
     {
         return $this->fakeScraper(

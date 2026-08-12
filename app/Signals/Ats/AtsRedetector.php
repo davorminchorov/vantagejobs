@@ -31,7 +31,7 @@ final readonly class AtsRedetector
     ) {}
 
     /**
-     * @return ?array{ats_type: string, ats_slug: string}
+     * @return ?array{ats_type: string, ats_slug: string, ats_host?: string}
      */
     public function redetect(Company $company): ?array
     {

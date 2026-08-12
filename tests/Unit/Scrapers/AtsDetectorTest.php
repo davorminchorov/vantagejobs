@@ -12,7 +12,7 @@ use PHPUnit\Framework\TestCase;
 final class AtsDetectorTest extends TestCase
 {
     /**
-     * @return list<array{string, ?array{ats_type: string, ats_slug: string}}>
+     * @return list<array{string, ?array{ats_type: string, ats_slug: string, ats_host?: string}}>
      */
     public static function urlCases(): array
     {
@@ -20,8 +20,17 @@ final class AtsDetectorTest extends TestCase
             ['https://boards.greenhouse.io/acme', ['ats_type' => 'greenhouse', 'ats_slug' => 'acme']],
             ['https://job-boards.greenhouse.io/stripe', ['ats_type' => 'greenhouse', 'ats_slug' => 'stripe']],
             ['https://boards.greenhouse.io/embed/job_board?for=mercury', ['ats_type' => 'greenhouse', 'ats_slug' => 'mercury']],
+
+            // Greenhouse EU: parallel host pair, API host returned as ats_host.
+            ['https://boards.eu.greenhouse.io/tamara', ['ats_type' => 'greenhouse', 'ats_slug' => 'tamara', 'ats_host' => 'boards.eu.greenhouse.io']],
+            ['https://job-boards.eu.greenhouse.io/whitetech/jobs/4894678101', ['ats_type' => 'greenhouse', 'ats_slug' => 'whitetech', 'ats_host' => 'boards.eu.greenhouse.io']],
+            ['https://boards.eu.greenhouse.io/embed/job_board?for=acme', ['ats_type' => 'greenhouse', 'ats_slug' => 'acme', 'ats_host' => 'boards.eu.greenhouse.io']],
+
             ['https://jobs.lever.co/figma', ['ats_type' => 'lever', 'ats_slug' => 'figma']],
             ['https://jobs.lever.co/UPPER-CASE', ['ats_type' => 'lever', 'ats_slug' => 'upper-case']],
+
+            // Lever EU: API host returned as ats_host.
+            ['https://jobs.eu.lever.co/eneba', ['ats_type' => 'lever', 'ats_slug' => 'eneba', 'ats_host' => 'api.eu.lever.co']],
             ['https://jobs.ashbyhq.com/linear', ['ats_type' => 'ashby', 'ats_slug' => 'linear']],
 
             // Workable
@@ -45,6 +54,9 @@ final class AtsDetectorTest extends TestCase
 
             // Teamtailor
             ['https://acme.teamtailor.com/jobs.rss', ['ats_type' => 'teamtailor', 'ats_slug' => 'acme']],
+
+            // Teamtailor regional subdomain: full host returned as ats_host.
+            ['https://acme.na.teamtailor.com/jobs', ['ats_type' => 'teamtailor', 'ats_slug' => 'acme', 'ats_host' => 'acme.na.teamtailor.com']],
 
             // Pinpoint
             ['https://acme.pinpointhq.com/', ['ats_type' => 'pinpoint', 'ats_slug' => 'acme']],

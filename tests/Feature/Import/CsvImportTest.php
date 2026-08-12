@@ -118,6 +118,7 @@ final class CsvImportTest extends TestCase
             'import.headers' => ['Name', 'Website', 'Careers'],
             'import.rows' => [
                 ['Acme', 'https://www.acme.com', 'https://jobs.lever.co/acme'],
+                ['Eneba', 'https://www.eneba.com', 'https://jobs.eu.lever.co/eneba'],
                 ['Globex', 'https://globex.test', ''],
             ],
             'import.mapping' => [
@@ -135,16 +136,22 @@ final class CsvImportTest extends TestCase
             ->post('/import/run', ['mapping' => $session['import.mapping']])
             ->assertRedirect('/companies');
 
-        $this->assertSame(2, Company::query()->count());
+        $this->assertSame(3, Company::query()->count());
 
         $acme = Company::query()->where('name', 'Acme')->sole();
         $this->assertSame('acme.com', $acme->domain);
         $this->assertSame('lever', $acme->ats_type, 'Auto-detect ran on careers URL.');
         $this->assertSame('acme', $acme->ats_slug);
+        $this->assertNull($acme->ats_host, 'US-hosted boards carry no ats_host.');
         $this->assertSame('C', $acme->tier);
         $this->assertSame('researching', $acme->status);
 
-        $this->assertSame(2, Event::query()->where('type', EventType::COMPANY_ADDED->value)->count());
+        $eneba = Company::query()->where('name', 'Eneba')->sole();
+        $this->assertSame('lever', $eneba->ats_type);
+        $this->assertSame('eneba', $eneba->ats_slug);
+        $this->assertSame('api.eu.lever.co', $eneba->ats_host, 'EU boards persist the detected API host.');
+
+        $this->assertSame(3, Event::query()->where('type', EventType::COMPANY_ADDED->value)->count());
     }
 
     #[Test]

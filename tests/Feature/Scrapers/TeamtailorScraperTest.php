@@ -185,4 +185,42 @@ XML;
         $this->assertSame(0, $result->closedCount);
         $this->assertTrue($openRole->fresh()->is_open);
     }
+
+    #[Test]
+    public function regional_host_cached_on_ats_host_is_preferred_over_the_global_default(): void
+    {
+        $this->company->ats_host = 'acme.na.teamtailor.com';
+        $this->company->save();
+
+        $requestedUrl = null;
+        Saloon::fake([
+            JobsRssRequest::class => function (PendingRequest $request) use (&$requestedUrl): MockResponse {
+                $requestedUrl = $request->getUrl();
+
+                return MockResponse::make(body: $this->fixture(), status: 200);
+            },
+        ]);
+
+        $result = $this->scraper->run($this->company);
+
+        $this->assertFalse($result->hasErrors());
+        $this->assertStringStartsWith('https://acme.na.teamtailor.com/', (string) $requestedUrl);
+    }
+
+    #[Test]
+    public function global_host_is_used_when_no_ats_host_is_cached(): void
+    {
+        $requestedUrl = null;
+        Saloon::fake([
+            JobsRssRequest::class => function (PendingRequest $request) use (&$requestedUrl): MockResponse {
+                $requestedUrl = $request->getUrl();
+
+                return MockResponse::make(body: $this->fixture(), status: 200);
+            },
+        ]);
+
+        $this->scraper->run($this->company);
+
+        $this->assertStringStartsWith('https://acme.teamtailor.com/', (string) $requestedUrl);
+    }
 }

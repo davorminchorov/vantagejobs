@@ -31,10 +31,7 @@ use Throwable;
  */
 final readonly class LeverScraper implements AtsScraperInterface
 {
-    public function __construct(
-        private RoleDiffer $differ,
-        private LeverConnector $connector,
-    ) {}
+    public function __construct(private RoleDiffer $differ) {}
 
     public function name(): AtsType
     {
@@ -50,7 +47,13 @@ final readonly class LeverScraper implements AtsScraperInterface
                 ifModifiedSince: $company->last_modified,
             );
 
-            $response = $this->connector->send($request);
+            // ats_host carries the EU API host when the board was detected on
+            // jobs.eu.lever.co; null targets the default US host.
+            $baseUrl = is_string($company->ats_host) && $company->ats_host !== ''
+                ? "https://{$company->ats_host}"
+                : null;
+
+            $response = (new LeverConnector($baseUrl))->send($request);
 
             if ($response->status() === 304) {
                 $company->last_checked_at = CarbonImmutable::now();

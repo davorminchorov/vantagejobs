@@ -5,12 +5,14 @@ declare(strict_types=1);
 namespace App\Scrapers\Lever;
 
 use App\Scrapers\Support\ConfigurableConnector;
-use Illuminate\Contracts\Config\Repository as ConfigRepository;
 
 /**
  * Connector for the Lever public Postings API.
  *
- * Endpoint base: https://api.lever.co
+ * Endpoint base: https://api.lever.co. EU-hosted boards (jobs.eu.lever.co)
+ * are served from https://api.eu.lever.co, cached on `Company::$ats_host` at
+ * detection time and passed in as $baseUrl; null keeps the default US host.
+ *
  * Identifies the agent via the configured User-Agent and applies the
  * per-source timeouts from config/scrapers.php. Retries
  * (config('scrapers.sources.lever.retry_times'/'retry_sleep_ms')) are wired
@@ -18,7 +20,7 @@ use Illuminate\Contracts\Config\Repository as ConfigRepository;
  */
 final class LeverConnector extends ConfigurableConnector
 {
-    public function __construct(private readonly ConfigRepository $appConfig)
+    public function __construct(private readonly ?string $baseUrl = null)
     {
         $this->applyRetryConfig($this->configKey());
     }
@@ -30,7 +32,7 @@ final class LeverConnector extends ConfigurableConnector
 
     public function resolveBaseUrl(): string
     {
-        return 'https://api.lever.co';
+        return $this->baseUrl ?? 'https://api.lever.co';
     }
 
     /**
@@ -40,7 +42,7 @@ final class LeverConnector extends ConfigurableConnector
     {
         return [
             'Accept' => 'application/json',
-            'User-Agent' => (string) $this->appConfig->get('scrapers.user_agent'),
+            'User-Agent' => (string) config('scrapers.user_agent'),
         ];
     }
 
@@ -50,8 +52,8 @@ final class LeverConnector extends ConfigurableConnector
     protected function defaultConfig(): array
     {
         return [
-            'timeout' => (int) $this->appConfig->get('scrapers.sources.lever.timeout', 15),
-            'connect_timeout' => (int) $this->appConfig->get('scrapers.sources.lever.connect_timeout', 5),
+            'timeout' => (int) config('scrapers.sources.lever.timeout', 15),
+            'connect_timeout' => (int) config('scrapers.sources.lever.connect_timeout', 5),
         ];
     }
 }

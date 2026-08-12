@@ -37,9 +37,13 @@ final readonly class TeamtailorScraper implements AtsScraperInterface
     {
         try {
             $slug = (string) $company->ats_slug;
-            $host = "https://{$slug}.teamtailor.com";
+            // ats_host carries the regional subdomain (e.g. {slug}.na.teamtailor.com)
+            // when the board was detected on one; otherwise the global host applies.
+            $host = is_string($company->ats_host) && $company->ats_host !== ''
+                ? $company->ats_host
+                : "{$slug}.teamtailor.com";
 
-            $response = (new TeamtailorConnector($host))->send(new JobsRssRequest());
+            $response = (new TeamtailorConnector("https://{$host}"))->send(new JobsRssRequest());
 
             $status = $response->status();
             if ($status >= 400) {

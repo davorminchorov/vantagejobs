@@ -195,6 +195,7 @@ final readonly class CsvImporter
                 if ($detection !== null) {
                     $values['ats_type'] = $detection['ats_type'];
                     $values['ats_slug'] = $detection['ats_slug'];
+                    $values['ats_host'] = $detection['ats_host'] ?? null;
                 }
 
                 $company = Company::query()->create($values);
