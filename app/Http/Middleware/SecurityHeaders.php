@@ -66,13 +66,13 @@ final class SecurityHeaders
 
         if ($isLocal) {
             // The Spin Pro template serves the Vite dev server from
-            // https://vite.dev.test and uses WebSockets for HMR. Allow
+            // https://vite.vantagejobs.test and uses WebSockets for HMR. Allow
             // those origins so HMR works without disabling strict CSP
             // in dev.
-            $scriptSrc .= ' https://vite.dev.test';
-            $styleSrc .= ' https://vite.dev.test';
-            $fontSrc .= ' https://vite.dev.test';
-            $connectSrc .= ' https://vite.dev.test wss://vite.dev.test'
+            $scriptSrc .= ' https://vite.vantagejobs.test';
+            $styleSrc .= ' https://vite.vantagejobs.test';
+            $fontSrc .= ' https://vite.vantagejobs.test';
+            $connectSrc .= ' https://vite.vantagejobs.test wss://vite.vantagejobs.test'
                 .' ws://vantagejobs.test:* wss://vantagejobs.test:*'
                 .' http://localhost:* https://localhost:* ws://localhost:* wss://localhost:*';
         }

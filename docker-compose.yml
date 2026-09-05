@@ -1,17 +1,7 @@
 services:
-  traefik:
-    image: traefik:v3.6
-    healthcheck:
-      test: ["CMD", "traefik", "healthcheck"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 5s
   php:
     environment:
       SSL_MODE: "full"
-    depends_on:
-      - traefik
     command: ["php", "artisan", "octane:start", "--server=frankenphp", "--port=8080"]
     healthcheck:
       test: ["CMD", "healthcheck-octane"]

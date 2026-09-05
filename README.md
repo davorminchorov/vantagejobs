@@ -43,6 +43,35 @@ Visit `https://vantagejobs.test`. See [`docs/README.md`](docs/README.md) for the
 
 ---
 
+## Local development
+
+Development uses one shared Traefik proxy for all Spin projects on the machine instead of a
+per-project Traefik. Set it up once:
+
+1. `git clone https://github.com/davorminchorov/spin-template-laravel-stack /tmp/spin-template`
+   and copy `proxy/docker-compose.yml` and `proxy/traefik.yml` to `~/.spin-proxy/`.
+2. Certificates (needs `mkcert`, run `mkcert -install` once):
+   ```
+   mkcert -cert-file ~/.spin-proxy/certs/default.pem -key-file ~/.spin-proxy/certs/default-key.pem "*.test" localhost 127.0.0.1 ::1
+   mkcert -cert-file ~/.spin-proxy/certs/vantagejobs.pem -key-file ~/.spin-proxy/certs/vantagejobs-key.pem vantagejobs.test "*.vantagejobs.test"
+   ```
+   Then create `~/.spin-proxy/dynamic/default.yml` and `~/.spin-proxy/dynamic/vantagejobs.yml`
+   (see the template README for the two files).
+3. Resolve `*.test` to 127.0.0.1 (dnsmasq + `/etc/resolver/test`, or add the hostnames below to `/etc/hosts`).
+4. `docker compose -f ~/.spin-proxy/docker-compose.yml up -d`
+
+Then `spin up` as usual.
+
+| Service | URL |
+| --- | --- |
+| App | https://vantagejobs.test |
+| Vite | https://vite.vantagejobs.test |
+| Mailpit | https://mailpit.vantagejobs.test |
+| Database | localhost:49417 (override with `DB_FORWARD_PORT`) |
+| Traefik dashboard | http://localhost:8080 |
+
+---
+
 ## Status
 
 | Phase | Ship criterion | Status |
