@@ -25,7 +25,7 @@ export default defineConfig(({ command }) => ({
     server: {
         host: '0.0.0.0',
         hmr: {
-            host: 'vite.dev.test',
+            host: 'vite.vantagejobs.test',
             clientPort: 443,
         },
         https: command === 'serve' ? devHttps : undefined,
