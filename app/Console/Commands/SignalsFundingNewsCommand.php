@@ -12,6 +12,7 @@ use App\Tenancy\Tenant;
 use App\Tenancy\TenantContext;
 use Carbon\CarbonImmutable;
 use Illuminate\Console\Command;
+use Illuminate\Database\ConnectionInterface;
 use Psr\Log\LoggerInterface;
 use Throwable;
 
@@ -35,6 +36,7 @@ final class SignalsFundingNewsCommand extends Command
     public function __construct(
         private readonly GoogleNewsClient $client,
         private readonly LoggerInterface $logger,
+        private readonly ConnectionInterface $db,
     ) {
         parent::__construct();
     }
@@ -101,8 +103,20 @@ final class SignalsFundingNewsCommand extends Command
             $candidatesTotal += count($items);
 
             foreach ($items as $item) {
-                if ($this->persistCandidate($company, $item)) {
-                    $candidatesNew++;
+                try {
+                    // Savepoint per row: on Postgres a failed statement aborts
+                    // the enclosing transaction, so isolate each insert.
+                    if ($this->db->transaction(fn (): bool => $this->persistCandidate($company, $item))) {
+                        $candidatesNew++;
+                    }
+                } catch (Throwable $e) {
+                    $errors++;
+                    $this->logger->info('signals.funding.news_persist_failed', [
+                        'tenant' => $tenant->slug,
+                        'company_id' => $company->id,
+                        'external_id' => $item['external_id'],
+                        'error' => $e->getMessage(),
+                    ]);
                 }
             }
         }

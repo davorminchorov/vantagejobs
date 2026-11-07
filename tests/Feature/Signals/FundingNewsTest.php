@@ -125,6 +125,65 @@ final class FundingNewsTest extends TestCase
         $this->assertSame(1, FundingCandidate::query()->where('company_id', $company->id)->count());
     }
 
+    #[Test]
+    public function google_news_article_ids_longer_than_255_characters_are_stored(): void
+    {
+        $company = Company::factory()->create(['name' => 'Stripe', 'is_active' => true]);
+        $guid = 'CBMi'.str_repeat('wAFBVV95cUxOdFoxV2t6', 13);
+
+        Http::fake([
+            'news.google.com/*' => Http::response($this->rssFeed([
+                [
+                    'guid' => $guid,
+                    'title' => 'Stripe lining up funding round - CNBC',
+                    'link' => 'https://news.google.com/rss/articles/'.$guid.'?oc=5',
+                    'pubDate' => 'Tue, 10 Feb 2026 08:00:00 GMT',
+                ],
+            ]), 200, ['Content-Type' => 'application/rss+xml']),
+        ]);
+
+        $this->assertGreaterThan(255, strlen($guid));
+        $this->assertSame(0, Artisan::call('signals:funding:news', ['--tenant' => 'primary']));
+        $this->assertSame($guid, FundingCandidate::query()->where('company_id', $company->id)->value('external_id'));
+    }
+
+    #[Test]
+    public function an_article_that_fails_to_save_is_skipped_and_the_run_continues(): void
+    {
+        $company = Company::factory()->create(['name' => 'Acme Co', 'is_active' => true]);
+        // Incompressible and larger than a Postgres btree index entry allows,
+        // so the insert fails on the unique index.
+        $oversized = base64_encode(random_bytes(6_000));
+
+        Http::fake([
+            'news.google.com/*' => Http::response($this->rssFeed([
+                [
+                    'guid' => $oversized,
+                    'title' => 'Acme Co raised $5M seed',
+                    'link' => 'https://news.example.com/bad',
+                    'pubDate' => 'Mon, 18 May 2026 10:00:00 +0000',
+                ],
+                [
+                    'guid' => 'good',
+                    'title' => 'Acme Co raised $20M Series B',
+                    'link' => 'https://news.example.com/good',
+                    'pubDate' => 'Tue, 19 May 2026 10:00:00 +0000',
+                ],
+            ]), 200, ['Content-Type' => 'application/rss+xml']),
+        ]);
+
+        $exitCode = Artisan::call('signals:funding:news', ['--tenant' => 'primary']);
+        $summary = json_decode(trim(Artisan::output()), true);
+
+        $this->assertSame(0, $exitCode);
+        $this->assertSame(1, $summary['errors']);
+        $this->assertSame(1, $summary['candidates_new']);
+        $this->assertSame(
+            ['good'],
+            FundingCandidate::query()->where('company_id', $company->id)->pluck('external_id')->all(),
+        );
+    }
+
     /**
      * @param  list<array{guid: string, title: string, link: string, pubDate: string}>  $items
      */
