@@ -13,12 +13,12 @@
         "laravel/horizon": "^5.50.1",
         "laravel/octane": "^2.23",
         "laravel/tinker": "^3.0.2",
-        "saloonphp/laravel-plugin": "^4.3.1",
+        "saloonphp/laravel-plugin": "^5.0",
         "saloonphp/saloon": "^4.5.2",
         "tightenco/ziggy": "^2.6.5"
     },
     "require-dev": {
-        "brianium/paratest": "^7.20",
+        "brianium/paratest": "^7.27",
         "fakerphp/faker": "^1.24.1",
         "laravel/boost": "^2.10.4",
         "laravel/pail": "^1.2.7",
@@ -26,7 +26,7 @@
         "laravel/pint": "^1.32.1",
         "mockery/mockery": "^1.6.15",
         "nunomaduro/collision": "^8.9.5",
-        "phpunit/phpunit": "^12.5.43",
+        "phpunit/phpunit": "^13.4",
         "serversideup/spin": "^3.5.2"
     },
     "autoload": {
