@@ -45,6 +45,7 @@ use Illuminate\Database\Eloquent\Relations\MorphToMany;
     'next_action_date',
     'general_notes',
     'interview_prep',
+    'dismissed_at',
 ])]
 final class Role extends Model
 {
@@ -69,6 +70,7 @@ final class Role extends Model
             'applied_at' => 'immutable_datetime',
             'referral_contact_id' => 'integer',
             'next_action_date' => 'immutable_date',
+            'dismissed_at' => 'immutable_datetime',
         ];
     }
 

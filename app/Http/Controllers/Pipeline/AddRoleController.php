@@ -22,8 +22,7 @@ final readonly class AddRoleController
     {
         // Already opted into the pipeline — nothing to do, keep history clean.
         if ($role->pipeline_status !== null) {
-            return redirect()
-                ->route('companies.show', $role->company_id)
+            return back()
                 ->with('info', "{$role->title} is already in your pipeline.");
         }
 
@@ -63,8 +62,7 @@ final readonly class AddRoleController
             ]);
         });
 
-        return redirect()
-            ->route('companies.show', $role->company_id)
+        return back()
             ->with('success', "Added {$role->title} to your pipeline.");
     }
 }

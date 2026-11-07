@@ -43,8 +43,9 @@ final class AddRoleToPipelineTest extends TestCase
         ]);
 
         $this->actingAs($this->user)
+            ->from("/roles")
             ->post("/pipeline/roles/{$role->id}/add")
-            ->assertRedirect("/companies/{$company->id}");
+            ->assertRedirect('/roles');
 
         $role->refresh();
         $this->assertSame(PipelineStatus::RESEARCHING, $role->pipeline_status);
@@ -136,8 +137,9 @@ final class AddRoleToPipelineTest extends TestCase
         ]);
 
         $this->actingAs($this->user)
+            ->from("/roles")
             ->post("/pipeline/roles/{$role->id}/add")
-            ->assertRedirect("/companies/{$company->id}");
+            ->assertRedirect('/roles');
 
         $role->refresh();
         $this->assertSame(PipelineStatus::APPLIED, $role->pipeline_status);

@@ -4,6 +4,7 @@ import {
     Banknote,
     BellRing,
     Bookmark,
+    BriefcaseBusiness,
     Building2,
     CalendarDays,
     Compass,
@@ -49,6 +50,7 @@ export const PRIMARY_ITEMS: ReadonlyArray<NavLinkItem> = TOP_LEVEL_ITEMS;
 export const NAV_ICONS: Record<string, LucideIcon> = {
     '/dashboard': House,
     '/discover': Compass,
+    '/roles': BriefcaseBusiness,
     '/companies': Building2,
     '/bookmarks': Bookmark,
     '/pipeline': SquareKanban,

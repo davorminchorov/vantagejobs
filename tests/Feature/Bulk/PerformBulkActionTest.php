@@ -99,6 +99,23 @@ final class PerformBulkActionTest extends TestCase
     }
 
     #[Test]
+    public function dismiss_sets_dismissed_at_on_roles(): void
+    {
+        $company = Company::factory()->create();
+        $role = Role::factory()->create(['company_id' => $company->id]);
+
+        $this->actingAs($this->user)
+            ->post('/bulk-actions', [
+                'entity' => 'role',
+                'action' => 'dismiss',
+                'ids' => [$role->id],
+            ])
+            ->assertRedirect();
+
+        $this->assertNotNull($role->refresh()->dismissed_at);
+    }
+
+    #[Test]
     public function dismiss_sets_listing_status_to_dismissed(): void
     {
         $listing = AggregatorListing::factory()->create(['status' => AggregatorListingStatus::NEW]);

@@ -73,6 +73,10 @@ use App\Http\Controllers\Pipeline\ShowRoleController;
 use App\Http\Controllers\Pipeline\StageNotes\StoreController as PipelineStageNotesStoreController;
 use App\Http\Controllers\Pipeline\UpdateApplicationController;
 use App\Http\Controllers\Pipeline\UpdateStatusController as PipelineUpdateStatusController;
+use App\Http\Controllers\Roles\DescriptionController as RolesDescriptionController;
+use App\Http\Controllers\Roles\DismissController as RolesDismissController;
+use App\Http\Controllers\Roles\IndexController as RolesIndexController;
+use App\Http\Controllers\Roles\RestoreController as RolesRestoreController;
 use App\Http\Controllers\SavedViews\DestroySavedViewController;
 use App\Http\Controllers\SavedViews\StoreSavedViewController;
 use App\Http\Controllers\SavedViews\UpdateSavedViewController;
@@ -152,6 +156,17 @@ Route::middleware(['auth'])->group(function (): void {
     Route::post('/discover/sources/{source}/toggle', ToggleSourceController::class)->name('discover.sources.toggle');
     Route::post('/discover/sources/{source}/run', RunSourceController::class)->name('discover.sources.run');
     Route::post('/discover/auto-dismiss-rules/{rule}/revoke', RevokeAutoDismissController::class)->name('discover.rules.revoke');
+
+    Route::get('/roles', RolesIndexController::class)->name('roles.index');
+    Route::get('/roles/{role}/description', RolesDescriptionController::class)
+        ->whereNumber('role')
+        ->name('roles.description');
+    Route::post('/roles/{role}/dismiss', RolesDismissController::class)
+        ->whereNumber('role')
+        ->name('roles.dismiss');
+    Route::post('/roles/{role}/restore', RolesRestoreController::class)
+        ->whereNumber('role')
+        ->name('roles.restore');
 
     Route::get('/bookmarks', BookmarksIndexController::class)->name('bookmarks.index');
     Route::post('/bookmarks/listings/{listing}', CreateBookmarkController::class)->name('bookmarks.listings.create');

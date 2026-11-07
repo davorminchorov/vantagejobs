@@ -10,6 +10,7 @@ use App\Models\CompanySnapshot;
 use App\Models\Event;
 use App\Models\Note;
 use App\Models\Role;
+use App\Roles\RoleItemPresenter;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -17,21 +18,46 @@ use Inertia\Response;
 
 final readonly class ShowCompanyController
 {
+    public function __construct(private RoleItemPresenter $presenter) {}
+
     public function __invoke(Request $request, Company $company): Response
     {
         $rolesQ = $this->nonEmptyString($request->query('roles_q'));
-        $rolesState = $this->inSet($request->query('roles_state'), ['open', 'closed']);
+        $stateInput = $request->query('roles_state');
+        $rolesState = is_string($stateInput) && in_array($stateInput, ['open', 'dismissed', 'closed', 'all'], true)
+            ? $stateInput
+            : 'open';
 
-        $roles = $company->roles()
-            ->when($rolesQ !== null, fn ($query) => $query->where('title', 'ilike', '%'.$rolesQ.'%'))
-            ->when($rolesState === 'open', fn ($query) => $query->where('is_open', true))
+        $searchable = fn () => $company->roles()
+            ->when($rolesQ !== null, fn ($query) => $query->where('title', 'ilike', '%'.addcslashes($rolesQ, '\\%_').'%'));
+
+        $roles = $searchable()
+            ->when($rolesState === 'open', fn ($query) => $query->where('is_open', true)->whereNull('dismissed_at'))
+            ->when($rolesState === 'dismissed', fn ($query) => $query->where('is_open', true)->whereNotNull('dismissed_at'))
             ->when($rolesState === 'closed', fn ($query) => $query->where('is_open', false))
             ->orderByDesc('is_open')
-            ->orderByRaw('posted_at DESC NULLS LAST')
-            ->orderByDesc('last_seen_at')
+            ->orderByRaw('COALESCE(posted_at, created_at) DESC')
             ->orderByDesc('id')
             ->paginate(15, pageName: 'roles_page')
             ->withQueryString();
+
+        $roles->setCollection($roles->getCollection()->map(fn (Role $role): array => [
+            ...$this->presenter->toArray($role),
+            'is_open' => (bool) $role->is_open,
+        ]));
+
+        $stateCounts = $searchable()
+            ->toBase()
+            ->selectRaw('COUNT(*) FILTER (WHERE is_open AND dismissed_at IS NULL) AS open_count')
+            ->selectRaw('COUNT(*) FILTER (WHERE is_open AND dismissed_at IS NOT NULL) AS dismissed_count')
+            ->selectRaw('COUNT(*) FILTER (WHERE NOT is_open) AS closed_count')
+            ->first();
+
+        $newThisWeek = $company->roles()
+            ->where('is_open', true)
+            ->whereNull('dismissed_at')
+            ->where('created_at', '>=', CarbonImmutable::now()->subDays(7))
+            ->count();
 
         $events = Event::query()
             ->where('company_id', $company->id)
@@ -140,6 +166,12 @@ final readonly class ShowCompanyController
                 'q' => $rolesQ,
                 'state' => $rolesState,
             ],
+            'role_counts' => [
+                'open' => (int) ($stateCounts->open_count ?? 0),
+                'dismissed' => (int) ($stateCounts->dismissed_count ?? 0),
+                'closed' => (int) ($stateCounts->closed_count ?? 0),
+            ],
+            'new_this_week' => $newThisWeek,
             'timeline' => $timeline,
             'tags' => $tags,
             'counts' => [
@@ -171,17 +203,5 @@ final readonly class ShowCompanyController
         $trimmed = trim($value);
 
         return $trimmed === '' ? null : $trimmed;
-    }
-
-    /**
-     * @param  list<string>  $set
-     */
-    private function inSet(mixed $value, array $set): ?string
-    {
-        if (! is_string($value) || $value === '') {
-            return null;
-        }
-
-        return in_array($value, $set, true) ? $value : null;
     }
 }

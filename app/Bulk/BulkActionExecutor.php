@@ -32,6 +32,7 @@ use Illuminate\Database\Eloquent\Relations\MorphToMany;
  *   TAG / UNTAG  company | role               -> taggables pivot
  *   DISMISS      company                      -> status = 'graveyard'
  *                aggregator_listing           -> status = 'dismissed'
+ *                role                         -> dismissed_at = now
  *   BOOKMARK     role | aggregator_listing    -> bookmarks row
  *   MARK_CLOSED  role                         -> is_open = false
  *   KEEP         aggregator_listing           -> status = 'kept'
@@ -104,7 +105,7 @@ final readonly class BulkActionExecutor
         return $this->db->connection()->transaction(function () use ($action, $entity, $before, $log, $actor): AuditLog {
             match ($action) {
                 BulkAction::CHANGE_TIER => $this->revertColumn($entity, $before, 'tier'),
-                BulkAction::DISMISS => $this->revertColumn($entity, $before, 'status'),
+                BulkAction::DISMISS => $this->revertColumn($entity, $before, $entity === self::ENTITY_ROLE ? 'dismissed_at' : 'status'),
                 BulkAction::MARK_CLOSED => $this->revertColumn($entity, $before, 'is_open'),
                 BulkAction::TAG, BulkAction::UNTAG => $this->revertTagPivot($entity, $before),
                 BulkAction::BOOKMARK => $this->revertBookmark($entity, $before),
@@ -213,6 +214,10 @@ final readonly class BulkActionExecutor
      */
     private function applyDismiss(string $entity, array $rows): array
     {
+        if ($entity === self::ENTITY_ROLE) {
+            return $this->applyDismissRoles($rows);
+        }
+
         $target = $entity === self::ENTITY_LISTING
             ? AggregatorListingStatus::DISMISSED->value
             : 'graveyard';
@@ -223,6 +228,25 @@ final readonly class BulkActionExecutor
             $old = $old instanceof \BackedEnum ? $old->value : $old;
             $before[] = ['id' => (int) $row->id, 'field' => 'status', 'old' => $old];
             $row->setAttribute('status', $target);
+            $row->save();
+        }
+
+        return $before;
+    }
+
+    /**
+     * @param  array<int, Model>  $rows
+     * @return array<int, array{id:int, field:string, old:mixed}>
+     */
+    private function applyDismissRoles(array $rows): array
+    {
+        $before = [];
+        $now = CarbonImmutable::now();
+
+        foreach ($rows as $row) {
+            /** @var Role $row */
+            $before[] = ['id' => (int) $row->id, 'field' => 'dismissed_at', 'old' => $row->dismissed_at?->toISOString()];
+            $row->dismissed_at = $now;
             $row->save();
         }
 

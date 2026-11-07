@@ -1,19 +1,19 @@
 import { Head, Link, router, useForm } from '@inertiajs/react';
+import { ChevronDown } from 'lucide-react';
 import type { FormEvent, ReactNode } from 'react';
 import { useState } from 'react';
 
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import HiringTrendChart from '@/components/charts/HiringTrendChart';
 import TagInput, { type TagSummary } from '@/components/companies/TagInput';
+import { RoleLine } from '@/components/roles/RoleLine';
+import type { RoleItem } from '@/components/roles/types';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { DataTableScroll } from '@/components/ui/data-table-scroll';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Input } from '@/components/ui/input';
 import { SectionLabel } from '@/components/ui/section-label';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { NativeSelect } from '@/components/ui/native-select';
 import { formatDate, formatDateTime, RelativeDate } from '@/lib/dates';
 import { cn } from '@/lib/utils';
 
@@ -33,6 +33,11 @@ interface CompanyDetail {
     etag: string | null;
     last_modified: string | null;
     created_at: string | null;
+    funding_stage: string | null;
+    funding_last_raised_at: string | null;
+    funding_last_amount_usd: number | null;
+    github_org: string | null;
+    eng_blog_rss_url: string | null;
 }
 
 interface GraveyardInfo {
@@ -41,37 +46,28 @@ interface GraveyardInfo {
     tags: string[];
 }
 
-interface RoleRow {
-    id: number;
-    title: string;
-    source: string;
-    url: string | null;
-    location: string | null;
-    workplace_type: string | null;
-    department: string | null;
-    team: string | null;
-    comp_min: number | null;
-    comp_max: number | null;
-    comp_currency: string | null;
-    comp_interval: string | null;
-    is_open: boolean;
-    posted_at: string | null;
-    last_seen_at: string | null;
-}
+type RoleRow = RoleItem & { is_open: boolean };
 
 interface PaginatedRoles {
     data: RoleRow[];
     current_page: number;
     last_page: number;
     total: number;
-    links: { url: string | null; label: string; active: boolean }[];
     prev_page_url: string | null;
     next_page_url: string | null;
 }
 
+type RoleState = 'open' | 'dismissed' | 'closed' | 'all';
+
 interface RolesFilters {
     q: string | null;
-    state: 'open' | 'closed' | null;
+    state: RoleState;
+}
+
+interface RoleCounts {
+    open: number;
+    dismissed: number;
+    closed: number;
 }
 
 interface TimelineItem {
@@ -95,6 +91,8 @@ interface Props {
     company: CompanyDetail;
     roles: PaginatedRoles;
     roles_filters: RolesFilters;
+    role_counts: RoleCounts;
+    new_this_week: number;
     timeline: TimelineItem[];
     tags: TagSummary[];
     counts: Counts;
@@ -137,30 +135,19 @@ function humanize(value: string): string {
     return value.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
-function formatComp(role: RoleRow): string | null {
-    if (role.comp_min === null && role.comp_max === null) return null;
-    const currency = role.comp_currency ?? '';
-    const min = role.comp_min !== null ? role.comp_min.toLocaleString() : '?';
-    const max = role.comp_max !== null ? role.comp_max.toLocaleString() : '?';
-    const interval = role.comp_interval ? ` / ${role.comp_interval}` : '';
-    return `${currency} ${min}-${max}${interval}`.trim();
-}
-
-function initialTab(): 'overview' | 'roles' | 'timeline' {
+function initialTab(): 'roles' | 'activity' {
     if (typeof window === 'undefined') {
-        return 'overview';
-    }
-    const params = new URLSearchParams(window.location.search);
-    if (params.has('roles_page') || params.has('roles_q') || params.has('roles_state')) {
         return 'roles';
     }
-    return 'overview';
+    return new URLSearchParams(window.location.search).get('tab') === 'activity' ? 'activity' : 'roles';
 }
 
 export default function ShowCompanyPage({
     company,
     roles,
     roles_filters,
+    role_counts,
+    new_this_week,
     timeline,
     tags,
     counts,
@@ -169,7 +156,9 @@ export default function ShowCompanyPage({
     hiring_trend,
     quality,
 }: Props) {
-    const [tab, setTab] = useState<'overview' | 'roles' | 'timeline'>(initialTab);
+    const [tab, setTab] = useState<'roles' | 'activity'>(initialTab);
+    const careersUrl = safeHttpUrl(company.careers_url);
+    const websiteUrl = safeHttpUrl(company.website);
 
     return (
         <AuthenticatedLayout>
@@ -181,321 +170,308 @@ export default function ShowCompanyPage({
                             ← Companies
                         </Link>
                         <h1 className="text-2xl font-semibold tracking-tight text-balance">{company.name}</h1>
-                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-sm text-muted-foreground">
                             <Badge variant={TIER_VARIANT[company.tier] ?? 'outline'}>
                                 {company.tier === 'graveyard' ? 'Graveyard' : `Tier ${company.tier}`}
                             </Badge>
-                            <div className="text-sm text-muted-foreground">{humanize(company.status)}</div>
-                            {company.ats_type ? (
-                                <div className="text-sm text-muted-foreground">
-                                    {humanize(company.ats_type)}
-                                    {company.ats_slug ? <span className="font-mono"> · {company.ats_slug}</span> : ''}
-                                </div>
+                            {websiteUrl ? (
+                                <a href={websiteUrl} target="_blank" rel="noopener noreferrer" className="hover:text-foreground hover:underline">
+                                    {company.domain ? bareDomain(company.domain) : 'Website'} ↗
+                                </a>
                             ) : null}
+                            {careersUrl ? (
+                                <a href={careersUrl} target="_blank" rel="noopener noreferrer" className="hover:text-foreground hover:underline">
+                                    Careers page ↗
+                                </a>
+                            ) : null}
+                            <span className="tabular-nums">
+                                {counts.open_roles} open {counts.open_roles === 1 ? 'role' : 'roles'}
+                                {new_this_week > 0 ? (
+                                    <>
+                                        {' · '}
+                                        <span className="font-medium text-primary">{new_this_week} new this week</span>
+                                    </>
+                                ) : null}
+                            </span>
                         </div>
                     </div>
                     <div className="flex flex-wrap items-center gap-2">
                         <Button asChild variant="outline">
                             <Link href={`/companies/${company.id}/edit`}>Edit</Link>
                         </Button>
-                        <GraveyardControls
-                            companyId={company.id}
-                            status={company.status}
-                            presetTags={graveyard_preset_tags}
-                        />
+                        <GraveyardControls companyId={company.id} status={company.status} presetTags={graveyard_preset_tags} />
                     </div>
                 </header>
 
                 {graveyard ? <GraveyardBanner info={graveyard} /> : null}
                 {!graveyard && isUnscrapeable(company) ? <UnscrapeableBanner company={company} /> : null}
 
-                <Tabs value={tab} onValueChange={(v) => setTab(v as typeof tab)}>
-                    <TabsList>
-                        <TabsTrigger value="overview">Overview</TabsTrigger>
-                        <TabsTrigger value="roles">Roles ({counts.total_roles})</TabsTrigger>
-                        <TabsTrigger value="timeline">Timeline ({counts.timeline_items})</TabsTrigger>
-                    </TabsList>
+                <div className="grid gap-x-10 gap-y-8 lg:grid-cols-[minmax(0,1fr)_20rem]">
+                    <main className="min-w-0">
+                        <Tabs value={tab} onValueChange={(v) => setTab(v as typeof tab)}>
+                            <TabsList>
+                                <TabsTrigger value="roles">Roles</TabsTrigger>
+                                <TabsTrigger value="activity">Activity ({counts.timeline_items})</TabsTrigger>
+                            </TabsList>
+                            <TabsContent value="roles">
+                                <RolesPanel companyId={company.id} roles={roles} filters={roles_filters} counts={role_counts} />
+                            </TabsContent>
+                            <TabsContent value="activity">
+                                <Timeline items={timeline} />
+                            </TabsContent>
+                        </Tabs>
+                    </main>
 
-                    <TabsContent value="overview" className="flex flex-col divide-y divide-border *:py-8 *:first:pt-0 *:last:pb-0">
-                        {quality ? <QualityCard quality={quality} /> : null}
-                        <section className="flex flex-col gap-4">
-                            <SectionLabel>Hiring volume (90 days)</SectionLabel>
-                            <HiringTrendChart data={hiring_trend} />
+                    <aside className="flex min-w-0 flex-col divide-y divide-border *:py-6 *:first:pt-0 lg:*:first:pt-1" aria-label="Company details">
+                        <section className="flex flex-col gap-3">
+                            <SectionLabel>Hiring, last 90 days</SectionLabel>
+                            <HiringTrendChart data={hiring_trend} height={140} compact />
                         </section>
-                        <Overview company={company} counts={counts} tags={tags} />
-                    </TabsContent>
-
-                    <TabsContent value="roles">
-                        <RolesTable companyId={company.id} roles={roles} filters={roles_filters} />
-                    </TabsContent>
-
-                    <TabsContent value="timeline">
-                        <Timeline items={timeline} />
-                    </TabsContent>
-                </Tabs>
+                        {quality ? <QualityPanel quality={quality} /> : null}
+                        <FundingPanel company={company} />
+                        <section className="flex flex-col gap-3">
+                            <SectionLabel>Tags</SectionLabel>
+                            <TagInput companyId={company.id} tags={tags} />
+                        </section>
+                        <TrackingDetails company={company} counts={counts} />
+                    </aside>
+                </div>
             </div>
         </AuthenticatedLayout>
     );
 }
 
-function Overview({ company, counts, tags }: { company: CompanyDetail; counts: Counts; tags: TagSummary[] }) {
-    return (
-        <>
-            <section className="flex flex-col gap-4">
-                <SectionLabel>Tags</SectionLabel>
-                <TagInput companyId={company.id} tags={tags} />
-            </section>
-
-            <div className="grid gap-8 divide-y divide-border *:pt-8 *:first:pt-0 lg:grid-cols-2 lg:gap-x-12 lg:divide-y-0 lg:*:pt-0">
-                <OverviewSection title="Identity">
-                    <DefinitionRow label="Name" value={company.name} />
-                    <DefinitionRow label="Website" value={company.website} link />
-                    <DefinitionRow label="Careers" value={company.careers_url} link />
-                    <DefinitionRow label="Domain" value={company.domain} mono />
-                </OverviewSection>
-
-                <OverviewSection title="ATS">
-                    <DefinitionRow label="Type" value={company.ats_type ? humanize(company.ats_type) : null} />
-                    <DefinitionRow label="Slug" value={company.ats_slug} mono />
-                    <DefinitionRow label="Last-Modified" value={company.last_modified} mono />
-                </OverviewSection>
-
-                <OverviewSection title="Operational">
-                    <DefinitionRow
-                        label="Last checked"
-                        value={company.last_checked_at ? <RelativeDate iso={company.last_checked_at} /> : 'Never'}
-                    />
-                    <DefinitionRow
-                        label="Added"
-                        value={company.created_at ? formatDate(company.created_at) : null}
-                        numeric
-                    />
-                </OverviewSection>
-
-                <OverviewSection title="Counts">
-                    <DefinitionRow label="Open roles" value={String(counts.open_roles)} numeric />
-                    <DefinitionRow label="Total roles tracked" value={String(counts.total_roles)} numeric />
-                </OverviewSection>
-            </div>
-        </>
-    );
+/** Returns the URL when it is http(s), so scraped or typed values never reach an href otherwise. */
+function safeHttpUrl(value: string | null): string | null {
+    if (!value) {
+        return null;
+    }
+    try {
+        const parsed = new URL(value);
+        return parsed.protocol === 'http:' || parsed.protocol === 'https:' ? parsed.href : null;
+    } catch {
+        return null;
+    }
 }
 
-function OverviewSection({ title, children }: { title: string; children: ReactNode }) {
+function bareDomain(domain: string): string {
+    return domain.replace(/^[a-z][a-z0-9+.-]*:\/\//i, '').replace(/\/+$/, '');
+}
+
+function FundingPanel({ company }: { company: CompanyDetail }) {
+    const hasFunding = company.funding_stage || company.funding_last_raised_at || company.funding_last_amount_usd;
+    const github = company.github_org ? `https://github.com/${encodeURIComponent(company.github_org)}` : null;
+    const blog = safeHttpUrl(company.eng_blog_rss_url);
+
     return (
-        <section className="flex flex-col gap-4">
-            <SectionLabel>{title}</SectionLabel>
-            <dl className="flex flex-col gap-3">{children}</dl>
+        <section className="flex flex-col gap-3">
+            <SectionLabel>Funding and presence</SectionLabel>
+            <dl className="flex flex-col gap-2 text-base sm:text-sm">
+                <SideFact label="Stage" value={company.funding_stage ?? (hasFunding ? null : 'Unknown')} />
+                {company.funding_last_raised_at ? (
+                    <SideFact label="Last raised" value={<RelativeDate iso={company.funding_last_raised_at} />} />
+                ) : null}
+                {company.funding_last_amount_usd ? (
+                    <SideFact
+                        label="Amount"
+                        value={<span className="tabular-nums">${(company.funding_last_amount_usd / 1_000_000).toLocaleString(undefined, { maximumFractionDigits: 1 })}M</span>}
+                    />
+                ) : null}
+                {github ? (
+                    <SideFact
+                        label="GitHub"
+                        value={
+                            <a href={github} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+                                {company.github_org}
+                            </a>
+                        }
+                    />
+                ) : null}
+                {blog ? (
+                    <SideFact
+                        label="Eng blog"
+                        value={
+                            <a href={blog} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+                                Feed ↗
+                            </a>
+                        }
+                    />
+                ) : null}
+            </dl>
         </section>
     );
 }
 
-function DefinitionRow({
-    label,
-    value,
-    link,
-    mono,
-    numeric,
-}: {
-    label: string;
-    value: ReactNode;
-    link?: boolean;
-    mono?: boolean;
-    numeric?: boolean;
-}) {
-    const isEmpty = value === null || value === undefined || value === '';
-
+function SideFact({ label, value }: { label: string; value: ReactNode }) {
     return (
-        <div className="flex flex-col gap-0.5 sm:grid sm:grid-cols-[10rem_1fr] sm:items-baseline sm:gap-4">
-            <dt className="text-base font-medium text-foreground sm:text-sm">{label}</dt>
-            <dd className="min-w-0 text-base break-words text-muted-foreground sm:text-sm">
-                {isEmpty ? (
-                    '—'
-                ) : link && typeof value === 'string' ? (
-                    <a
-                        href={value}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="break-all text-primary hover:underline"
-                    >
-                        {value}
-                    </a>
-                ) : (
-                    <span className={cn(mono && 'font-mono', numeric && 'tabular-nums')}>{value}</span>
-                )}
-            </dd>
+        <div className="flex items-baseline justify-between gap-4">
+            <dt className="text-muted-foreground">{label}</dt>
+            <dd className="min-w-0 text-right break-words">{value ?? '-'}</dd>
         </div>
     );
 }
 
-function RolesTable({
+function TrackingDetails({ company, counts }: { company: CompanyDetail; counts: Counts }) {
+    return (
+        <section>
+            <details className="group">
+                <summary className="flex cursor-pointer list-none items-center justify-between gap-2 rounded-md text-sm font-medium text-muted-foreground hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring">
+                    Tracking details
+                    <ChevronDown aria-hidden="true" className="size-4 transition-transform group-open:rotate-180" />
+                </summary>
+                <dl className="mt-4 flex flex-col gap-2 text-base sm:text-sm">
+                    <SideFact label="ATS" value={company.ats_type ? humanize(company.ats_type) : 'None'} />
+                    <SideFact label="Slug" value={company.ats_slug ? <span className="font-mono">{company.ats_slug}</span> : null} />
+                    <SideFact label="ATS status" value={humanize(company.ats_status)} />
+                    <SideFact label="Status" value={humanize(company.status)} />
+                    <SideFact
+                        label="Last checked"
+                        value={company.last_checked_at ? <RelativeDate iso={company.last_checked_at} /> : 'Never'}
+                    />
+                    <SideFact label="Roles tracked" value={<span className="tabular-nums">{counts.total_roles}</span>} />
+                    <SideFact label="Added" value={company.created_at ? formatDate(company.created_at) : null} />
+                    <SideFact
+                        label="Last-Modified"
+                        value={company.last_modified ? <span className="font-mono text-xs">{company.last_modified}</span> : null}
+                    />
+                </dl>
+            </details>
+        </section>
+    );
+}
+
+const ROLE_STATES: ReadonlyArray<{ value: RoleState; label: string; count: (c: RoleCounts) => number | null }> = [
+    { value: 'open', label: 'Open', count: (c) => c.open },
+    { value: 'dismissed', label: 'Dismissed', count: (c) => c.dismissed },
+    { value: 'closed', label: 'Closed', count: (c) => c.closed },
+    { value: 'all', label: 'All', count: () => null },
+];
+
+function RolesPanel({
     companyId,
     roles,
     filters,
+    counts,
 }: {
     companyId: number;
     roles: PaginatedRoles;
     filters: RolesFilters;
+    counts: RoleCounts;
 }) {
-    const hasComp = roles.data.some((role) => formatComp(role) !== null);
-    const hasActiveFilter = filters.q !== null || filters.state !== null;
+    const [expandedIds, setExpandedIds] = useState<number[]>([]);
 
     function applyRoleFilters(patch: Partial<RolesFilters>) {
         const next = { ...filters, ...patch };
         const params: Record<string, string> = {};
         if (next.q) params.roles_q = next.q;
-        if (next.state) params.roles_state = next.state;
+        if (next.state !== 'open') params.roles_state = next.state;
+        setExpandedIds([]);
         router.get(`/companies/${companyId}`, params, {
             preserveState: true,
             preserveScroll: true,
             replace: true,
-            only: ['roles', 'roles_filters', 'counts'],
+            only: ['roles', 'roles_filters', 'role_counts'],
         });
+    }
+
+    function reloadRoles() {
+        router.reload({ only: ['roles', 'role_counts', 'counts', 'new_this_week', 'flash'] });
+    }
+
+    function dismiss(role: RoleRow) {
+        router.post(
+            '/bulk-actions',
+            { entity: 'role', action: 'dismiss', ids: [role.id] },
+            { preserveScroll: true, preserveState: true, onSuccess: reloadRoles },
+        );
+    }
+
+    function restore(role: RoleRow) {
+        router.post(`/roles/${role.id}/restore`, {}, { preserveScroll: true, preserveState: true, onSuccess: reloadRoles });
+    }
+
+    function addToPipeline(role: RoleRow) {
+        router.post(`/pipeline/roles/${role.id}/add`, {}, { preserveScroll: true, preserveState: true, onSuccess: reloadRoles });
+    }
+
+    function onSearchSubmit(e: FormEvent<HTMLFormElement>) {
+        e.preventDefault();
+        const form = new FormData(e.currentTarget);
+        applyRoleFilters({ q: ((form.get('roles_q') as string) ?? '').trim() || null });
     }
 
     return (
         <div className="flex flex-col gap-4">
-            <RolesFilterBar filters={filters} onChange={applyRoleFilters} />
+            <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="flex flex-wrap items-center gap-1" role="group" aria-label="Role state">
+                    {ROLE_STATES.map((state) => {
+                        const active = filters.state === state.value;
+                        const count = state.count(counts);
+                        return (
+                            <button
+                                key={state.value}
+                                type="button"
+                                aria-pressed={active}
+                                onClick={() => applyRoleFilters({ state: state.value })}
+                                className={cn(
+                                    'min-h-10 rounded-md px-3 text-base sm:min-h-8 sm:text-sm',
+                                    active ? 'bg-muted font-medium text-foreground' : 'text-muted-foreground hover:bg-muted/60 hover:text-foreground',
+                                )}
+                            >
+                                {state.label}
+                                {count !== null ? <span className="ml-1.5 text-muted-foreground tabular-nums">{count}</span> : null}
+                            </button>
+                        );
+                    })}
+                </div>
+                <form onSubmit={onSearchSubmit} className="flex w-full gap-2 sm:w-auto" role="search">
+                    <Input
+                        key={filters.q ?? ''}
+                        type="search"
+                        name="roles_q"
+                        defaultValue={filters.q ?? ''}
+                        placeholder="Search role titles"
+                        aria-label="Search role titles"
+                        className="w-full min-w-0 sm:w-56"
+                    />
+                    <Button type="submit" variant="outline" className="shrink-0">
+                        Search
+                    </Button>
+                </form>
+            </div>
 
             {roles.data.length === 0 ? (
-                <div className="py-12 text-center text-base text-pretty text-muted-foreground sm:text-sm">
-                        {hasActiveFilter ? (
-                            'No roles match the current search or filter.'
-                        ) : (
-                            <>
-                                No roles tracked yet. Run{' '}
-                                <code className="rounded-md bg-muted px-1 py-0.5 font-mono">scrape:company</code> to fetch.
-                            </>
-                        )}
-                </div>
+                <EmptyState className="py-12">
+                    {filters.q !== null || filters.state !== 'open'
+                        ? 'No roles match this search or filter.'
+                        : 'No open roles right now. Closed roles stay under Closed.'}
+                </EmptyState>
             ) : (
                 <>
-                    <p className="text-sm text-muted-foreground">
-                        Showing <span className="tabular-nums">{roles.data.length}</span> of{' '}
-                        <span className="tabular-nums">{roles.total}</span> roles
-                    </p>
-                    <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Title</TableHead>
-                                        <TableHead>Workplace</TableHead>
-                                        {hasComp ? <TableHead>Comp</TableHead> : null}
-                                        <TableHead>Source</TableHead>
-                                        <TableHead>Last seen</TableHead>
-                                        <TableHead className="text-right">State</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {roles.data.map((role) => {
-                                        const comp = formatComp(role);
-                                        const isUnspecified = role.workplace_type === null || role.workplace_type === 'unspecified';
-                                        return (
-                                            <TableRow key={role.id}>
-                                                <TableCell>
-                                                    <div className="flex flex-col">
-                                                        {role.url ? (
-                                                            <a
-                                                                href={role.url}
-                                                                target="_blank"
-                                                                rel="noopener noreferrer"
-                                                                className="font-medium text-primary hover:underline"
-                                                            >
-                                                                {role.title}
-                                                            </a>
-                                                        ) : (
-                                                            <span className="font-medium text-foreground">{role.title}</span>
-                                                        )}
-                                                        {role.team ?? role.department ? (
-                                                            <span className="text-sm text-muted-foreground">
-                                                                {[role.department, role.team].filter(Boolean).join(' / ')}
-                                                            </span>
-                                                        ) : null}
-                                                    </div>
-                                                </TableCell>
-                                                <TableCell>
-                                                    <div className="flex flex-col">
-                                                        <span className={isUnspecified ? 'text-muted-foreground' : undefined}>
-                                                            {isUnspecified ? '—' : humanize(role.workplace_type as string)}
-                                                        </span>
-                                                        {role.location ? (
-                                                            <span className="text-sm text-muted-foreground">{role.location}</span>
-                                                        ) : null}
-                                                    </div>
-                                                </TableCell>
-                                                {hasComp ? (
-                                                    <TableCell>
-                                                        {comp ? (
-                                                            <span className="tabular-nums">{comp}</span>
-                                                        ) : (
-                                                            <span className="text-muted-foreground">—</span>
-                                                        )}
-                                                    </TableCell>
-                                                ) : null}
-                                                <TableCell>
-                                                    <span className="text-muted-foreground">{role.source}</span>
-                                                </TableCell>
-                                                <TableCell>
-                                                    <RelativeDate
-                                                        iso={role.last_seen_at}
-                                                        className="tabular-nums text-muted-foreground"
-                                                    />
-                                                </TableCell>
-                                                <TableCell className="text-right">
-                                                    {role.is_open ? (
-                                                        <Badge variant="success">Open</Badge>
-                                                    ) : (
-                                                        <Badge variant="outline">Closed</Badge>
-                                                    )}
-                                                </TableCell>
-                                            </TableRow>
-                                        );
-                                    })}
-                                </TableBody>
-                    </Table>
+                    <ul role="list" className="divide-y divide-border rounded-xl border border-border">
+                        {roles.data.map((role) => (
+                            <RoleLine
+                                key={role.id}
+                                role={role}
+                                expanded={expandedIds.includes(role.id)}
+                                focused={false}
+                                dismissedView={role.dismissed_at !== null}
+                                closed={!role.is_open}
+                                onToggle={() =>
+                                    setExpandedIds((prev) =>
+                                        prev.includes(role.id) ? prev.filter((id) => id !== role.id) : [...prev, role.id],
+                                    )
+                                }
+                                onDismiss={() => dismiss(role)}
+                                onRestore={() => restore(role)}
+                                onAddToPipeline={() => addToPipeline(role)}
+                            />
+                        ))}
+                    </ul>
                     <RolesPaginator roles={roles} />
                 </>
             )}
         </div>
-    );
-}
-
-function RolesFilterBar({
-    filters,
-    onChange,
-}: {
-    filters: RolesFilters;
-    onChange: (patch: Partial<RolesFilters>) => void;
-}) {
-    function onSearchSubmit(e: FormEvent<HTMLFormElement>) {
-        e.preventDefault();
-        const form = new FormData(e.currentTarget);
-        onChange({ q: ((form.get('roles_q') as string) ?? '').trim() || null });
-    }
-
-    return (
-        <form onSubmit={onSearchSubmit} className="flex flex-wrap items-center gap-2">
-            <Input
-                type="search"
-                name="roles_q"
-                defaultValue={filters.q ?? ''}
-                placeholder="Search role titles…"
-                aria-label="Search role titles"
-                className="w-full sm:w-64"
-            />
-            <NativeSelect
-                name="roles_state"
-                value={filters.state ?? ''}
-                onChange={(e) => onChange({ state: e.target.value === '' ? null : (e.target.value as 'open' | 'closed') })}
-                aria-label="Filter by role state"
-            >
-                <option value="">All states</option>
-                <option value="open">Open</option>
-                <option value="closed">Closed</option>
-            </NativeSelect>
-            <Button type="submit" variant="outline" size="sm">
-                Search
-            </Button>
-        </form>
     );
 }
 
@@ -514,7 +490,7 @@ function RolesPaginator({ roles }: { roles: PaginatedRoles }) {
                 {roles.prev_page_url ? (
                     <Button asChild variant="outline" size="sm">
                         <Link href={roles.prev_page_url} preserveScroll preserveState only={['roles']}>
-                            Prev
+                            Previous
                         </Link>
                     </Button>
                 ) : null}
@@ -791,7 +767,7 @@ const FACTOR_LABEL: Record<string, string> = {
     no_eng_presence_penalty: 'No eng presence',
 };
 
-function QualityCard({ quality }: { quality: QualityInfo }) {
+function QualityPanel({ quality }: { quality: QualityInfo }) {
     const score = quality.score;
     const tone =
         score >= 80
@@ -801,56 +777,47 @@ function QualityCard({ quality }: { quality: QualityInfo }) {
               : 'text-rose-600 dark:text-rose-400';
 
     return (
-        <section className="flex flex-col gap-4">
+        <section className="flex flex-col gap-3">
             <div className="flex items-baseline justify-between gap-2">
                 <SectionLabel>Quality score</SectionLabel>
-                <div className="text-xs text-muted-foreground">
-                    as of <span className="tabular-nums">{quality.snapshot_date ?? '—'}</span>
-                </div>
+                <span className="text-xs text-muted-foreground">
+                    as of <span className="tabular-nums">{quality.snapshot_date ?? '-'}</span>
+                </span>
             </div>
-            <div className="flex items-baseline gap-2">
-                <span className={cn('text-4xl font-semibold tabular-nums', tone)}>{score}</span>
-                <span className="text-sm tabular-nums text-muted-foreground">/ 100</span>
+            <div className="flex items-baseline gap-1.5">
+                <span className={cn('text-3xl font-semibold tabular-nums', tone)}>{score}</span>
+                <span className="text-sm text-muted-foreground tabular-nums">/ 100</span>
             </div>
-            <DataTableScroll>
-                <table className="w-full min-w-[20rem] text-base sm:text-sm">
-                    <thead className="text-sm text-muted-foreground">
-                        <tr>
-                            <th className="py-1.5 text-left font-medium whitespace-nowrap">Factor</th>
-                            <th className="py-1.5 text-right font-medium whitespace-nowrap">Weight</th>
-                            <th className="py-1.5 text-right font-medium whitespace-nowrap">Contribution</th>
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y divide-border border-t border-border">
-                        {Object.entries(quality.breakdown).map(([key, factor]) => (
-                            <tr key={key}>
-                                <td className="py-2">{FACTOR_LABEL[key] ?? key}</td>
-                                <td className="text-right tabular-nums text-muted-foreground">
-                                    {factor.weight > 0 ? '+' : ''}
-                                    {factor.weight}
-                                </td>
-                                <td
-                                    className={cn(
-                                        'text-right font-medium tabular-nums',
-                                        factor.contribution > 0
-                                            ? 'text-emerald-600 dark:text-emerald-400'
-                                            : factor.contribution < 0
-                                              ? 'text-rose-600 dark:text-rose-400'
-                                              : 'text-muted-foreground',
-                                    )}
-                                >
-                                    {factor.contribution > 0 ? '+' : ''}
-                                    {factor.contribution}
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-            </DataTableScroll>
-            <p className="max-w-prose text-sm text-pretty text-muted-foreground">
-                Score starts at the baseline and is adjusted by each factor. Positive
-                factors max at their weight; penalties subtract up to their weight.
-            </p>
+            <details className="group">
+                <summary className="flex cursor-pointer list-none items-center gap-1 rounded-md text-sm text-muted-foreground hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring">
+                    How it adds up
+                    <ChevronDown aria-hidden="true" className="size-4 transition-transform group-open:rotate-180" />
+                </summary>
+                <dl className="mt-3 flex flex-col gap-1.5 text-sm">
+                    {Object.entries(quality.breakdown).map(([key, factor]) => (
+                        <div key={key} className="flex items-baseline justify-between gap-3">
+                            <dt className="min-w-0 text-muted-foreground">{FACTOR_LABEL[key] ?? key}</dt>
+                            <dd
+                                className={cn(
+                                    'shrink-0 font-medium tabular-nums',
+                                    factor.contribution > 0
+                                        ? 'text-emerald-600 dark:text-emerald-400'
+                                        : factor.contribution < 0
+                                          ? 'text-rose-600 dark:text-rose-400'
+                                          : 'text-muted-foreground',
+                                )}
+                                title={`Weight ${factor.weight}`}
+                            >
+                                {factor.contribution > 0 ? '+' : ''}
+                                {factor.contribution}
+                            </dd>
+                        </div>
+                    ))}
+                </dl>
+                <p className="mt-3 text-sm text-pretty text-muted-foreground">
+                    Starts from a baseline. Each factor adds up to its weight, and each penalty subtracts up to its weight.
+                </p>
+            </details>
         </section>
     );
 }

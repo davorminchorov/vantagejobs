@@ -70,6 +70,26 @@ final class UndoBulkActionTest extends TestCase
     }
 
     #[Test]
+    public function undo_restores_previous_dismissed_at_on_roles(): void
+    {
+        $company = Company::factory()->create();
+        $fresh = Role::factory()->create(['company_id' => $company->id, 'dismissed_at' => null]);
+        $earlier = CarbonImmutable::now()->subDays(3)->startOfSecond();
+        $already = Role::factory()->create(['company_id' => $company->id, 'dismissed_at' => $earlier]);
+
+        $log = $this->executor->perform(BulkAction::DISMISS, 'role', [$fresh->id, $already->id], [], $this->user);
+
+        $this->assertNotNull($fresh->refresh()->dismissed_at);
+
+        $this->actingAs($this->user)
+            ->post("/bulk-actions/{$log->id}/undo")
+            ->assertRedirect();
+
+        $this->assertNull($fresh->refresh()->dismissed_at);
+        $this->assertTrue($already->refresh()->dismissed_at->equalTo($earlier));
+    }
+
+    #[Test]
     public function undo_reopens_a_role_marked_closed(): void
     {
         $company = Company::factory()->create();
