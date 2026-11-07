@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 
 import { Head, router } from '@inertiajs/react';
 
-import SettingsLayout from '@/Layouts/SettingsLayout';
+import SettingsLayout, { SettingsSection } from '@/Layouts/SettingsLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -85,78 +85,95 @@ export default function TwoFactorPage({ two_factor_enabled, two_factor_confirmed
                 description="Protect your account with a TOTP authenticator app."
             >
                 {!two_factor_enabled && (
-                    <div className="space-y-3">
-                        <p className="text-sm text-muted-foreground">
-                            Two-factor authentication is not enabled.
-                        </p>
-                        <Button onClick={enable}>Enable two-factor authentication</Button>
-                    </div>
+                    <SettingsSection
+                        title="Authenticator app"
+                        description="Two-factor authentication is not enabled."
+                    >
+                        <Button type="button" onClick={enable}>
+                            Enable two-factor authentication
+                        </Button>
+                    </SettingsSection>
                 )}
 
                 {two_factor_enabled && !two_factor_confirmed && (
-                    <div className="max-w-lg space-y-4">
-                        <div>
-                            <h3 className="text-sm font-medium text-foreground">Scan the QR code</h3>
-                            <p className="text-sm text-muted-foreground">
-                                Open your authenticator app and scan this code.
-                            </p>
+                    <SettingsSection
+                        title="Scan the QR code"
+                        description="Open your authenticator app and scan this code."
+                    >
+                        <div className="flex flex-col gap-5">
+                            {qrSvg && (
+                                <div
+                                    className="inline-block self-start rounded-lg border border-border bg-white p-3"
+                                    dangerouslySetInnerHTML={{ __html: qrSvg }}
+                                />
+                            )}
+                            <div className="flex flex-col gap-2">
+                                <Label htmlFor="confirm-code">Verification code</Label>
+                                <Input
+                                    id="confirm-code"
+                                    name="code"
+                                    value={confirmCode}
+                                    onChange={(event) => setConfirmCode(event.target.value)}
+                                    placeholder="6-digit code"
+                                    inputMode="numeric"
+                                    autoComplete="one-time-code"
+                                />
+                                {confirmError && <p className="text-sm text-destructive">{confirmError}</p>}
+                            </div>
+                            <div className="flex gap-2">
+                                <Button type="button" onClick={confirm}>
+                                    Confirm
+                                </Button>
+                                <Button type="button" variant="outline" onClick={disable}>
+                                    Cancel
+                                </Button>
+                            </div>
                         </div>
-                        {qrSvg && (
-                            <div
-                                className="inline-block rounded-xl border border-border bg-muted p-3"
-                                dangerouslySetInnerHTML={{ __html: qrSvg }}
-                            />
-                        )}
-                        <div className="space-y-2">
-                            <Label htmlFor="confirm-code">Verification code</Label>
-                            <Input
-                                id="confirm-code"
-                                value={confirmCode}
-                                onChange={(event) => setConfirmCode(event.target.value)}
-                                placeholder="6-digit code"
-                                inputMode="numeric"
-                                autoComplete="one-time-code"
-                            />
-                            {confirmError && <p className="text-sm text-destructive">{confirmError}</p>}
-                        </div>
-                        <div className="flex gap-2">
-                            <Button onClick={confirm}>Confirm</Button>
-                            <Button variant="outline" onClick={disable}>
-                                Cancel
-                            </Button>
-                        </div>
-                    </div>
+                    </SettingsSection>
                 )}
 
                 {two_factor_enabled && two_factor_confirmed && (
-                    <div className="space-y-4">
-                        <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-medium text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-200">
-                            Two-factor authentication is active
-                        </span>
-
-                        {recoveryCodes && recoveryCodes.length > 0 && (
-                            <div className="max-w-lg space-y-2">
-                                <h3 className="text-sm font-medium text-foreground">Recovery codes</h3>
-                                <p className="text-sm text-muted-foreground">
-                                    Store these somewhere safe. Each code can be used once.
+                    <>
+                        <SettingsSection
+                            title="Status"
+                            description="Your account asks for a code from your authenticator app when you sign in."
+                        >
+                            <div className="flex flex-col gap-5">
+                                <p className="flex items-center gap-2 text-base font-medium sm:text-sm">
+                                    <span className="size-2 shrink-0 rounded-full bg-emerald-500" aria-hidden="true" />
+                                    Two-factor authentication is active
                                 </p>
-                                <ul className="grid grid-cols-2 gap-2 rounded-xl border border-border bg-muted p-3 font-mono text-sm tabular-nums">
-                                    {recoveryCodes.map((code) => (
-                                        <li key={code}>{code}</li>
-                                    ))}
-                                </ul>
+                                <div>
+                                    <Button type="button" variant="outline" onClick={disable}>
+                                        Disable two-factor authentication
+                                    </Button>
+                                </div>
                             </div>
-                        )}
+                        </SettingsSection>
 
-                        <div className="flex flex-wrap gap-2">
-                            <Button variant="outline" onClick={regenerateCodes}>
-                                Regenerate recovery codes
-                            </Button>
-                            <Button variant="destructive" onClick={disable}>
-                                Disable two-factor authentication
-                            </Button>
-                        </div>
-                    </div>
+                        <SettingsSection
+                            title="Recovery codes"
+                            description="Store these somewhere safe. Each code can be used once."
+                        >
+                            <div className="flex flex-col gap-5">
+                                {recoveryCodes && recoveryCodes.length > 0 && (
+                                    <ul
+                                        role="list"
+                                        className="grid grid-cols-2 gap-2 rounded-lg border border-border bg-muted p-3 font-mono text-sm tabular-nums"
+                                    >
+                                        {recoveryCodes.map((code) => (
+                                            <li key={code}>{code}</li>
+                                        ))}
+                                    </ul>
+                                )}
+                                <div>
+                                    <Button type="button" variant="secondary" size="sm" onClick={regenerateCodes}>
+                                        Regenerate recovery codes
+                                    </Button>
+                                </div>
+                            </div>
+                        </SettingsSection>
+                    </>
                 )}
             </SettingsLayout>
         </>

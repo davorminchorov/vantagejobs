@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { SectionLabel } from '@/components/ui/section-label';
-import { cn } from '@/lib/utils';
+import { NativeSelect } from '@/components/ui/native-select';
 
 export interface CompanyFormValues {
     name: string;
@@ -134,13 +134,14 @@ export default function CompanyForm({ mode, initial, options, action, method = '
     }
 
     return (
-        <form onSubmit={submit} className="space-y-6">
-            <section className="space-y-4">
+        <form onSubmit={submit} className="flex flex-col gap-8">
+            <section className="flex flex-col gap-4 border-t border-border pt-6 first:border-t-0 first:pt-0">
                 <SectionLabel>Identity</SectionLabel>
 
                 <Field id="name" label="Name" error={form.errors.name} required>
                     <Input
                         id="name"
+                        name="name"
                         value={form.data.name}
                         onChange={(e) => form.setData('name', e.target.value)}
                         autoFocus
@@ -155,6 +156,7 @@ export default function CompanyForm({ mode, initial, options, action, method = '
                 >
                     <Input
                         id="website"
+                        name="website"
                         type="url"
                         value={form.data.website}
                         onChange={(e) => form.setData('website', e.target.value)}
@@ -170,6 +172,7 @@ export default function CompanyForm({ mode, initial, options, action, method = '
                 >
                     <Input
                         id="careers_url"
+                        name="careers_url"
                         type="url"
                         value={form.data.careers_url}
                         onChange={(e) => form.setData('careers_url', e.target.value)}
@@ -180,6 +183,7 @@ export default function CompanyForm({ mode, initial, options, action, method = '
                 <Field id="domain" label="Domain" error={form.errors.domain} hint="Lowercase host. Leave blank to derive from website.">
                     <Input
                         id="domain"
+                        name="domain"
                         value={form.data.domain}
                         onChange={(e) => form.setData('domain', e.target.value)}
                         placeholder="example.com"
@@ -187,13 +191,13 @@ export default function CompanyForm({ mode, initial, options, action, method = '
                 </Field>
             </section>
 
-            <section className="space-y-4">
-                <div className="flex items-baseline justify-between">
+            <section className="flex flex-col gap-4 border-t border-border pt-6 first:border-t-0 first:pt-0">
+                <div className="flex items-baseline justify-between gap-3">
                     <SectionLabel>ATS</SectionLabel>
                     {detecting ? (
-                        <span className="text-sm text-muted-foreground">Detecting…</span>
+                        <span className="text-xs text-muted-foreground">Detecting…</span>
                     ) : detectionHint ? (
-                        <span className="text-sm text-muted-foreground">{detectionHint}</span>
+                        <span className="text-xs text-muted-foreground">{detectionHint}</span>
                     ) : null}
                 </div>
 
@@ -213,6 +217,7 @@ export default function CompanyForm({ mode, initial, options, action, method = '
                     <Field id="ats_slug" label="ATS slug" error={form.errors.ats_slug}>
                         <Input
                             id="ats_slug"
+                            name="ats_slug"
                             value={form.data.ats_slug}
                             onChange={(e) => form.setData('ats_slug', e.target.value)}
                             placeholder="acme"
@@ -221,7 +226,7 @@ export default function CompanyForm({ mode, initial, options, action, method = '
                 </div>
             </section>
 
-            <section className="space-y-4">
+            <section className="flex flex-col gap-4 border-t border-border pt-6 first:border-t-0 first:pt-0">
                 <SectionLabel>Classification</SectionLabel>
 
                 <div className="grid gap-4 sm:grid-cols-2">
@@ -274,13 +279,13 @@ function Field({ id, label, error, hint, required, children }: FieldProps) {
         <div className="flex flex-col gap-1.5">
             <Label htmlFor={id}>
                 {label}
-                {required ? <span className="text-destructive"> *</span> : null}
+                {required ? <span className="text-destructive" aria-hidden="true"> *</span> : null}
             </Label>
             {children}
             {error ? (
-                <span className="text-sm text-destructive">{error}</span>
+                <p className="text-sm text-destructive">{error}</p>
             ) : hint ? (
-                <span className="text-sm text-muted-foreground">{hint}</span>
+                <p className="text-xs text-pretty text-muted-foreground">{hint}</p>
             ) : null}
         </div>
     );
@@ -295,20 +300,17 @@ interface SelectInputProps {
 
 function SelectInput({ id, value, onChange, options }: SelectInputProps) {
     return (
-        <select
+        <NativeSelect
             id={id}
+            name={id}
             value={value}
             onChange={(e) => onChange(e.target.value)}
-            className={cn(
-                'h-9 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm',
-                'focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-2',
-            )}
         >
             {options.map((option) => (
                 <option key={option.value} value={option.value}>
                     {option.label}
                 </option>
             ))}
-        </select>
+        </NativeSelect>
     );
 }

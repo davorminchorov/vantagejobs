@@ -7,14 +7,15 @@ import HiringTrendChart from '@/components/charts/HiringTrendChart';
 import TagInput, { type TagSummary } from '@/components/companies/TagInput';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DataTableScroll } from '@/components/ui/data-table-scroll';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Input } from '@/components/ui/input';
 import { SectionLabel } from '@/components/ui/section-label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { NativeSelect } from '@/components/ui/native-select';
 import { formatDate, formatDateTime, RelativeDate } from '@/lib/dates';
+import { cn } from '@/lib/utils';
 
 interface CompanyDetail {
     id: number;
@@ -173,27 +174,23 @@ export default function ShowCompanyPage({
     return (
         <AuthenticatedLayout>
             <Head title={company.name} />
-            <div className="space-y-6">
-                <header className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-                    <div className="space-y-1">
-                        <div className="flex items-center gap-2">
-                            <Link href="/companies" className="text-sm text-teal-700 hover:text-teal-800">
-                                ← Companies
-                            </Link>
-                        </div>
-                        <h1 className="text-2xl font-semibold tracking-tight">{company.name}</h1>
-                        <div className="flex flex-wrap items-center gap-2">
+            <div className="flex flex-col gap-6">
+                <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+                    <div className="flex min-w-0 flex-col gap-2">
+                        <Link href="/companies" className="w-fit text-sm text-muted-foreground hover:text-foreground hover:underline">
+                            ← Companies
+                        </Link>
+                        <h1 className="text-2xl font-semibold tracking-tight text-balance">{company.name}</h1>
+                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
                             <Badge variant={TIER_VARIANT[company.tier] ?? 'outline'}>
                                 {company.tier === 'graveyard' ? 'Graveyard' : `Tier ${company.tier}`}
                             </Badge>
-                            <span className="text-sm text-muted-foreground">{humanize(company.status)}</span>
+                            <div className="text-sm text-muted-foreground">{humanize(company.status)}</div>
                             {company.ats_type ? (
-                                <span className="text-xs text-muted-foreground">
+                                <div className="text-sm text-muted-foreground">
                                     {humanize(company.ats_type)}
-                                    {company.ats_slug ? (
-                                        <span className="font-mono"> · {company.ats_slug}</span>
-                                    ) : ''}
-                                </span>
+                                    {company.ats_slug ? <span className="font-mono"> · {company.ats_slug}</span> : ''}
+                                </div>
                             ) : null}
                         </div>
                     </div>
@@ -210,7 +207,7 @@ export default function ShowCompanyPage({
                 </header>
 
                 {graveyard ? <GraveyardBanner info={graveyard} /> : null}
-                {! graveyard && isUnscrapeable(company) ? <UnscrapeableBanner company={company} /> : null}
+                {!graveyard && isUnscrapeable(company) ? <UnscrapeableBanner company={company} /> : null}
 
                 <Tabs value={tab} onValueChange={(v) => setTab(v as typeof tab)}>
                     <TabsList>
@@ -219,18 +216,12 @@ export default function ShowCompanyPage({
                         <TabsTrigger value="timeline">Timeline ({counts.timeline_items})</TabsTrigger>
                     </TabsList>
 
-                    <TabsContent value="overview">
+                    <TabsContent value="overview" className="flex flex-col divide-y divide-border *:py-8 *:first:pt-0 *:last:pb-0">
                         {quality ? <QualityCard quality={quality} /> : null}
-                        <Card className="mb-4 rounded-2xl">
-                            <CardHeader>
-                                <CardTitle>
-                                    <SectionLabel>Hiring volume (90 days)</SectionLabel>
-                                </CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <HiringTrendChart data={hiring_trend} />
-                            </CardContent>
-                        </Card>
+                        <section className="flex flex-col gap-4">
+                            <SectionLabel>Hiring volume (90 days)</SectionLabel>
+                            <HiringTrendChart data={hiring_trend} />
+                        </section>
                         <Overview company={company} counts={counts} tags={tags} />
                     </TabsContent>
 
@@ -249,52 +240,27 @@ export default function ShowCompanyPage({
 
 function Overview({ company, counts, tags }: { company: CompanyDetail; counts: Counts; tags: TagSummary[] }) {
     return (
-        <div className="grid gap-4 lg:grid-cols-2">
-            <Card className="rounded-2xl lg:col-span-2">
-                <CardHeader>
-                    <CardTitle>
-                        <SectionLabel>Tags</SectionLabel>
-                    </CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <TagInput companyId={company.id} tags={tags} />
-                </CardContent>
-            </Card>
+        <>
+            <section className="flex flex-col gap-4">
+                <SectionLabel>Tags</SectionLabel>
+                <TagInput companyId={company.id} tags={tags} />
+            </section>
 
-            <Card className="rounded-2xl">
-                <CardHeader>
-                    <CardTitle>
-                        <SectionLabel>Identity</SectionLabel>
-                    </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2 text-sm">
+            <div className="grid gap-8 divide-y divide-border *:pt-8 *:first:pt-0 lg:grid-cols-2 lg:gap-x-12 lg:divide-y-0 lg:*:pt-0">
+                <OverviewSection title="Identity">
                     <DefinitionRow label="Name" value={company.name} />
                     <DefinitionRow label="Website" value={company.website} link />
                     <DefinitionRow label="Careers" value={company.careers_url} link />
-                    <DefinitionRow label="Domain" value={company.domain} />
-                </CardContent>
-            </Card>
+                    <DefinitionRow label="Domain" value={company.domain} mono />
+                </OverviewSection>
 
-            <Card className="rounded-2xl">
-                <CardHeader>
-                    <CardTitle>
-                        <SectionLabel>ATS</SectionLabel>
-                    </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2 text-sm">
+                <OverviewSection title="ATS">
                     <DefinitionRow label="Type" value={company.ats_type ? humanize(company.ats_type) : null} />
-                    <DefinitionRow label="Slug" value={company.ats_slug} />
+                    <DefinitionRow label="Slug" value={company.ats_slug} mono />
                     <DefinitionRow label="Last-Modified" value={company.last_modified} mono />
-                </CardContent>
-            </Card>
+                </OverviewSection>
 
-            <Card className="rounded-2xl">
-                <CardHeader>
-                    <CardTitle>
-                        <SectionLabel>Operational</SectionLabel>
-                    </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2 text-sm">
+                <OverviewSection title="Operational">
                     <DefinitionRow
                         label="Last checked"
                         value={company.last_checked_at ? <RelativeDate iso={company.last_checked_at} /> : 'Never'}
@@ -302,23 +268,25 @@ function Overview({ company, counts, tags }: { company: CompanyDetail; counts: C
                     <DefinitionRow
                         label="Added"
                         value={company.created_at ? formatDate(company.created_at) : null}
-                        mono
+                        numeric
                     />
-                </CardContent>
-            </Card>
+                </OverviewSection>
 
-            <Card className="rounded-2xl">
-                <CardHeader>
-                    <CardTitle>
-                        <SectionLabel>Counts</SectionLabel>
-                    </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2 text-sm">
-                    <DefinitionRow label="Open roles" value={String(counts.open_roles)} mono />
-                    <DefinitionRow label="Total roles tracked" value={String(counts.total_roles)} mono />
-                </CardContent>
-            </Card>
-        </div>
+                <OverviewSection title="Counts">
+                    <DefinitionRow label="Open roles" value={String(counts.open_roles)} numeric />
+                    <DefinitionRow label="Total roles tracked" value={String(counts.total_roles)} numeric />
+                </OverviewSection>
+            </div>
+        </>
+    );
+}
+
+function OverviewSection({ title, children }: { title: string; children: ReactNode }) {
+    return (
+        <section className="flex flex-col gap-4">
+            <SectionLabel>{title}</SectionLabel>
+            <dl className="flex flex-col gap-3">{children}</dl>
+        </section>
     );
 }
 
@@ -327,31 +295,35 @@ function DefinitionRow({
     value,
     link,
     mono,
+    numeric,
 }: {
     label: string;
     value: ReactNode;
     link?: boolean;
     mono?: boolean;
+    numeric?: boolean;
 }) {
     const isEmpty = value === null || value === undefined || value === '';
 
     return (
-        <div className="flex flex-col gap-0.5 sm:grid sm:grid-cols-[10rem_1fr] sm:items-baseline">
-            <span className="font-mono text-xs uppercase tracking-wide text-muted-foreground">{label}</span>
-            {isEmpty ? (
-                <span className="text-sm text-muted-foreground">—</span>
-            ) : link && typeof value === 'string' ? (
-                <a
-                    href={value}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="break-all text-sm text-teal-700 hover:text-teal-800 hover:underline"
-                >
-                    {value}
-                </a>
-            ) : (
-                <span className={`break-all text-sm${mono ? ' font-mono tabular-nums' : ''}`}>{value}</span>
-            )}
+        <div className="flex flex-col gap-0.5 sm:grid sm:grid-cols-[10rem_1fr] sm:items-baseline sm:gap-4">
+            <dt className="text-base font-medium text-foreground sm:text-sm">{label}</dt>
+            <dd className="min-w-0 text-base break-words text-muted-foreground sm:text-sm">
+                {isEmpty ? (
+                    '—'
+                ) : link && typeof value === 'string' ? (
+                    <a
+                        href={value}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="break-all text-primary hover:underline"
+                    >
+                        {value}
+                    </a>
+                ) : (
+                    <span className={cn(mono && 'font-mono', numeric && 'tabular-nums')}>{value}</span>
+                )}
+            </dd>
         </div>
     );
 }
@@ -382,31 +354,27 @@ function RolesTable({
     }
 
     return (
-        <div className="space-y-3">
+        <div className="flex flex-col gap-4">
             <RolesFilterBar filters={filters} onChange={applyRoleFilters} />
 
             {roles.data.length === 0 ? (
-                <Card className="rounded-2xl">
-                    <CardContent className="px-6 py-12 text-center text-sm text-muted-foreground">
+                <div className="py-12 text-center text-base text-pretty text-muted-foreground sm:text-sm">
                         {hasActiveFilter ? (
                             'No roles match the current search or filter.'
                         ) : (
                             <>
                                 No roles tracked yet. Run{' '}
-                                <code className="rounded bg-muted px-1 py-0.5 font-mono">scrape:company</code> to fetch.
+                                <code className="rounded-md bg-muted px-1 py-0.5 font-mono">scrape:company</code> to fetch.
                             </>
                         )}
-                    </CardContent>
-                </Card>
+                </div>
             ) : (
                 <>
                     <p className="text-sm text-muted-foreground">
-                        Showing <span className="font-mono tabular-nums">{roles.data.length}</span> of{' '}
-                        <span className="font-mono tabular-nums">{roles.total}</span> roles
+                        Showing <span className="tabular-nums">{roles.data.length}</span> of{' '}
+                        <span className="tabular-nums">{roles.total}</span> roles
                     </p>
-                    <Card className="rounded-2xl">
-                        <CardContent className="p-0">
-                            <Table>
+                    <Table>
                                 <TableHeader>
                                     <TableRow>
                                         <TableHead>Title</TableHead>
@@ -430,15 +398,15 @@ function RolesTable({
                                                                 href={role.url}
                                                                 target="_blank"
                                                                 rel="noopener noreferrer"
-                                                                className="font-medium text-teal-700 hover:text-teal-800 hover:underline"
+                                                                className="font-medium text-primary hover:underline"
                                                             >
                                                                 {role.title}
                                                             </a>
                                                         ) : (
-                                                            <span className="font-medium">{role.title}</span>
+                                                            <span className="font-medium text-foreground">{role.title}</span>
                                                         )}
                                                         {role.team ?? role.department ? (
-                                                            <span className="text-xs text-muted-foreground">
+                                                            <span className="text-sm text-muted-foreground">
                                                                 {[role.department, role.team].filter(Boolean).join(' / ')}
                                                             </span>
                                                         ) : null}
@@ -446,30 +414,30 @@ function RolesTable({
                                                 </TableCell>
                                                 <TableCell>
                                                     <div className="flex flex-col">
-                                                        <span className={isUnspecified ? 'text-sm text-muted-foreground' : 'text-sm'}>
+                                                        <span className={isUnspecified ? 'text-muted-foreground' : undefined}>
                                                             {isUnspecified ? '—' : humanize(role.workplace_type as string)}
                                                         </span>
                                                         {role.location ? (
-                                                            <span className="text-xs text-muted-foreground">{role.location}</span>
+                                                            <span className="text-sm text-muted-foreground">{role.location}</span>
                                                         ) : null}
                                                     </div>
                                                 </TableCell>
                                                 {hasComp ? (
                                                     <TableCell>
                                                         {comp ? (
-                                                            <span className="font-mono text-sm tabular-nums">{comp}</span>
+                                                            <span className="tabular-nums">{comp}</span>
                                                         ) : (
-                                                            <span className="text-sm text-muted-foreground">—</span>
+                                                            <span className="text-muted-foreground">—</span>
                                                         )}
                                                     </TableCell>
                                                 ) : null}
                                                 <TableCell>
-                                                    <span className="font-mono text-xs text-muted-foreground">{role.source}</span>
+                                                    <span className="text-muted-foreground">{role.source}</span>
                                                 </TableCell>
                                                 <TableCell>
                                                     <RelativeDate
                                                         iso={role.last_seen_at}
-                                                        className="font-mono text-xs tabular-nums text-muted-foreground"
+                                                        className="tabular-nums text-muted-foreground"
                                                     />
                                                 </TableCell>
                                                 <TableCell className="text-right">
@@ -483,9 +451,7 @@ function RolesTable({
                                         );
                                     })}
                                 </TableBody>
-                            </Table>
-                        </CardContent>
-                    </Card>
+                    </Table>
                     <RolesPaginator roles={roles} />
                 </>
             )}
@@ -516,16 +482,16 @@ function RolesFilterBar({
                 aria-label="Search role titles"
                 className="w-full sm:w-64"
             />
-            <select
+            <NativeSelect
+                name="roles_state"
                 value={filters.state ?? ''}
                 onChange={(e) => onChange({ state: e.target.value === '' ? null : (e.target.value as 'open' | 'closed') })}
                 aria-label="Filter by role state"
-                className="h-9 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
                 <option value="">All states</option>
                 <option value="open">Open</option>
                 <option value="closed">Closed</option>
-            </select>
+            </NativeSelect>
             <Button type="submit" variant="outline" size="sm">
                 Search
             </Button>
@@ -539,33 +505,25 @@ function RolesPaginator({ roles }: { roles: PaginatedRoles }) {
     }
 
     return (
-        <div className="flex items-center justify-between text-sm text-muted-foreground">
+        <div className="flex items-center justify-between gap-2 text-sm text-muted-foreground">
             <span>
-                Page <span className="font-mono tabular-nums">{roles.current_page}</span> of{' '}
-                <span className="font-mono tabular-nums">{roles.last_page}</span>
+                Page <span className="tabular-nums">{roles.current_page}</span> of{' '}
+                <span className="tabular-nums">{roles.last_page}</span>
             </span>
             <div className="flex gap-2">
                 {roles.prev_page_url ? (
-                    <Link
-                        href={roles.prev_page_url}
-                        preserveScroll
-                        preserveState
-                        only={['roles']}
-                        className="rounded-md border border-border px-3 py-1 hover:bg-muted"
-                    >
-                        Prev
-                    </Link>
+                    <Button asChild variant="outline" size="sm">
+                        <Link href={roles.prev_page_url} preserveScroll preserveState only={['roles']}>
+                            Prev
+                        </Link>
+                    </Button>
                 ) : null}
                 {roles.next_page_url ? (
-                    <Link
-                        href={roles.next_page_url}
-                        preserveScroll
-                        preserveState
-                        only={['roles']}
-                        className="rounded-md border border-border px-3 py-1 hover:bg-muted"
-                    >
-                        Next
-                    </Link>
+                    <Button asChild variant="outline" size="sm">
+                        <Link href={roles.next_page_url} preserveScroll preserveState only={['roles']}>
+                            Next
+                        </Link>
+                    </Button>
                 ) : null}
             </div>
         </div>
@@ -625,20 +583,16 @@ function Timeline({ items }: { items: TimelineItem[] }) {
     const groups = groupTimeline(items);
 
     return (
-        <Card className="rounded-2xl">
-            <CardContent className="p-0">
-                <ol className="divide-y">
-                    {groups.map((group) => {
-                        const [first] = group.items;
-                        return group.items.length === 1 && first ? (
-                            <TimelineRow key={group.key} item={first} />
-                        ) : (
-                            <TimelineGroupRow key={group.key} group={group} />
-                        );
-                    })}
-                </ol>
-            </CardContent>
-        </Card>
+        <ol role="list" className="divide-y divide-border">
+            {groups.map((group) => {
+                const [first] = group.items;
+                return group.items.length === 1 && first ? (
+                    <TimelineRow key={group.key} item={first} />
+                ) : (
+                    <TimelineGroupRow key={group.key} group={group} />
+                );
+            })}
+        </ol>
     );
 }
 
@@ -646,15 +600,15 @@ function TimelineRow({ item }: { item: TimelineItem }) {
     const text = timelineText(item);
 
     return (
-        <li className="flex flex-col gap-1 px-6 py-4 sm:flex-row sm:items-baseline sm:justify-between">
-            <div className="flex-1 space-y-1">
-                <div className="flex items-center gap-2">
+        <li className="flex flex-col gap-1 py-4 sm:flex-row sm:items-baseline sm:justify-between sm:gap-4">
+            <div className="flex min-w-0 flex-1 flex-col gap-1">
+                <div className="flex flex-wrap items-center gap-2 text-base sm:text-sm">
                     <Badge variant={EVENT_VARIANT[item.type] ?? 'secondary'}>{humanize(item.type)}</Badge>
-                    {text ? <span className="text-sm">{text}</span> : null}
+                    {text ? <div className="min-w-0">{text}</div> : null}
                 </div>
-                {item.body ? <p className="text-xs text-muted-foreground">{item.body}</p> : null}
+                {item.body ? <p className="text-sm text-pretty text-muted-foreground">{item.body}</p> : null}
             </div>
-            <span className="font-mono text-xs tabular-nums text-muted-foreground" title={item.at ? formatDateTime(item.at) : undefined}>
+            <span className="text-xs tabular-nums text-muted-foreground" title={item.at ? formatDateTime(item.at) : undefined}>
                 {item.at ? formatDateTime(item.at) : ''}
             </span>
         </li>
@@ -665,22 +619,22 @@ function TimelineGroupRow({ group }: { group: TimelineGroup }) {
     const label = TIMELINE_GROUP_LABEL[group.type] ?? `${humanize(group.type).toLowerCase()} events`;
 
     return (
-        <li className="px-6 py-4">
+        <li className="py-4">
             <details>
                 <summary className="flex cursor-pointer list-none flex-col gap-1 sm:flex-row sm:items-baseline sm:justify-between">
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2 text-base sm:text-sm">
                         <Badge variant={EVENT_VARIANT[group.type] ?? 'secondary'}>{humanize(group.type)}</Badge>
-                        <span className="text-sm">
+                        <span className="tabular-nums">
                             {group.items.length} {label}
                         </span>
                     </div>
-                    <span className="font-mono text-xs tabular-nums text-muted-foreground">{formatDate(group.at)}</span>
+                    <span className="text-xs tabular-nums text-muted-foreground">{formatDate(group.at)}</span>
                 </summary>
-                <ul className="mt-2 space-y-1 border-l border-border pl-4">
+                <ul role="list" className="mt-2 flex flex-col gap-1 border-l border-border pl-4">
                     {group.items.map((item) => (
-                        <li key={item.id} className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
-                            <span>{timelineText(item) ?? humanize(item.type)}</span>
-                            <span className="font-mono tabular-nums">{item.at ? formatDateTime(item.at) : ''}</span>
+                        <li key={item.id} className="flex items-center justify-between gap-2 text-sm text-muted-foreground">
+                            <span className="min-w-0">{timelineText(item) ?? humanize(item.type)}</span>
+                            <span className="shrink-0 text-xs tabular-nums">{item.at ? formatDateTime(item.at) : ''}</span>
                         </li>
                     ))}
                 </ul>
@@ -700,35 +654,31 @@ function UnscrapeableBanner({ company }: { company: CompanyDetail }) {
             : 'No ATS type or slug is set, so this company is never picked up by a scrape run. Set the ATS type and slug to start tracking postings automatically.';
 
     return (
-        <Card className="rounded-2xl border-amber-400/40 bg-amber-50/50 dark:bg-amber-900/10">
-            <CardContent className="space-y-2 py-4 text-sm">
-                <div className="flex flex-wrap items-center gap-2">
-                    <Badge variant="warning">Not being scraped</Badge>
-                </div>
-                <p className="text-muted-foreground">{reason}</p>
-            </CardContent>
-        </Card>
+        <div className="flex flex-col gap-2 rounded-lg border border-amber-600/20 bg-amber-50 p-4 dark:border-amber-400/20 dark:bg-amber-400/10">
+            <div>
+                <Badge variant="warning">Not being scraped</Badge>
+            </div>
+            <p className="max-w-prose text-base text-pretty text-muted-foreground sm:text-sm">{reason}</p>
+        </div>
     );
 }
 
 function GraveyardBanner({ info }: { info: GraveyardInfo }) {
     return (
-        <Card className="rounded-2xl border-destructive/40 bg-destructive/5">
-            <CardContent className="space-y-2 py-4 text-sm">
-                <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-col gap-2 rounded-lg border border-rose-600/20 bg-rose-50 p-4 dark:border-rose-400/20 dark:bg-rose-400/10">
+            <div className="flex flex-wrap items-center gap-2">
                     <Badge variant="destructive">Graveyard</Badge>
-                    <span className="text-xs text-muted-foreground">
-                        Demoted <span className="font-mono tabular-nums">{info.demoted_at ? new Date(info.demoted_at).toLocaleString() : ''}</span>
-                    </span>
+                    <div className="text-sm text-muted-foreground">
+                        Demoted <span className="tabular-nums">{info.demoted_at ? new Date(info.demoted_at).toLocaleString() : ''}</span>
+                    </div>
                     {info.tags.map((tag) => (
                         <Badge key={tag} variant="outline">
                             {humanize(tag)}
                         </Badge>
                     ))}
-                </div>
-                {info.reason ? <p className="text-muted-foreground">{info.reason}</p> : null}
-            </CardContent>
-        </Card>
+            </div>
+            {info.reason ? <p className="max-w-prose text-base text-pretty text-muted-foreground sm:text-sm">{info.reason}</p> : null}
+        </div>
     );
 }
 
@@ -748,6 +698,7 @@ function GraveyardControls({
     if (status === 'graveyard') {
         return (
             <Button
+                type="button"
                 variant="outline"
                 disabled={restore.processing}
                 onClick={() =>
@@ -761,32 +712,36 @@ function GraveyardControls({
 
     return (
         <div className="relative">
-            <Button variant="outline" onClick={() => setOpen((v) => !v)}>
+            <Button type="button" variant="outline" onClick={() => setOpen((v) => !v)}>
                 Move to graveyard
             </Button>
             {open ? (
-                <div className="absolute right-0 z-10 mt-2 w-80 space-y-3 rounded-md border bg-background p-3 shadow-md">
-                    <p className="font-mono text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                <div className="absolute right-0 z-10 mt-2 flex w-80 max-w-[calc(100vw-2rem)] flex-col gap-3 rounded-lg border bg-popover p-4 shadow-md">
+                    <label htmlFor="graveyard-reason" className="text-sm font-medium text-muted-foreground">
                         Reason
-                    </p>
+                    </label>
                     <textarea
-                        className="min-h-20 w-full rounded-md border bg-background p-2 text-sm"
+                        id="graveyard-reason"
+                        name="reason"
+                        className="min-h-20 w-full rounded-md border border-input bg-background p-2 text-base focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring sm:text-sm"
                         placeholder="Why are you graveyarding this company?"
                         value={demote.data.reason}
                         onChange={(e) => demote.setData('reason', e.target.value)}
                     />
-                    <div className="flex flex-wrap gap-1">
+                    <div className="flex flex-wrap gap-1.5">
                         {presetTags.map((tag) => {
                             const active = demote.data.tags.includes(tag);
                             return (
                                 <button
                                     key={tag}
                                     type="button"
-                                    className={`rounded-full border px-2.5 py-1 text-xs ${
+                                    aria-pressed={active}
+                                    className={cn(
+                                        'rounded-md border px-2.5 py-1 text-sm',
                                         active
-                                            ? 'border-primary bg-primary text-primary-foreground'
-                                            : 'border-border text-muted-foreground hover:text-foreground'
-                                    }`}
+                                            ? 'border-border bg-muted font-medium text-foreground'
+                                            : 'border-border text-muted-foreground hover:text-foreground',
+                                    )}
                                     onClick={() =>
                                         demote.setData(
                                             'tags',
@@ -802,10 +757,11 @@ function GraveyardControls({
                         })}
                     </div>
                     <div className="flex justify-end gap-2">
-                        <Button variant="ghost" size="sm" onClick={() => setOpen(false)}>
+                        <Button type="button" variant="ghost" size="sm" onClick={() => setOpen(false)}>
                             Cancel
                         </Button>
                         <Button
+                            type="button"
                             size="sm"
                             disabled={demote.processing}
                             onClick={() =>
@@ -838,62 +794,63 @@ const FACTOR_LABEL: Record<string, string> = {
 function QualityCard({ quality }: { quality: QualityInfo }) {
     const score = quality.score;
     const tone =
-        score >= 80 ? 'text-emerald-600' : score >= 60 ? 'text-amber-600' : 'text-red-600';
+        score >= 80
+            ? 'text-emerald-600 dark:text-emerald-400'
+            : score >= 60
+              ? 'text-amber-600 dark:text-amber-400'
+              : 'text-rose-600 dark:text-rose-400';
 
     return (
-        <Card className="mb-4 rounded-2xl">
-            <CardHeader className="flex flex-row items-baseline justify-between space-y-0">
-                <CardTitle>
-                    <SectionLabel>Quality score</SectionLabel>
-                </CardTitle>
-                <span className="text-xs text-muted-foreground">
-                    as of <span className="font-mono tabular-nums">{quality.snapshot_date ?? '—'}</span>
-                </span>
-            </CardHeader>
-            <CardContent className="space-y-3">
-                <div className="flex items-baseline gap-2">
-                    <span className={`font-mono text-4xl font-semibold tabular-nums ${tone}`}>{score}</span>
-                    <span className="font-mono text-sm tabular-nums text-muted-foreground">/ 100</span>
+        <section className="flex flex-col gap-4">
+            <div className="flex items-baseline justify-between gap-2">
+                <SectionLabel>Quality score</SectionLabel>
+                <div className="text-xs text-muted-foreground">
+                    as of <span className="tabular-nums">{quality.snapshot_date ?? '—'}</span>
                 </div>
-                <DataTableScroll>
-                    <table className="w-full min-w-[20rem] text-sm">
-                        <thead className="font-mono text-xs uppercase tracking-wide text-muted-foreground">
-                            <tr>
-                                <th className="text-left font-semibold">Factor</th>
-                                <th className="text-right font-semibold">Weight</th>
-                                <th className="text-right font-semibold">Contribution</th>
+            </div>
+            <div className="flex items-baseline gap-2">
+                <span className={cn('text-4xl font-semibold tabular-nums', tone)}>{score}</span>
+                <span className="text-sm tabular-nums text-muted-foreground">/ 100</span>
+            </div>
+            <DataTableScroll>
+                <table className="w-full min-w-[20rem] text-base sm:text-sm">
+                    <thead className="text-sm text-muted-foreground">
+                        <tr>
+                            <th className="py-1.5 text-left font-medium whitespace-nowrap">Factor</th>
+                            <th className="py-1.5 text-right font-medium whitespace-nowrap">Weight</th>
+                            <th className="py-1.5 text-right font-medium whitespace-nowrap">Contribution</th>
+                        </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border border-t border-border">
+                        {Object.entries(quality.breakdown).map(([key, factor]) => (
+                            <tr key={key}>
+                                <td className="py-2">{FACTOR_LABEL[key] ?? key}</td>
+                                <td className="text-right tabular-nums text-muted-foreground">
+                                    {factor.weight > 0 ? '+' : ''}
+                                    {factor.weight}
+                                </td>
+                                <td
+                                    className={cn(
+                                        'text-right font-medium tabular-nums',
+                                        factor.contribution > 0
+                                            ? 'text-emerald-600 dark:text-emerald-400'
+                                            : factor.contribution < 0
+                                              ? 'text-rose-600 dark:text-rose-400'
+                                              : 'text-muted-foreground',
+                                    )}
+                                >
+                                    {factor.contribution > 0 ? '+' : ''}
+                                    {factor.contribution}
+                                </td>
                             </tr>
-                        </thead>
-                        <tbody>
-                            {Object.entries(quality.breakdown).map(([key, factor]) => (
-                                <tr key={key} className="border-t">
-                                    <td className="py-1.5">{FACTOR_LABEL[key] ?? key}</td>
-                                    <td className="text-right font-mono tabular-nums text-muted-foreground">
-                                        {factor.weight > 0 ? '+' : ''}
-                                        {factor.weight}
-                                    </td>
-                                    <td
-                                        className={`text-right font-mono font-semibold tabular-nums ${
-                                            factor.contribution > 0
-                                                ? 'text-emerald-600'
-                                                : factor.contribution < 0
-                                                  ? 'text-red-600'
-                                                  : 'text-muted-foreground'
-                                        }`}
-                                    >
-                                        {factor.contribution > 0 ? '+' : ''}
-                                        {factor.contribution}
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </DataTableScroll>
-                <p className="text-sm text-muted-foreground">
-                    Score starts at the baseline and is adjusted by each factor. Positive
-                    factors max at their weight; penalties subtract up to their weight.
-                </p>
-            </CardContent>
-        </Card>
+                        ))}
+                    </tbody>
+                </table>
+            </DataTableScroll>
+            <p className="max-w-prose text-sm text-pretty text-muted-foreground">
+                Score starts at the baseline and is adjusted by each factor. Positive
+                factors max at their weight; penalties subtract up to their weight.
+            </p>
+        </section>
     );
 }

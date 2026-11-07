@@ -3,7 +3,7 @@
  *
  * Screenshots the priority pages at a 375px-wide viewport (iPhone SE / small
  * Android) and asserts there is no page-level horizontal overflow and that the
- * primary nav has collapsed to the hamburger trigger below the `md` (768px)
+ * primary nav has collapsed to the hamburger trigger below the `lg` (1024px)
  * breakpoint.
  *
  * This spec is intentionally NOT part of the PHPUnit suite and is NOT wired
@@ -27,9 +27,9 @@ const BASE_URL = process.env.APP_URL ?? 'http://localhost';
 // iPhone SE width — the narrowest mainstream target we support (PRD §7.10).
 const MOBILE = { width: 375, height: 812 };
 
-// Just below and at the `md` breakpoint, to prove the nav switches mode.
-const BELOW_MD = { width: 767, height: 900 };
-const AT_MD = { width: 768, height: 900 };
+// Just below and at the `lg` breakpoint, to prove the sidebar switches mode.
+const BELOW_LG = { width: 1023, height: 900 };
+const AT_LG = { width: 1024, height: 900 };
 
 const PRIORITY_PATHS = ['/discover', '/dashboard', '/companies'] as const;
 
@@ -70,17 +70,17 @@ for (const path of PRIORITY_PATHS) {
     });
 }
 
-test('primary nav collapses to a hamburger below md', async ({ page }) => {
-    // Below md: the hamburger trigger is visible, the inline primary nav is not.
-    await page.setViewportSize(BELOW_MD);
+test('primary nav collapses to a hamburger below lg', async ({ page }) => {
+    // Below lg: the hamburger trigger is visible, the sidebar nav is not.
+    await page.setViewportSize(BELOW_LG);
     await page.goto(`${BASE_URL}/dashboard`, { waitUntil: 'networkidle' });
 
     const hamburger = page.getByRole('button', { name: /open navigation menu/i });
     await expect(hamburger).toBeVisible();
     await expect(page.getByRole('navigation', { name: /^primary$/i })).toBeHidden();
 
-    // At md: the inline primary nav is visible, the hamburger is hidden.
-    await page.setViewportSize(AT_MD);
+    // At lg: the sidebar nav is visible, the hamburger is hidden.
+    await page.setViewportSize(AT_LG);
     await expect(page.getByRole('navigation', { name: /^primary$/i })).toBeVisible();
     await expect(hamburger).toBeHidden();
 });

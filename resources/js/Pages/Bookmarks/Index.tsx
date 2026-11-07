@@ -2,7 +2,9 @@ import { Head, Link, router } from '@inertiajs/react';
 
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
+import PageHeader from '@/components/PageHeader';
+import { Badge } from '@/components/ui/badge';
+import { EmptyState } from '@/components/ui/empty-state';
 import { RelativeDate } from '@/lib/dates';
 
 interface BookmarkListing {
@@ -72,52 +74,53 @@ export default function BookmarksIndex({ bookmarks, sort, options }: Props) {
     return (
         <AuthenticatedLayout>
             <Head title="Bookmarks" />
-            <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
-                <header className="mb-6 flex items-end justify-between">
-                    <div>
-                        <h1 className="text-2xl font-semibold tracking-tight text-foreground">Bookmarks</h1>
-                        <p className="text-sm text-muted-foreground">
-                            <span className="font-mono tabular-nums">{bookmarks.total}</span> bookmarked {bookmarks.total === 1 ? 'listing' : 'listings'} · auto-expires after 30 days
-                        </p>
-                    </div>
-                    <div className="flex items-center gap-2 text-sm">
-                        <span className="text-muted-foreground">Sort:</span>
-                        {options.sorts.map((s) => (
-                            <button
-                                key={s}
-                                type="button"
-                                onClick={() => applySort(s)}
-                                className={
-                                    'rounded-full px-3 py-1 transition-colors ' +
-                                    (sort === s
-                                        ? 'bg-primary text-primary-foreground'
-                                        : 'text-muted-foreground hover:text-foreground')
-                                }
-                            >
-                                {SORT_LABELS[s] ?? s}
-                            </button>
-                        ))}
-                    </div>
-                </header>
+            <div className="flex flex-col gap-6">
+                <PageHeader
+                    title="Bookmarks"
+                    subtitle={
+                        <>
+                            <span className="tabular-nums">{bookmarks.total}</span> bookmarked {bookmarks.total === 1 ? 'listing' : 'listings'} · auto-expires after 30 days
+                        </>
+                    }
+                    actions={
+                        <div className="flex flex-wrap items-center gap-1 text-base sm:text-sm" role="group" aria-label="Sort bookmarks">
+                            <span className="pr-1 text-muted-foreground">Sort:</span>
+                            {options.sorts.map((s) => (
+                                <button
+                                    key={s}
+                                    type="button"
+                                    onClick={() => applySort(s)}
+                                    aria-pressed={sort === s}
+                                    className={
+                                        'min-h-10 rounded-md px-3 py-1 focus-visible:outline-2 focus-visible:outline-ring sm:min-h-0 ' +
+                                        (sort === s
+                                            ? 'bg-muted font-medium text-foreground'
+                                            : 'text-muted-foreground hover:bg-muted hover:text-foreground')
+                                    }
+                                >
+                                    {SORT_LABELS[s] ?? s}
+                                </button>
+                            ))}
+                        </div>
+                    }
+                />
 
                 {warnedCount > 0 && (
-                    <div className="mb-6 rounded-2xl border border-amber-200/70 bg-amber-50 px-4 py-3 text-sm text-amber-900 shadow-sm dark:border-amber-900/40 dark:bg-amber-900/20 dark:text-amber-200">
-                        <span className="font-mono tabular-nums">{warnedCount}</span> {warnedCount === 1 ? 'bookmark expires' : 'bookmarks expire'} within the next 3 days.
-                    </div>
+                    <Badge variant="warning" className="w-fit whitespace-normal">
+                        <span className="tabular-nums">{warnedCount}</span> {warnedCount === 1 ? 'bookmark expires' : 'bookmarks expire'} within the next 3 days.
+                    </Badge>
                 )}
 
                 {bookmarks.data.length === 0 ? (
-                    <Card className="rounded-2xl border-border bg-card shadow-sm">
-                        <CardContent className="py-12 text-center text-sm text-muted-foreground">
-                            Nothing bookmarked yet. Press <kbd className="rounded-md border border-border px-1 font-mono">B</kbd> on a listing in{' '}
-                            <Link href="/discover" className="font-medium text-teal-700 hover:text-teal-600">
-                                Discover
-                            </Link>{' '}
-                            to add it here.
-                        </CardContent>
-                    </Card>
+                    <EmptyState>
+                        Nothing bookmarked yet. Press <kbd className="rounded-md border border-border px-1 font-mono">B</kbd> on a listing in{' '}
+                        <Link href="/discover" className="font-medium text-primary hover:underline">
+                            Discover
+                        </Link>{' '}
+                        to add it here.
+                    </EmptyState>
                 ) : (
-                    <ul className="space-y-3">
+                    <ul role="list" className="divide-y divide-border border-y border-border">
                         {bookmarks.data.map((row) => (
                             <li key={row.id}>
                                 <BookmarkCard row={row} onRemove={() => unbookmark(row.id)} />
@@ -134,74 +137,60 @@ function BookmarkCard({ row, onRemove }: { row: BookmarkRow; onRemove: () => voi
     const listing = row.listing;
     if (listing === null) {
         return (
-            <Card className="rounded-2xl border-border bg-card shadow-sm">
-                <CardContent className="py-4 text-sm text-muted-foreground">
-                    Bookmarked listing no longer exists.
-                    <Button size="sm" variant="ghost" onClick={onRemove} className="ml-3">
-                        Remove
-                    </Button>
-                </CardContent>
-            </Card>
+            <div className="flex items-center justify-between gap-3 py-4 text-base text-muted-foreground sm:text-sm">
+                Bookmarked listing no longer exists.
+                <Button size="sm" variant="ghost" onClick={onRemove}>
+                    Remove
+                </Button>
+            </div>
         );
     }
 
     const isWarning = row.expires_warned_at !== null;
 
     return (
-        <Card
-            className={
-                'rounded-2xl border-border bg-card shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md ' +
-                (isWarning ? 'border-amber-300 dark:border-amber-900/50' : '')
-            }
-        >
-            <CardContent className="space-y-2 p-4">
-                <div className="flex items-baseline justify-between gap-4">
-                    <div className="space-y-1">
-                        <h3 className="text-base font-semibold text-foreground">
-                            {listing.parsed_role_title ?? '(role unknown)'}
-                        </h3>
-                        <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-                            <span className="font-medium text-foreground">
-                                {listing.parsed_company_name ?? '(company unknown)'}
-                            </span>
-                            {listing.source && (
-                                <span className="rounded-full bg-secondary px-2 py-0.5 font-mono text-xs uppercase tracking-wide text-secondary-foreground">
-                                    {listing.source.type}
-                                </span>
-                            )}
-                            {listing.parsed_remote_type && (
-                                <span>· {listing.parsed_remote_type.replace('_', ' ')}</span>
-                            )}
-                            {listing.location_bucket && <span>· {listing.location_bucket}</span>}
-                            {listing.has_comp && listing.parsed_comp_min_usd != null && (
-                                <span className="font-mono tabular-nums">
-                                    · ${(listing.parsed_comp_min_usd / 1000).toFixed(0)}k
-                                    {listing.parsed_comp_max_usd != null &&
-                                        `-$${(listing.parsed_comp_max_usd / 1000).toFixed(0)}k`}
-                                </span>
-                            )}
-                        </div>
-                        {row.expires_at && (
-                            <p className="text-xs text-muted-foreground">
-                                Expires <RelativeDate iso={row.expires_at} className="font-mono tabular-nums" />
-                            </p>
-                        )}
-                    </div>
-                    <Button size="sm" variant="ghost" onClick={onRemove}>
-                        Remove
-                    </Button>
+        <div className="flex items-start justify-between gap-4 py-4">
+            <div className="flex min-w-0 flex-col gap-1">
+                <h3 className="text-base font-medium text-balance">
+                    {listing.parsed_role_title ?? '(role unknown)'}
+                </h3>
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
+                    <span className="font-medium text-foreground">
+                        {listing.parsed_company_name ?? '(company unknown)'}
+                    </span>
+                    {listing.source && <Badge variant="secondary">{listing.source.type}</Badge>}
+                    {listing.parsed_remote_type && <span>· {listing.parsed_remote_type.replace('_', ' ')}</span>}
+                    {listing.location_bucket && <span>· {listing.location_bucket}</span>}
+                    {listing.has_comp && listing.parsed_comp_min_usd != null && (
+                        <span className="tabular-nums">
+                            · ${(listing.parsed_comp_min_usd / 1000).toFixed(0)}k
+                            {listing.parsed_comp_max_usd != null &&
+                                `-$${(listing.parsed_comp_max_usd / 1000).toFixed(0)}k`}
+                        </span>
+                    )}
                 </div>
+                {row.expires_at && (
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        {isWarning && <Badge variant="warning">Expiring soon</Badge>}
+                        <span>
+                            Expires <RelativeDate iso={row.expires_at} className="tabular-nums" />
+                        </span>
+                    </div>
+                )}
                 {listing.url && (
                     <a
                         href={listing.url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="font-mono text-xs text-muted-foreground hover:text-teal-700"
+                        className="truncate font-mono text-xs text-muted-foreground hover:text-foreground hover:underline"
                     >
                         {listing.url}
                     </a>
                 )}
-            </CardContent>
-        </Card>
+            </div>
+            <Button size="sm" variant="ghost" className="shrink-0" onClick={onRemove}>
+                Remove
+            </Button>
+        </div>
     );
 }

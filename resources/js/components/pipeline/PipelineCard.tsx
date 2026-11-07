@@ -31,15 +31,14 @@ export default function PipelineCard({ role, dragging, onDragStart, onDragEnd }:
             onDragEnd={onDragEnd}
             aria-label={`${role.title}${role.company_name ? ` at ${role.company_name}` : ''}`}
             className={cn(
-                'group cursor-grab rounded-xl border border-border bg-background p-3 shadow-sm transition',
-                'hover:border-teal-500/60 hover:shadow-md active:cursor-grabbing',
-                dragging && 'opacity-40',
+                'cursor-grab rounded-lg border border-border bg-card p-3 active:cursor-grabbing',
+                dragging && 'opacity-40 shadow-lg ring-1 ring-black/5 dark:shadow-none',
             )}
         >
             <div className="flex items-start justify-between gap-2">
                 <Link
                     href={`/pipeline/roles/${role.id}`}
-                    className="text-sm font-medium leading-snug hover:underline"
+                    className="min-w-0 text-base font-medium text-balance hover:underline sm:text-sm"
                 >
                     {role.title}
                 </Link>
@@ -53,23 +52,23 @@ export default function PipelineCard({ role, dragging, onDragStart, onDragEnd }:
             {role.company_name ? (
                 <Link
                     href={`/companies/${role.company_id}`}
-                    className="mt-1 block text-xs text-muted-foreground hover:underline"
+                    className="mt-1 block truncate text-sm text-muted-foreground hover:underline sm:text-xs"
                 >
                     {role.company_name}
                 </Link>
             ) : null}
 
             {role.next_action ? (
-                <p className="mt-2 line-clamp-2 text-xs text-muted-foreground">
+                <p className="mt-2 line-clamp-2 text-sm text-pretty text-muted-foreground sm:text-xs">
                     <span className="font-medium text-foreground">Next:</span> {role.next_action}
                     {role.next_action_date ? (
-                        <span className="ml-1 font-mono tabular-nums">({formatDate(role.next_action_date)})</span>
+                        <span className="ml-1 tabular-nums">({formatDate(role.next_action_date)})</span>
                     ) : null}
                 </p>
             ) : null}
 
             {role.applied_at ? (
-                <p className="mt-2 font-mono text-[11px] tabular-nums text-muted-foreground">
+                <p className="mt-2 text-xs tabular-nums text-muted-foreground">
                     Applied {formatDate(role.applied_at)}
                 </p>
             ) : null}

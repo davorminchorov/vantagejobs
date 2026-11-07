@@ -2,13 +2,18 @@ import { Head, Link, router } from '@inertiajs/react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import PageHeader from '@/components/PageHeader';
 import ContactForm, { type ContactCompanyOption } from '@/components/contacts/ContactForm';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { EmptyState } from '@/components/ui/empty-state';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { SectionLabel } from '@/components/ui/section-label';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { NativeSelect } from '@/components/ui/native-select';
 import { RelativeDate } from '@/lib/dates';
 import { cn } from '@/lib/utils';
 
@@ -120,121 +125,123 @@ export default function ContactsIndexPage({ contacts, filters, options }: Props)
 
     const meta = contacts.meta;
 
+    const renderFilterPanel = (idPrefix: string, className?: string) => (
+        <FilterPanel
+            local={local}
+            options={options}
+            patchFilters={patchFilters}
+            onClear={clearFilters}
+            hasAny={hasAnyFilter}
+            idPrefix={idPrefix}
+            className={className}
+        />
+    );
+
     return (
         <AuthenticatedLayout>
             <Head title="Contacts" />
-            <div className="space-y-6">
-                <header className="flex items-end justify-between gap-4">
-                    <div>
-                        <h1 className="text-2xl font-semibold tracking-tight">Contacts</h1>
-                        <p className="text-sm text-muted-foreground">
-                            {meta.total === 0
-                                ? 'No contacts match the current filters.'
-                                : `${meta.total} ${meta.total === 1 ? 'contact' : 'contacts'} in your network.`}
-                        </p>
-                    </div>
-                    <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-                        <DialogTrigger asChild>
-                            <Button>Add contact</Button>
-                        </DialogTrigger>
-                        <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
-                            <DialogHeader>
-                                <DialogTitle>Add a contact</DialogTitle>
-                                <DialogDescription>Track someone in your network. Everything is optional except the name.</DialogDescription>
-                            </DialogHeader>
-                            <ContactForm
-                                mode="create"
-                                initial={{}}
-                                companies={options.companies}
-                                action="/contacts"
-                                method="post"
-                                onCancel={() => setCreateOpen(false)}
-                                onSuccess={() => setCreateOpen(false)}
-                            />
-                        </DialogContent>
-                    </Dialog>
-                </header>
+            <div className="flex flex-col gap-6">
+                <PageHeader
+                    title="Contacts"
+                    subtitle={
+                        meta.total === 0
+                            ? 'No contacts match the current filters.'
+                            : `${meta.total} ${meta.total === 1 ? 'contact' : 'contacts'} in your network.`
+                    }
+                    actions={
+                        <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+                            <DialogTrigger asChild>
+                                <Button type="button">Add contact</Button>
+                            </DialogTrigger>
+                            <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
+                                <DialogHeader>
+                                    <DialogTitle>Add a contact</DialogTitle>
+                                    <DialogDescription>Track someone in your network. Everything is optional except the name.</DialogDescription>
+                                </DialogHeader>
+                                <ContactForm
+                                    mode="create"
+                                    initial={{}}
+                                    companies={options.companies}
+                                    action="/contacts"
+                                    method="post"
+                                    onCancel={() => setCreateOpen(false)}
+                                    onSuccess={() => setCreateOpen(false)}
+                                />
+                            </DialogContent>
+                        </Dialog>
+                    }
+                />
 
-                <div className="grid gap-6 md:grid-cols-[18rem_1fr]">
-                    <aside className="hidden md:block">
-                        <FilterPanel local={local} options={options} patchFilters={patchFilters} onClear={clearFilters} hasAny={hasAnyFilter} />
-                    </aside>
+                <div className="grid gap-6 lg:grid-cols-[16rem_minmax(0,1fr)]">
+                    <aside className="hidden lg:block">{renderFilterPanel('contact-filter', 'border-r border-border pr-6')}</aside>
 
-                    <div className="space-y-3">
-                        <Card className="rounded-2xl border-border">
-                            <CardContent className="p-0">
-                                {contacts.data.length === 0 ? (
-                                    <div className="px-6 py-12 text-center text-sm text-muted-foreground">
-                                        No matching contacts. Try clearing some filters or add your first contact.
-                                    </div>
-                                ) : (
-                                    <Table>
-                                        <TableHeader>
-                                            <TableRow>
-                                                <TableHead>Name</TableHead>
-                                                <TableHead>Role</TableHead>
-                                                <TableHead>Company</TableHead>
-                                                <TableHead>Last touch</TableHead>
-                                                <TableHead className="text-right">Actions</TableHead>
-                                            </TableRow>
-                                        </TableHeader>
-                                        <TableBody>
-                                            {contacts.data.map((contact) => (
-                                                <TableRow key={contact.id}>
-                                                    <TableCell>
-                                                        <div className="flex items-center gap-2">
-                                                            <Link href={`/contacts/${contact.id}`} className="font-medium hover:underline">
-                                                                {contact.name}
-                                                            </Link>
-                                                            {contact.needs_followup ? (
-                                                                <Badge variant="outline" className="border-amber-500/50 text-amber-600 dark:text-amber-400">
-                                                                    Follow up
-                                                                </Badge>
-                                                            ) : null}
-                                                        </div>
-                                                        {contact.email ? (
-                                                            <span className="font-mono text-xs text-muted-foreground">{contact.email}</span>
-                                                        ) : null}
-                                                    </TableCell>
-                                                    <TableCell>
-                                                        <span className="text-sm">{contact.role_title ?? '—'}</span>
-                                                    </TableCell>
-                                                    <TableCell>
-                                                        {contact.company_id && contact.company_name ? (
-                                                            <Link href={`/companies/${contact.company_id}`} className="text-sm hover:underline">
-                                                                {contact.company_name}
-                                                            </Link>
-                                                        ) : (
-                                                            <span className="text-xs text-muted-foreground">—</span>
-                                                        )}
-                                                    </TableCell>
-                                                    <TableCell>
-                                                        {contact.last_touch ? (
-                                                            <RelativeDate
-                                                                iso={contact.last_touch}
-                                                                className="font-mono text-xs tabular-nums text-muted-foreground"
-                                                            />
-                                                        ) : (
-                                                            <span className="font-mono text-xs tabular-nums text-muted-foreground">
-                                                                Never
-                                                            </span>
-                                                        )}
-                                                    </TableCell>
-                                                    <TableCell className="text-right">
-                                                        <Link
-                                                            href={`/contacts/${contact.id}`}
-                                                            className="text-xs font-medium text-muted-foreground hover:text-foreground"
-                                                        >
-                                                            View
-                                                        </Link>
-                                                    </TableCell>
-                                                </TableRow>
-                                            ))}
-                                        </TableBody>
-                                    </Table>
-                                )}
-                            </CardContent>
-                        </Card>
+                    <div className="flex min-w-0 flex-col gap-4">
+                        <div className="lg:hidden">
+                            <Sheet>
+                                <SheetTrigger asChild>
+                                    <Button type="button" variant="outline" size="sm">
+                                        Filters{hasAnyFilter ? ' (active)' : ''}
+                                    </Button>
+                                </SheetTrigger>
+                                <SheetContent side="left" className="w-80 overflow-y-auto">
+                                    <SheetHeader>
+                                        <SheetTitle>Filters</SheetTitle>
+                                    </SheetHeader>
+                                    <div className="mt-4 px-1">{renderFilterPanel('contact-filter-sheet')}</div>
+                                </SheetContent>
+                            </Sheet>
+                        </div>
+
+                        {contacts.data.length === 0 ? (
+                            <EmptyState>No matching contacts. Try clearing some filters or add your first contact.</EmptyState>
+                        ) : (
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Name</TableHead>
+                                        <TableHead>Role</TableHead>
+                                        <TableHead>Company</TableHead>
+                                        <TableHead>Last touch</TableHead>
+                                        <TableHead className="text-right">Actions</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {contacts.data.map((contact) => (
+                                        <TableRow key={contact.id}>
+                                            <TableCell>
+                                                <div className="flex items-center gap-2">
+                                                    <Link href={`/contacts/${contact.id}`} className="font-medium hover:underline">
+                                                        {contact.name}
+                                                    </Link>
+                                                    {contact.needs_followup ? <Badge variant="warning">Follow up</Badge> : null}
+                                                </div>
+                                                {contact.email ? (
+                                                    <div className="text-xs text-muted-foreground">{contact.email}</div>
+                                                ) : null}
+                                            </TableCell>
+                                            <TableCell>{contact.role_title ?? '—'}</TableCell>
+                                            <TableCell>
+                                                {contact.company_id && contact.company_name ? (
+                                                    <Link href={`/companies/${contact.company_id}`} className="hover:underline">
+                                                        {contact.company_name}
+                                                    </Link>
+                                                ) : (
+                                                    <span className="text-muted-foreground">—</span>
+                                                )}
+                                            </TableCell>
+                                            <TableCell className="tabular-nums text-muted-foreground">
+                                                {contact.last_touch ? <RelativeDate iso={contact.last_touch} /> : 'Never'}
+                                            </TableCell>
+                                            <TableCell className="text-right">
+                                                <Button asChild variant="outline" size="sm">
+                                                    <Link href={`/contacts/${contact.id}`}>View</Link>
+                                                </Button>
+                                            </TableCell>
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                        )}
 
                         {meta.last_page > 1 ? <Pagination links={meta.links} /> : null}
                     </div>
@@ -250,80 +257,80 @@ interface FilterPanelProps {
     patchFilters: (patch: Partial<ContactFilters>) => void;
     onClear: () => void;
     hasAny: boolean;
+    idPrefix: string;
+    className?: string;
 }
 
-function FilterPanel({ local, options, patchFilters, onClear, hasAny }: FilterPanelProps) {
+function FilterPanel({ local, options, patchFilters, onClear, hasAny, idPrefix, className }: FilterPanelProps) {
     return (
-        <Card className="rounded-2xl border-border">
-            <CardContent className="space-y-4 pt-6">
-                <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium">Filters</span>
-                    {hasAny ? (
-                        <Button variant="ghost" size="sm" onClick={onClear}>
-                            Clear
-                        </Button>
-                    ) : null}
-                </div>
+        <div className={cn('flex flex-col gap-4', className)}>
+            <div className="flex items-center justify-between gap-2">
+                <SectionLabel>Filters</SectionLabel>
+                {hasAny ? (
+                    <Button type="button" variant="ghost" size="sm" onClick={onClear}>
+                        Clear
+                    </Button>
+                ) : null}
+            </div>
 
-                <div className="space-y-1.5">
-                    <label className="font-mono text-xs font-medium uppercase tracking-wide text-muted-foreground">Search</label>
-                    <Input
-                        type="search"
-                        placeholder="Name, email, role…"
-                        value={local.q ?? ''}
-                        onChange={(e) => patchFilters({ q: e.target.value === '' ? null : e.target.value })}
-                    />
-                </div>
+            <div className="flex flex-col gap-1.5">
+                <Label htmlFor={`${idPrefix}-q`}>Search</Label>
+                <Input
+                    id={`${idPrefix}-q`}
+                    name="q"
+                    type="search"
+                    placeholder="Name, email, role…"
+                    value={local.q ?? ''}
+                    onChange={(e) => patchFilters({ q: e.target.value === '' ? null : e.target.value })}
+                />
+            </div>
 
-                <div className="flex flex-col gap-1.5">
-                    <label className="font-mono text-xs font-medium uppercase tracking-wide text-muted-foreground">Company</label>
-                    <select
-                        value={local.company_id === null ? '' : String(local.company_id)}
-                        onChange={(e) => patchFilters({ company_id: e.target.value === '' ? null : Number(e.target.value) })}
-                        className={cn(
-                            'h-9 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm',
-                            'focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-2',
-                        )}
-                    >
-                        <option value="">All companies</option>
-                        {options.companies.map((company) => (
-                            <option key={company.id} value={String(company.id)}>
-                                {company.name}
-                            </option>
-                        ))}
-                    </select>
-                </div>
+            <div className="flex flex-col gap-1.5">
+                <Label htmlFor={`${idPrefix}-company`}>Company</Label>
+                <NativeSelect
+                    id={`${idPrefix}-company`}
+                    name="company_id"
+                    value={local.company_id === null ? '' : String(local.company_id)}
+                    onChange={(e) => patchFilters({ company_id: e.target.value === '' ? null : Number(e.target.value) })}
+                >
+                    <option value="">All companies</option>
+                    {options.companies.map((company) => (
+                        <option key={company.id} value={String(company.id)}>
+                            {company.name}
+                        </option>
+                    ))}
+                </NativeSelect>
+            </div>
 
-                <div className="flex flex-col gap-1.5">
-                    <label className="font-mono text-xs font-medium uppercase tracking-wide text-muted-foreground">Last touch</label>
-                    <select
-                        value={local.last_touch ?? ''}
-                        onChange={(e) => patchFilters({ last_touch: e.target.value === '' ? null : e.target.value })}
-                        className={cn(
-                            'h-9 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm',
-                            'focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-2',
-                        )}
-                    >
-                        <option value="">Any time</option>
-                        {options.last_touch.map((value) => (
-                            <option key={value} value={value}>
-                                {LAST_TOUCH_LABELS[value] ?? value}
-                            </option>
-                        ))}
-                    </select>
-                </div>
+            <div className="flex flex-col gap-1.5">
+                <Label htmlFor={`${idPrefix}-last-touch`}>Last touch</Label>
+                <NativeSelect
+                    id={`${idPrefix}-last-touch`}
+                    name="last_touch"
+                    value={local.last_touch ?? ''}
+                    onChange={(e) => patchFilters({ last_touch: e.target.value === '' ? null : e.target.value })}
+                >
+                    <option value="">Any time</option>
+                    {options.last_touch.map((value) => (
+                        <option key={value} value={value}>
+                            {LAST_TOUCH_LABELS[value] ?? value}
+                        </option>
+                    ))}
+                </NativeSelect>
+            </div>
 
-                <div className="space-y-1.5">
-                    <label className="font-mono text-xs font-medium uppercase tracking-wide text-muted-foreground">Role title contains</label>
-                    <Input
-                        type="search"
-                        placeholder="Engineering Manager"
-                        value={local.role_title ?? ''}
-                        onChange={(e) => patchFilters({ role_title: e.target.value === '' ? null : e.target.value })}
-                    />
-                </div>
-            </CardContent>
-        </Card>
+            <div className="flex flex-col gap-1.5">
+                <Label htmlFor={`${idPrefix}-role`}>Role title contains</Label>
+                <Input
+                    id={`${idPrefix}-role`}
+                    name="role_title"
+                    type="search"
+                    placeholder="Engineering Manager"
+                    value={local.role_title ?? ''}
+                    onChange={(e) => patchFilters({ role_title: e.target.value === '' ? null : e.target.value })}
+                />
+            </div>
+        </div>
     );
 }
 
@@ -340,7 +347,7 @@ function Pagination({ links }: PaginationProps) {
                     return (
                         <span
                             key={`${label}-${index}`}
-                            className="px-2 py-1 font-mono text-sm tabular-nums text-muted-foreground"
+                            className="px-2 py-1 text-sm tabular-nums text-muted-foreground"
                             dangerouslySetInnerHTML={{ __html: label }}
                         />
                     );
@@ -352,10 +359,8 @@ function Pagination({ links }: PaginationProps) {
                         preserveScroll
                         preserveState
                         className={cn(
-                            'rounded-md border px-3 py-1 font-mono text-sm tabular-nums transition',
-                            link.active
-                                ? 'border-primary bg-primary text-primary-foreground'
-                                : 'border-border hover:bg-accent hover:text-accent-foreground',
+                            'rounded-md px-3 py-1 text-sm tabular-nums',
+                            link.active ? 'bg-muted font-medium text-foreground' : 'text-muted-foreground hover:bg-muted hover:text-foreground',
                         )}
                         dangerouslySetInnerHTML={{ __html: label }}
                     />

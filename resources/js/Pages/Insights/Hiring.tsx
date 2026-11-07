@@ -3,8 +3,9 @@ import { Head, Link } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import HiringTrendChart from '@/components/charts/HiringTrendChart';
 import InsightsNav from '@/components/insights/InsightsNav';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import PageHeader from '@/components/PageHeader';
 import { EmptyState } from '@/components/ui/empty-state';
+import { SectionLabel } from '@/components/ui/section-label';
 
 interface TrendPoint {
     date: string;
@@ -29,15 +30,11 @@ export default function HiringInsightsPage({ global, companies }: Props) {
     return (
         <AuthenticatedLayout>
             <Head title="Hiring trends" />
-            <div className="space-y-6">
-                <header>
-                    <h1 className="text-2xl font-semibold tracking-tight text-foreground">
-                        Hiring trends (A-tier)
-                    </h1>
-                    <p className="text-sm text-muted-foreground">
-                        Daily snapshots across active A-tier companies, last 90 days.
-                    </p>
-                </header>
+            <div className="flex flex-col gap-6">
+                <PageHeader
+                    title="Hiring trends (A-tier)"
+                    subtitle="Daily snapshots across active A-tier companies, last 90 days."
+                />
 
                 <InsightsNav />
 
@@ -45,39 +42,24 @@ export default function HiringInsightsPage({ global, companies }: Props) {
                     <EmptyState>No hiring trend data yet for tracked A-tier companies.</EmptyState>
                 ) : (
                     <>
-                        <Card className="rounded-2xl border border-border bg-card shadow-sm">
-                            <CardHeader>
-                                <CardTitle className="font-mono text-sm font-medium uppercase tracking-wide text-muted-foreground">
-                                    Global volume
-                                </CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <HiringTrendChart data={global} height={320} />
-                            </CardContent>
-                        </Card>
+                        <section className="flex flex-col gap-3">
+                            <SectionLabel>Global volume</SectionLabel>
+                            <HiringTrendChart data={global} height={320} />
+                        </section>
 
-                        <div className="grid gap-4 lg:grid-cols-2">
+                        <ul role="list" className="grid gap-x-8 gap-y-6 border-t border-border pt-6 lg:grid-cols-2">
                             {companies.map((c) => (
-                                <Card
-                                    key={c.id}
-                                    className="rounded-2xl border border-border bg-card shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md"
-                                >
-                                    <CardHeader className="flex flex-row items-center justify-between space-y-0">
-                                        <CardTitle className="text-sm font-medium">
-                                            <Link
-                                                href={`/companies/${c.id}`}
-                                                className="text-teal-700 hover:underline dark:text-teal-400"
-                                            >
-                                                {c.name}
-                                            </Link>
-                                        </CardTitle>
-                                    </CardHeader>
-                                    <CardContent>
-                                        <HiringTrendChart data={c.series} showListings={false} height={140} />
-                                    </CardContent>
-                                </Card>
+                                <li key={c.id} className="flex min-w-0 flex-col gap-3">
+                                    <Link
+                                        href={`/companies/${c.id}`}
+                                        className="truncate text-base font-medium text-primary hover:underline sm:text-sm"
+                                    >
+                                        {c.name}
+                                    </Link>
+                                    <HiringTrendChart data={c.series} showListings={false} height={140} />
+                                </li>
                             ))}
-                        </div>
+                        </ul>
                     </>
                 )}
             </div>

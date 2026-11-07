@@ -44,7 +44,7 @@ function TabsList({ className, ...props }: React.HTMLAttributes<HTMLDivElement>)
         <div
             role="tablist"
             className={cn(
-                'inline-flex items-center justify-center gap-1 rounded-md bg-muted p-1 text-muted-foreground',
+                'flex max-w-full items-center gap-4 overflow-x-auto text-muted-foreground shadow-[inset_0_-1px_0_var(--border)]',
                 className,
             )}
             onKeyDown={(e) => {
@@ -91,12 +91,12 @@ function TabsTrigger({ value, className, ...props }: TabsTriggerProps) {
             data-state={selected ? 'active' : 'inactive'}
             onClick={() => setValue(value)}
             className={cn(
-                'inline-flex h-9 items-center justify-center rounded-sm px-3 text-sm font-medium transition-colors',
-                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                'inline-flex h-10 shrink-0 items-center justify-center border-b-2 text-base font-medium whitespace-nowrap sm:text-sm',
+                'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring',
                 'disabled:pointer-events-none disabled:opacity-50',
                 selected
-                    ? 'bg-background text-foreground shadow-sm'
-                    : 'text-muted-foreground hover:text-foreground',
+                    ? 'border-primary text-foreground'
+                    : 'border-transparent text-muted-foreground hover:border-border hover:text-foreground',
                 className,
             )}
             {...props}
@@ -120,7 +120,7 @@ function TabsContent({ value, className, ...props }: TabsContentProps) {
             aria-labelledby={`${baseId}-tab-${value}`}
             tabIndex={0}
             className={cn(
-                'mt-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                'mt-6 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring',
                 className,
             )}
             {...props}

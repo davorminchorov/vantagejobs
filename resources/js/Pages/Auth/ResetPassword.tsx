@@ -38,8 +38,8 @@ export default function ResetPassword({ email, token }: ResetPasswordPageProps):
         <GuestLayout title="Choose a new password">
             <Head title="Reset password" />
 
-            <form onSubmit={submit} className="space-y-4">
-                <div className="space-y-2">
+            <form onSubmit={submit} className="flex flex-col gap-5">
+                <div className="flex flex-col gap-2">
                     <Label htmlFor="email">Email</Label>
                     <Input
                         id="email"
@@ -51,11 +51,11 @@ export default function ResetPassword({ email, token }: ResetPasswordPageProps):
                         required
                     />
                     {errors.email ? (
-                        <p className="text-destructive text-sm">{errors.email}</p>
+                        <p className="text-sm text-destructive">{errors.email}</p>
                     ) : null}
                 </div>
 
-                <div className="space-y-2">
+                <div className="flex flex-col gap-2">
                     <Label htmlFor="password">New password</Label>
                     <Input
                         id="password"
@@ -68,11 +68,11 @@ export default function ResetPassword({ email, token }: ResetPasswordPageProps):
                         autoFocus
                     />
                     {errors.password ? (
-                        <p className="text-destructive text-sm">{errors.password}</p>
+                        <p className="text-sm text-destructive">{errors.password}</p>
                     ) : null}
                 </div>
 
-                <div className="space-y-2">
+                <div className="flex flex-col gap-2">
                     <Label htmlFor="password_confirmation">Confirm password</Label>
                     <Input
                         id="password_confirmation"
@@ -85,7 +85,7 @@ export default function ResetPassword({ email, token }: ResetPasswordPageProps):
                     />
                 </div>
 
-                <Button type="submit" disabled={processing} className="min-h-11 w-full">
+                <Button type="submit" disabled={processing} className="w-full">
                     Reset password
                 </Button>
             </form>

@@ -1,11 +1,11 @@
 import { Head, router, useForm } from '@inertiajs/react';
 
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import PageHeader from '@/components/PageHeader';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { cn } from '@/lib/utils';
+import { NativeSelect } from '@/components/ui/native-select';
 
 type Mapping = Record<string, string | null>;
 
@@ -40,124 +40,120 @@ export default function ImportMapPage({ headers, mapping, preview, row_count, or
     return (
         <AuthenticatedLayout>
             <Head title="Import — Map columns" />
-            <div className="space-y-6">
-                <header className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-                    <div>
-                        <h1 className="text-2xl font-semibold tracking-tight text-foreground">Step 2 — Map columns</h1>
-                        <p className="text-sm text-muted-foreground">
-                            <span className="font-mono tabular-nums">{row_count.toLocaleString()}</span> rows
+            <div className="flex flex-col gap-8">
+                <PageHeader
+                    title="Step 2 — Map columns"
+                    subtitle={
+                        <>
+                            <span className="tabular-nums">{row_count.toLocaleString()}</span> rows
                             {original_name ? ` from ${original_name}` : ''}. Tell us which CSV column feeds each field.
-                        </p>
-                    </div>
-                    <Button type="button" variant="ghost" onClick={cancel}>
-                        Start over
-                    </Button>
-                </header>
+                        </>
+                    }
+                    actions={
+                        <Button type="button" variant="ghost" onClick={cancel}>
+                            Start over
+                        </Button>
+                    }
+                />
 
-                <form onSubmit={submit} className="space-y-6">
-                    <Card className="rounded-2xl border-border bg-card shadow-sm">
-                        <CardHeader>
-                            <CardTitle>Column mapping</CardTitle>
-                            <CardDescription>
-                                Required fields are marked with <span className="text-destructive">*</span>. We applied
-                                a best-guess match from your headers.
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="grid gap-4 sm:grid-cols-2">
-                                {fields.map((field) => {
-                                    const required = required_fields.includes(field);
-                                    const value = form.data.mapping[field] ?? '';
-                                    return (
-                                        <div key={field} className="space-y-1.5">
-                                            <Label htmlFor={`map-${field}`}>
-                                                {humanize(field)}
-                                                {required ? <span className="text-destructive"> *</span> : null}
-                                            </Label>
-                                            <select
-                                                id={`map-${field}`}
-                                                value={value}
-                                                onChange={(e) =>
-                                                    form.setData('mapping', {
-                                                        ...form.data.mapping,
-                                                        [field]: e.target.value === '' ? null : e.target.value,
-                                                    })
-                                                }
-                                                className={cn(
-                                                    'h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm',
-                                                    'focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-2',
-                                                )}
-                                            >
-                                                <option value="">— Skip —</option>
-                                                {headers.map((header) => (
-                                                    <option key={header} value={header}>
-                                                        {header}
-                                                    </option>
-                                                ))}
-                                            </select>
-                                            {form.errors[`mapping.${field}` as keyof typeof form.errors] ? (
-                                                <span className="text-sm text-destructive">
-                                                    {form.errors[`mapping.${field}` as keyof typeof form.errors] as string}
-                                                </span>
-                                            ) : null}
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        </CardContent>
-                    </Card>
+                <form onSubmit={submit} className="flex flex-col gap-8">
+                    <section className="flex flex-col gap-4">
+                        <div className="flex flex-col gap-1">
+                            <h2 className="text-base font-semibold text-balance">Column mapping</h2>
+                            <p className="text-base text-pretty text-muted-foreground sm:text-sm">
+                                Required fields are marked with <span className="text-destructive">*</span>. We applied a
+                                best-guess match from your headers.
+                            </p>
+                        </div>
+                        <div className="grid gap-4 sm:grid-cols-2">
+                            {fields.map((field) => {
+                                const required = required_fields.includes(field);
+                                const value = form.data.mapping[field] ?? '';
+                                return (
+                                    <div key={field} className="flex min-w-0 flex-col gap-1.5">
+                                        <Label htmlFor={`map-${field}`}>
+                                            {humanize(field)}
+                                            {required ? <span className="text-destructive"> *</span> : null}
+                                        </Label>
+                                        <NativeSelect
+                                            id={`map-${field}`}
+                                            name={`mapping[${field}]`}
+                                            value={value}
+                                            onChange={(e) =>
+                                                form.setData('mapping', {
+                                                    ...form.data.mapping,
+                                                    [field]: e.target.value === '' ? null : e.target.value,
+                                                })
+                                            }
+                                            className="h-11 focus-visible:outline-0 focus-visible:ring-2 focus-visible:ring-ring"
+                                        >
+                                            <option value="">— Skip —</option>
+                                            {headers.map((header) => (
+                                                <option key={header} value={header}>
+                                                    {header}
+                                                </option>
+                                            ))}
+                                        </NativeSelect>
+                                        {form.errors[`mapping.${field}` as keyof typeof form.errors] ? (
+                                            <span className="text-sm text-destructive">
+                                                {form.errors[`mapping.${field}` as keyof typeof form.errors] as string}
+                                            </span>
+                                        ) : null}
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </section>
 
-                    <Card className="rounded-2xl border-border bg-card shadow-sm">
-                        <CardHeader>
-                            <CardTitle>Preview</CardTitle>
-                            <CardDescription>
-                                First <span className="font-mono tabular-nums">{preview.length}</span> mapped rows.
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent className="p-0">
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
+                    <section className="flex flex-col gap-3 border-t border-border pt-6">
+                        <div className="flex flex-col gap-1">
+                            <h2 className="text-base font-semibold text-balance">Preview</h2>
+                            <p className="text-base text-pretty text-muted-foreground sm:text-sm">
+                                First <span className="tabular-nums">{preview.length}</span> mapped rows.
+                            </p>
+                        </div>
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    {fields.map((field) => (
+                                        <TableHead key={field}>{humanize(field)}</TableHead>
+                                    ))}
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {preview.map((row, index) => (
+                                    <TableRow key={index}>
                                         {fields.map((field) => (
-                                            <TableHead key={field}>{humanize(field)}</TableHead>
+                                            <TableCell key={field}>
+                                                {row[field] ? (
+                                                    <span className="font-mono">{row[field]}</span>
+                                                ) : (
+                                                    <span className="text-muted-foreground">—</span>
+                                                )}
+                                            </TableCell>
                                         ))}
                                     </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {preview.map((row, index) => (
-                                        <TableRow key={index}>
-                                            {fields.map((field) => (
-                                                <TableCell key={field}>
-                                                    {row[field] ? (
-                                                        <span className="font-mono text-sm">{row[field]}</span>
-                                                    ) : (
-                                                        <span className="font-mono text-xs text-muted-foreground">—</span>
-                                                    )}
-                                                </TableCell>
-                                            ))}
-                                        </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
-                        </CardContent>
-                    </Card>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    </section>
 
-                    <div className="flex items-center gap-3">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
                         <Button type="submit" disabled={form.processing || missingRequired.length > 0}>
                             {form.processing ? (
                                 'Importing…'
                             ) : (
                                 <>
-                                    Import <span className="font-mono tabular-nums">{row_count.toLocaleString()}</span> rows
+                                    Import <span className="tabular-nums">{row_count.toLocaleString()}</span> rows
                                 </>
                             )}
                         </Button>
                         {missingRequired.length > 0 ? (
-                            <span className="text-sm text-destructive">
+                            <span className="text-base text-destructive sm:text-sm">
                                 Map {missingRequired.map(humanize).join(', ')} to continue.
                             </span>
                         ) : (
-                            <span className="text-sm text-muted-foreground">
+                            <span className="text-base text-pretty text-muted-foreground sm:text-sm">
                                 Duplicates by domain will be skipped. The action is reversible row-by-row from Companies.
                             </span>
                         )}

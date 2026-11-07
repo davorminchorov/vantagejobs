@@ -36,11 +36,11 @@ export default function Login({ status }: LoginPageProps): ReactNode {
             <Head title="Sign in" />
 
             {status ? (
-                <p className="mb-4 text-sm font-medium text-emerald-700 dark:text-emerald-300">{status}</p>
+                <p className="text-base font-medium text-pretty text-emerald-700 sm:text-sm dark:text-emerald-300">{status}</p>
             ) : null}
 
-            <form onSubmit={submit} className="space-y-4">
-                <div className="space-y-2">
+            <form onSubmit={submit} className="flex flex-col gap-5">
+                <div className="flex flex-col gap-2">
                     <Label htmlFor="email">Email</Label>
                     <Input
                         id="email"
@@ -53,11 +53,11 @@ export default function Login({ status }: LoginPageProps): ReactNode {
                         autoFocus
                     />
                     {errors.email ? (
-                        <p className="text-destructive text-sm">{errors.email}</p>
+                        <p className="text-sm text-destructive">{errors.email}</p>
                     ) : null}
                 </div>
 
-                <div className="space-y-2">
+                <div className="flex flex-col gap-2">
                     <Label htmlFor="password">Password</Label>
                     <Input
                         id="password"
@@ -69,31 +69,31 @@ export default function Login({ status }: LoginPageProps): ReactNode {
                         required
                     />
                     {errors.password ? (
-                        <p className="text-destructive text-sm">{errors.password}</p>
+                        <p className="text-sm text-destructive">{errors.password}</p>
                     ) : null}
                 </div>
 
-                <div className="flex items-center justify-between">
-                    <label className="flex items-center gap-2 text-sm">
+                <div className="flex items-center justify-between gap-4">
+                    <label className="flex items-center gap-2 text-base sm:text-sm">
                         <input
                             type="checkbox"
                             name="remember"
                             checked={data.remember}
                             onChange={(event) => setData('remember', event.target.checked)}
-                            className="border-input text-primary focus-visible:ring-ring h-4 w-4 rounded"
+                            className="size-4 rounded border-input accent-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
                         />
                         <span>Remember me</span>
                     </label>
 
                     <Link
                         href="/forgot-password"
-                        className="text-sm text-teal-700 underline-offset-4 hover:underline dark:text-teal-400"
+                        className="text-base text-muted-foreground underline-offset-4 hover:text-foreground hover:underline sm:text-sm"
                     >
                         Forgot password?
                     </Link>
                 </div>
 
-                <Button type="submit" disabled={processing} className="min-h-11 w-full">
+                <Button type="submit" disabled={processing} className="w-full">
                     Sign in
                 </Button>
             </form>

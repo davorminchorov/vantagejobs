@@ -196,15 +196,15 @@ export default function GlobalCommandPalette() {
             role="dialog"
             aria-modal="true"
             aria-label="Global search"
-            className="fixed inset-0 z-50 flex items-start justify-center bg-black/40 backdrop-blur-sm"
+            className="fixed inset-0 z-50 flex items-start justify-center bg-black/40"
             onClick={close}
         >
             <div
-                className="mt-[10vh] w-full max-w-xl rounded-xl border border-border bg-popover shadow-xl"
+                className="mt-[10vh] w-full max-w-xl rounded-xl border border-border bg-popover"
                 onClick={(e) => e.stopPropagation()}
             >
                 <div className="flex items-center gap-2 border-b border-border px-3 py-3">
-                    <Search className="size-4 text-muted-foreground" aria-hidden="true" />
+                    <Search className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
                     <input
                         ref={inputRef}
                         type="text"
@@ -212,9 +212,11 @@ export default function GlobalCommandPalette() {
                         onChange={(e) => setQuery(e.target.value)}
                         onKeyDown={onKeyDown}
                         placeholder="Search pages, companies, and roles…"
-                        className="w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+                        aria-label="Search pages, companies, and roles"
+                        name="q"
+                        className="min-w-0 flex-1 bg-transparent text-base outline-none placeholder:text-muted-foreground sm:text-sm"
                     />
-                    <kbd className="hidden rounded border border-border bg-muted px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground sm:inline">
+                    <kbd className="hidden rounded-md border border-border bg-muted px-1.5 py-0.5 font-mono text-xs text-muted-foreground sm:inline">
                         Esc
                     </kbd>
                 </div>
@@ -239,8 +241,8 @@ export default function GlobalCommandPalette() {
                                             onSelect={() => navigateTo(page.href)}
                                         >
                                             <div className="flex min-w-0 flex-col">
-                                                <span className="truncate text-sm font-medium">{page.name}</span>
-                                                <span className="truncate text-xs text-muted-foreground">
+                                                <span className="truncate text-base font-medium sm:text-sm">{page.name}</span>
+                                                <span className="truncate text-sm text-muted-foreground">
                                                     {page.href}
                                                 </span>
                                             </div>
@@ -260,14 +262,14 @@ export default function GlobalCommandPalette() {
                                                 onSelect={() => navigateTo(hit.url)}
                                             >
                                                 <div className="flex min-w-0 flex-col">
-                                                    <span className="truncate text-sm font-medium">{hit.name}</span>
+                                                    <span className="truncate text-base font-medium sm:text-sm">{hit.name}</span>
                                                     {hit.domain ? (
                                                         <span className="truncate text-xs text-muted-foreground">
                                                             {hit.domain}
                                                         </span>
                                                     ) : null}
                                                 </div>
-                                                <div className="flex items-center gap-1.5">
+                                                <div className="flex shrink-0 items-center gap-1.5">
                                                     {hit.ats_type ? (
                                                         <span className="text-xs text-muted-foreground">
                                                             {humanize(hit.ats_type)}
@@ -294,7 +296,7 @@ export default function GlobalCommandPalette() {
                                                 onSelect={() => navigateTo(hit.url)}
                                             >
                                                 <div className="flex min-w-0 flex-col">
-                                                    <span className="truncate text-sm font-medium">{hit.title}</span>
+                                                    <span className="truncate text-base font-medium sm:text-sm">{hit.title}</span>
                                                     <span className="truncate text-xs text-muted-foreground">
                                                         {hit.company_name ?? '—'}
                                                         {hit.workplace_type ? ` · ${humanize(hit.workplace_type)}` : ''}
@@ -314,15 +316,15 @@ export default function GlobalCommandPalette() {
                     )}
                 </div>
 
-                <div className="flex items-center justify-between border-t border-border px-3 py-2 text-[11px] text-muted-foreground">
+                <div className="flex items-center justify-between gap-3 border-t border-border px-3 py-2 text-xs text-muted-foreground">
                     <span>
-                        <kbd className="rounded border border-border bg-muted px-1 font-mono">↑</kbd>{' '}
-                        <kbd className="rounded border border-border bg-muted px-1 font-mono">↓</kbd> to navigate ·{' '}
-                        <kbd className="rounded border border-border bg-muted px-1 font-mono">↵</kbd> to open
+                        <kbd className="rounded-md border border-border bg-muted px-1 font-mono">↑</kbd>{' '}
+                        <kbd className="rounded-md border border-border bg-muted px-1 font-mono">↓</kbd> to navigate ·{' '}
+                        <kbd className="rounded-md border border-border bg-muted px-1 font-mono">↵</kbd> to open
                     </span>
                     <span>
-                        <kbd className="rounded border border-border bg-muted px-1 font-mono">⌘</kbd>
-                        <kbd className="rounded border border-border bg-muted px-1 font-mono">K</kbd>
+                        <kbd className="rounded-md border border-border bg-muted px-1 font-mono">⌘</kbd>
+                        <kbd className="rounded-md border border-border bg-muted px-1 font-mono">K</kbd>
                     </span>
                 </div>
             </div>
@@ -333,10 +335,10 @@ export default function GlobalCommandPalette() {
 function Group({ label, children }: { label: string; children: React.ReactNode }) {
     return (
         <div className="px-1 py-1">
-            <div className="px-3 pb-1 pt-2 font-mono text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+            <div className="px-3 pb-1 pt-2 text-sm font-medium text-muted-foreground">
                 {label}
             </div>
-            <ul className="space-y-px">{children}</ul>
+            <ul role="list" className="flex flex-col gap-px">{children}</ul>
         </div>
     );
 }
@@ -357,8 +359,8 @@ function ResultRow({
                 onMouseEnter={() => undefined}
                 onClick={onSelect}
                 className={cn(
-                    'flex w-full items-center justify-between gap-3 rounded-md px-3 py-2 text-left text-sm',
-                    active ? 'bg-accent text-accent-foreground' : 'hover:bg-accent/50',
+                    'flex w-full items-center justify-between gap-3 rounded-md px-3 py-2 text-left text-base sm:text-sm',
+                    active ? 'bg-accent text-accent-foreground' : 'hover:bg-accent',
                 )}
             >
                 {children}

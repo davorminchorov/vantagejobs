@@ -40,7 +40,7 @@ export default function FollowUpRow({ contact, onLogTouch, pending }: Props) {
     return (
         <TableRow>
             <TableCell>
-                <div className="flex flex-col">
+                <div className="flex flex-col gap-0.5">
                     <Link href={`/contacts/${contact.id}`} className="font-medium hover:underline">
                         {contact.name}
                     </Link>
@@ -54,34 +54,36 @@ export default function FollowUpRow({ contact, onLogTouch, pending }: Props) {
                     contact.company_id !== null ? (
                         <Link
                             href={`/companies/${contact.company_id}`}
-                            className="text-sm hover:underline"
+                            className="hover:underline"
                         >
                             {contact.company_name}
                         </Link>
                     ) : (
-                        <span className="text-sm">{contact.company_name}</span>
+                        <span>{contact.company_name}</span>
                     )
                 ) : (
-                    <span className="text-xs text-muted-foreground">—</span>
+                    <span className="text-muted-foreground">—</span>
                 )}
             </TableCell>
             <TableCell>
-                <Badge variant={contact.last_touch === null ? 'destructive' : 'outline'}>
+                <Badge variant={contact.last_touch === null ? 'destructive' : 'secondary'}>
                     {overdueLabel(contact.days_since_touch)}
                 </Badge>
             </TableCell>
             <TableCell>
                 {contact.last_touch ? (
-                    <RelativeDate iso={contact.last_touch} className="font-mono text-xs tabular-nums text-muted-foreground" />
+                    <RelativeDate iso={contact.last_touch} className="tabular-nums text-muted-foreground" />
                 ) : (
-                    <span className="font-mono text-xs tabular-nums text-muted-foreground">Never</span>
+                    <span className="tabular-nums text-muted-foreground">Never</span>
                 )}
             </TableCell>
             <TableCell className="text-right">
                 {confirming ? (
                     <div className="flex items-center justify-end gap-1">
                         <Button
+                            type="button"
                             size="sm"
+                            variant="outline"
                             disabled={pending}
                             onClick={() => {
                                 onLogTouch(contact);
@@ -90,12 +92,12 @@ export default function FollowUpRow({ contact, onLogTouch, pending }: Props) {
                         >
                             {pending ? 'Logging…' : 'Confirm'}
                         </Button>
-                        <Button size="sm" variant="ghost" onClick={() => setConfirming(false)} disabled={pending}>
+                        <Button type="button" size="sm" variant="ghost" onClick={() => setConfirming(false)} disabled={pending}>
                             Cancel
                         </Button>
                     </div>
                 ) : (
-                    <Button size="sm" variant="outline" onClick={() => setConfirming(true)} disabled={pending}>
+                    <Button type="button" size="sm" variant="outline" onClick={() => setConfirming(true)} disabled={pending}>
                         Log touch
                     </Button>
                 )}

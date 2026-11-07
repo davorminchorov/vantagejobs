@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { SectionLabel } from '@/components/ui/section-label';
+import { NativeSelect } from '@/components/ui/native-select';
 import { cn } from '@/lib/utils';
 
 export interface CalendarEventFormValues {
@@ -84,13 +85,14 @@ export default function CalendarEventForm({
     }
 
     return (
-        <form onSubmit={submit} className="space-y-6">
-            <section className="space-y-4">
+        <form onSubmit={submit} className="flex flex-col gap-6">
+            <section className="flex flex-col gap-4">
                 <SectionLabel>Event</SectionLabel>
 
                 <Field id="title" label="Title" error={form.errors.title} required>
                     <Input
                         id="title"
+                        name="title"
                         value={form.data.title}
                         onChange={(e) => form.setData('title', e.target.value)}
                         placeholder="Onsite with the platform team"
@@ -102,6 +104,7 @@ export default function CalendarEventForm({
                     <Field id="starts_at" label="Starts at" error={form.errors.starts_at} required>
                         <Input
                             id="starts_at"
+                            name="starts_at"
                             type="datetime-local"
                             value={form.data.starts_at}
                             onChange={(e) => form.setData('starts_at', e.target.value)}
@@ -111,6 +114,7 @@ export default function CalendarEventForm({
                     <Field id="timezone" label="Timezone" error={form.errors.timezone} required hint="IANA zone the time is entered in.">
                         <Input
                             id="timezone"
+                            name="timezone"
                             value={form.data.timezone}
                             onChange={(e) => form.setData('timezone', e.target.value)}
                             placeholder="America/New_York"
@@ -128,7 +132,7 @@ export default function CalendarEventForm({
                 </Field>
             </section>
 
-            <section className="space-y-4">
+            <section className="flex flex-col gap-4">
                 <SectionLabel>Link</SectionLabel>
 
                 <div className="grid gap-4 sm:grid-cols-2">
@@ -136,7 +140,7 @@ export default function CalendarEventForm({
                         id="owner_type"
                         label="Attach to"
                         error={form.errors.owner_type}
-                        hint="Optional — leave blank for a standalone reminder."
+                        hint="Optional. Leave blank for a standalone reminder."
                     >
                         <SelectInput
                             id="owner_type"
@@ -157,6 +161,7 @@ export default function CalendarEventForm({
                     <Field id="owner_id" label="Owner ID" error={form.errors.owner_id} hint="ID of the linked record.">
                         <Input
                             id="owner_id"
+                            name="owner_id"
                             type="number"
                             value={form.data.owner_id}
                             onChange={(e) => form.setData('owner_id', e.target.value)}
@@ -168,6 +173,7 @@ export default function CalendarEventForm({
                 <Field id="url" label="URL" error={form.errors.url}>
                     <Input
                         id="url"
+                        name="url"
                         type="url"
                         value={form.data.url}
                         onChange={(e) => form.setData('url', e.target.value)}
@@ -183,6 +189,7 @@ export default function CalendarEventForm({
                 >
                     <Input
                         id="reminder_minutes"
+                        name="reminder_minutes"
                         type="number"
                         min={0}
                         value={form.data.reminder_minutes}
@@ -191,18 +198,19 @@ export default function CalendarEventForm({
                 </Field>
             </section>
 
-            <section className="space-y-4">
+            <section className="flex flex-col gap-4">
                 <SectionLabel>Notes</SectionLabel>
 
                 <Field id="notes" label="Notes" error={form.errors.notes}>
                     <textarea
                         id="notes"
+                        name="notes"
                         value={form.data.notes}
                         onChange={(e) => form.setData('notes', e.target.value)}
                         rows={4}
                         className={cn(
-                            'rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm',
-                            'focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-2',
+                            'w-full rounded-md border border-input bg-background px-3 py-2 text-base placeholder:text-muted-foreground',
+                            'focus-visible:outline-2 focus-visible:-outline-offset-1 focus-visible:outline-ring sm:text-sm',
                         )}
                         placeholder="Agenda, who you're meeting, prep links."
                     />
@@ -240,7 +248,11 @@ function Field({ id, label, error, hint, required, children }: FieldProps) {
                 {required ? <span className="text-destructive"> *</span> : null}
             </Label>
             {children}
-            {error ? <span className="text-sm text-destructive">{error}</span> : hint ? <span className="text-sm text-muted-foreground">{hint}</span> : null}
+            {error ? (
+                <span className="text-sm text-destructive">{error}</span>
+            ) : hint ? (
+                <span className="text-sm text-muted-foreground">{hint}</span>
+            ) : null}
         </div>
     );
 }
@@ -254,20 +266,18 @@ interface SelectInputProps {
 
 function SelectInput({ id, value, onChange, options }: SelectInputProps) {
     return (
-        <select
+        <NativeSelect
             id={id}
+            name={id}
             value={value}
             onChange={(e) => onChange(e.target.value)}
-            className={cn(
-                'h-9 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm',
-                'focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-2',
-            )}
+            wrapperClassName="w-full"
         >
             {options.map((option) => (
                 <option key={option.value} value={option.value}>
                     {option.label}
                 </option>
             ))}
-        </select>
+        </NativeSelect>
     );
 }

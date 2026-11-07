@@ -29,16 +29,16 @@ export default function ForgotPassword({ status }: ForgotPasswordPageProps): Rea
         <GuestLayout title="Reset your password">
             <Head title="Forgot password" />
 
-            <p className="text-muted-foreground mb-4 text-sm">
+            <p className="text-base text-pretty text-muted-foreground sm:text-sm">
                 Enter your email and we will send you a link to reset your password.
             </p>
 
             {status ? (
-                <p className="mb-4 text-sm font-medium text-emerald-700 dark:text-emerald-300">{status}</p>
+                <p className="text-base font-medium text-pretty text-emerald-700 sm:text-sm dark:text-emerald-300">{status}</p>
             ) : null}
 
-            <form onSubmit={submit} className="space-y-4">
-                <div className="space-y-2">
+            <form onSubmit={submit} className="flex flex-col gap-5">
+                <div className="flex flex-col gap-2">
                     <Label htmlFor="email">Email</Label>
                     <Input
                         id="email"
@@ -51,11 +51,11 @@ export default function ForgotPassword({ status }: ForgotPasswordPageProps): Rea
                         autoFocus
                     />
                     {errors.email ? (
-                        <p className="text-destructive text-sm">{errors.email}</p>
+                        <p className="text-sm text-destructive">{errors.email}</p>
                     ) : null}
                 </div>
 
-                <Button type="submit" disabled={processing} className="min-h-11 w-full">
+                <Button type="submit" disabled={processing} className="w-full">
                     Send reset link
                 </Button>
             </form>

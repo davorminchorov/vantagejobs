@@ -1,7 +1,5 @@
 import type { ReactNode } from 'react';
 
-import { Card, CardContent } from '@/components/ui/card';
-
 interface GuestLayoutProps {
     children: ReactNode;
     title?: string;
@@ -9,22 +7,21 @@ interface GuestLayoutProps {
 
 export default function GuestLayout({ children, title }: GuestLayoutProps): ReactNode {
     return (
-        <div className="text-foreground flex min-h-svh w-full flex-col items-center justify-center bg-gradient-to-b from-teal-50 via-background to-background px-4 py-10 sm:px-6 dark:from-teal-950/30">
-            <div className="flex w-full max-w-md flex-col items-center gap-6">
+        <div className="flex min-h-svh w-full flex-col items-center justify-center bg-background px-4 py-10 text-foreground sm:px-6">
+            <div className="flex w-full max-w-sm flex-col gap-8">
                 <a
                     href="/"
-                    className="text-foreground text-xl font-semibold tracking-tight focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-md px-2 py-1"
+                    aria-label="Homepage"
+                    className="self-start rounded-md text-xl font-semibold tracking-tight focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
                 >
                     VantageJobs
                 </a>
-                <Card className="w-full rounded-2xl border-border bg-card shadow-sm">
+                <div className="flex flex-col gap-6">
                     {title ? (
-                        <div className="border-b border-border px-6 pt-6 pb-4">
-                            <h1 className="text-lg font-semibold tracking-tight text-foreground">{title}</h1>
-                        </div>
+                        <h1 className="text-2xl font-semibold tracking-tight text-balance">{title}</h1>
                     ) : null}
-                    <CardContent className="p-6">{children}</CardContent>
-                </Card>
+                    {children}
+                </div>
             </div>
         </div>
     );

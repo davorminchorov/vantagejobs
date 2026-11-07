@@ -1,14 +1,17 @@
 import { Head, InfiniteScroll, router, usePage } from '@inertiajs/react';
 import { useEffect, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
+import { ChevronDown, MoreHorizontal, Pencil } from 'lucide-react';
 
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import BulkActionBar from '@/components/bulk/BulkActionBar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
+import { EmptyState } from '@/components/ui/empty-state';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
+import { NativeSelect } from '@/components/ui/native-select';
+import PageHeader from '@/components/PageHeader';
 import { RelativeDate } from '@/lib/dates';
 import { cn } from '@/lib/utils';
 import type { PageProps } from '@/types';
@@ -311,43 +314,49 @@ export default function DiscoverIndex({ listings, filters, counts, options }: Pr
     return (
         <AuthenticatedLayout>
             <Head title="Discover" />
-            <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
-                <header className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-                    <div>
-                        <h1 className="text-2xl font-semibold tracking-tight text-foreground">Discover</h1>
-                        <p className="text-sm text-muted-foreground">
-                            Showing <span className="font-mono tabular-nums">{listings.data.length}</span> of{' '}
-                            <span className="font-mono tabular-nums">{listings.total}</span> {listings.total === 1 ? 'listing' : 'listings'}
+            <div className="flex flex-col gap-6">
+                <PageHeader
+                    title="Discover"
+                    subtitle={
+                        <>
+                            Showing <span className="tabular-nums">{listings.data.length}</span> of{' '}
+                            <span className="tabular-nums">{listings.total}</span> {listings.total === 1 ? 'listing' : 'listings'}
                             <span className="hidden md:inline"> · J/↓ next · ↑ prev · K keep · X dismiss · S snooze · B bookmark</span>
-                        </p>
-                    </div>
-                    <form onSubmit={onSearchSubmit} className="flex w-full gap-2 sm:w-auto">
-                        <Input
-                            name="q"
-                            defaultValue={filters.q ?? ''}
-                            placeholder="Company or role"
-                            className="w-full min-w-0 sm:w-64"
-                        />
-                        <Button type="submit" variant="outline" className="shrink-0">
-                            Search
-                        </Button>
-                    </form>
-                </header>
+                        </>
+                    }
+                    actions={
+                        <form onSubmit={onSearchSubmit} className="flex w-full gap-2 sm:w-auto" role="search">
+                            <Input
+                                name="q"
+                                aria-label="Search by company or role"
+                                defaultValue={filters.q ?? ''}
+                                placeholder="Company or role"
+                                className="w-full min-w-0 sm:w-64"
+                            />
+                            <Button type="submit" variant="outline" className="shrink-0">
+                                Search
+                            </Button>
+                        </form>
+                    }
+                />
 
+                <div className="flex flex-col gap-3">
                 <StatusTabs current={filters.status} counts={counts} onChange={(status) => applyFilters({ status })} />
 
                 <FilterBar filters={filters} options={options} onChange={applyFilters} />
+                </div>
 
                 {listings.total === 0 ? (
-                    <EmptyState />
+                    <DiscoverEmptyState />
                 ) : (
+                    <div>
                     <InfiniteScroll
                         data="listings"
                         manual
                         itemsElement={itemsRef}
                         next={({ loading, fetch, hasMore }) =>
                             hasMore ? (
-                                <div className="mt-6 flex justify-center">
+                                <div className="flex justify-center pt-6">
                                     <Button variant="outline" onClick={fetch} disabled={loading}>
                                         {loading ? 'Loading…' : `Load more (${listings.total - listings.data.length} remaining)`}
                                     </Button>
@@ -356,13 +365,14 @@ export default function DiscoverIndex({ listings, filters, counts, options }: Pr
                         }
                     >
                         {listings.data.length === 0 && (
-                            <p className="py-8 text-center text-sm text-muted-foreground">
+                            <p className="py-8 text-center text-base text-pretty text-muted-foreground sm:text-sm">
                                 Nothing left on this page. Load more below.
                             </p>
                         )}
                         <ul
                             ref={itemsRef}
-                            className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-card"
+                            role="list"
+                            className="divide-y divide-border border-y border-border"
                         >
                             {listings.data.map((listing, idx) => (
                                 <ListingRow
@@ -387,6 +397,7 @@ export default function DiscoverIndex({ listings, filters, counts, options }: Pr
                             ))}
                         </ul>
                     </InfiniteScroll>
+                    </div>
                 )}
 
                 <BulkActionBar
@@ -413,7 +424,7 @@ function StatusTabs({
     const moreActive = (MORE_STATUS_TABS as readonly string[]).includes(current);
 
     return (
-        <div className="mb-4 flex flex-wrap items-center gap-1 border-b border-border">
+        <div className="flex items-center gap-1 overflow-x-auto shadow-[inset_0_-1px_0_var(--border)]">
             {VISIBLE_STATUS_TABS.map((status) => {
                 const active = current === status;
                 return (
@@ -421,15 +432,16 @@ function StatusTabs({
                         key={status}
                         type="button"
                         onClick={() => onChange(status)}
+                        aria-current={active ? 'true' : undefined}
                         className={
-                            'px-3 py-2 text-sm transition-colors ' +
+                            'min-h-10 shrink-0 border-b-2 px-3 py-2 text-base whitespace-nowrap sm:min-h-0 sm:text-sm ' +
                             (active
-                                ? 'border-b-2 border-primary text-foreground'
-                                : 'text-muted-foreground hover:text-foreground')
+                                ? 'border-foreground font-medium text-foreground'
+                                : 'border-transparent text-muted-foreground hover:text-foreground')
                         }
                     >
                         {titleCaseStatus(status)}{' '}
-                        <span className="font-mono text-xs tabular-nums text-muted-foreground">{counts[status] ?? 0}</span>
+                        <span className="text-xs tabular-nums text-muted-foreground">{counts[status] ?? 0}</span>
                     </button>
                 );
             })}
@@ -438,29 +450,29 @@ function StatusTabs({
                     <button
                         type="button"
                         className={
-                            'px-3 py-2 text-sm transition-colors ' +
+                            'min-h-10 shrink-0 border-b-2 px-3 py-2 text-base whitespace-nowrap sm:min-h-0 sm:text-sm ' +
                             (moreActive
-                                ? 'border-b-2 border-primary text-foreground'
-                                : 'text-muted-foreground hover:text-foreground')
+                                ? 'border-foreground font-medium text-foreground'
+                                : 'border-transparent text-muted-foreground hover:text-foreground')
                         }
                         aria-label="More status tabs"
                     >
                         {moreActive ? (
                             <>
                                 {titleCaseStatus(current)}{' '}
-                                <span className="font-mono text-xs tabular-nums text-muted-foreground">{counts[current] ?? 0}</span>
+                                <span className="text-xs tabular-nums text-muted-foreground">{counts[current] ?? 0}</span>
                             </>
                         ) : (
                             'More'
                         )}{' '}
-                        <span aria-hidden="true">⌄</span>
+                        <ChevronDown aria-hidden="true" className="inline size-4 align-text-bottom" />
                     </button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="start">
                     {MORE_STATUS_TABS.map((status) => (
                         <DropdownMenuItem key={status} onSelect={() => onChange(status)}>
                             {titleCaseStatus(status)}{' '}
-                            <span className="ml-1 font-mono text-xs tabular-nums text-muted-foreground">{counts[status] ?? 0}</span>
+                            <span className="ml-1 text-xs tabular-nums text-muted-foreground">{counts[status] ?? 0}</span>
                         </DropdownMenuItem>
                     ))}
                 </DropdownMenuContent>
@@ -479,13 +491,13 @@ function FilterBar({
     onChange: (patch: Partial<Filters>) => void;
 }) {
     return (
-        <div className="mb-4 flex flex-wrap items-center gap-3 text-sm">
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-3 text-base sm:text-sm">
             <label className="flex items-center gap-2">
                 <span className="text-muted-foreground">Source</span>
-                <select
+                <NativeSelect
+                    name="source"
                     value={filters.source ?? ''}
                     onChange={(e) => onChange({ source: e.currentTarget.value || null })}
-                    className="rounded-md border border-border bg-background px-2 py-1"
                 >
                     <option value="">All</option>
                     {options.sources.map((s) => (
@@ -493,19 +505,23 @@ function FilterBar({
                             {s.label}
                         </option>
                     ))}
-                </select>
+                </NativeSelect>
             </label>
-            <label className="flex items-center gap-2">
+            <label className="flex min-h-10 items-center gap-2 sm:min-h-0">
                 <input
                     type="checkbox"
+                    name="has_comp"
+                    className="size-4 accent-primary"
                     checked={filters.has_comp}
                     onChange={(e) => onChange({ has_comp: e.currentTarget.checked })}
                 />
                 Has comp
             </label>
-            <label className="flex items-center gap-2">
+            <label className="flex min-h-10 items-center gap-2 sm:min-h-0">
                 <input
                     type="checkbox"
+                    name="remote_only"
+                    className="size-4 accent-primary"
                     checked={filters.remote_only}
                     onChange={(e) => onChange({ remote_only: e.currentTarget.checked })}
                 />
@@ -560,17 +576,17 @@ function ListingRow({
             className={cn(
                 // group/row is named so the pill-level plain `group` (hover
                 // pencil reveal) doesn't also fire on row hover.
-                'group/row relative outline-none transition-colors',
-                'hover:bg-muted/40',
-                'focus-within:bg-primary/5 focus-within:ring-1 focus-within:ring-inset focus-within:ring-primary/30',
-                isSelected && 'bg-primary/5 ring-1 ring-inset ring-primary/40',
-                isFocused && 'bg-primary/5 ring-1 ring-inset ring-primary/30',
+                'group/row relative outline-none',
+                'hover:bg-muted/50',
+                'focus-within:bg-muted focus-within:ring-1 focus-within:ring-inset focus-within:ring-border',
+                isSelected && 'bg-muted ring-1 ring-inset ring-border',
+                isFocused && 'bg-muted ring-1 ring-inset ring-ring/40',
             )}
         >
-            <div className="grid grid-cols-[auto_1fr] items-start gap-3 p-3 sm:grid-cols-[auto_1fr_auto] sm:p-4">
+            <div className="grid grid-cols-[auto_1fr] items-start gap-x-3 gap-y-2 px-1 py-3 sm:grid-cols-[auto_1fr_auto] sm:px-3">
                 <input
                     type="checkbox"
-                    className="mt-0.5 size-4 rounded border-input"
+                    className="mt-1 size-4 accent-primary"
                     aria-label={`Select ${listing.parsed_role_title ?? 'listing'}`}
                     checked={isSelected}
                     onClick={(e) => e.stopPropagation()}
@@ -580,8 +596,8 @@ function ListingRow({
                     }}
                 />
                 <div className="min-w-0">
-                    <div className="flex flex-wrap items-baseline gap-2 sm:flex-nowrap">
-                        <h3 className="min-w-0 text-sm font-medium sm:truncate">
+                    <div className="flex flex-wrap items-baseline gap-2 text-base sm:flex-nowrap sm:text-sm">
+                        <h3 className="min-w-0 text-base font-medium text-pretty sm:truncate sm:text-sm">
                             {titleHref ? (
                                 <a
                                     href={titleHref}
@@ -603,13 +619,13 @@ function ListingRow({
                                 onEdit('role_title');
                             }}
                             className={cn(
-                                'focus-visible:ring-ring invisible shrink-0 rounded text-xs text-muted-foreground/40 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 group-hover/row:visible',
-                                isFocused && 'visible',
+                                'invisible shrink-0 self-center rounded-md p-0.5 text-muted-foreground hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring group-hover/row:visible',
+                                isFocused ? 'visible' : 'max-sm:hidden',
                             )}
                             aria-label="Edit role title"
                             title="Edit role title"
                         >
-                            <span aria-hidden="true">✎</span>
+                            <Pencil aria-hidden="true" className="size-3.5" />
                         </button>
                         <EditablePill
                             listing={listing}
@@ -640,15 +656,15 @@ function ListingRow({
                             onEdit={onEdit}
                         />
                     </div>
-                    <div className="mt-0.5 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                        <span className="font-medium text-foreground">
+                    <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
+                        <div className="font-medium text-foreground">
                             <EditablePill
                                 listing={listing}
                                 field="company_name"
                                 label={listing.parsed_company_name ?? '(company unknown)'}
                                 onEdit={onEdit}
                             />
-                        </span>
+                        </div>
                         {listing.source &&
                             (listing.url ? (
                                 <a
@@ -657,17 +673,15 @@ function ListingRow({
                                     rel="noopener noreferrer"
                                     title={hostnameFromUrl(listing.url)}
                                     onClick={(e) => e.stopPropagation()}
-                                    className="rounded-full bg-secondary px-2 py-0.5 font-mono text-[10px] uppercase tracking-wide text-secondary-foreground hover:underline"
+                                    className="hover:underline"
                                 >
-                                    {listing.source.type}
+                                    <Badge variant="secondary">{listing.source.type}</Badge>
                                 </a>
                             ) : (
-                                <span className="rounded-full bg-secondary px-2 py-0.5 font-mono text-[10px] uppercase tracking-wide text-secondary-foreground">
-                                    {listing.source.type}
-                                </span>
+                                <Badge variant="secondary">{listing.source.type}</Badge>
                             ))}
                         {listing.auto_dismiss_reason ? (
-                            <Badge variant="warning" className="px-2 py-0 text-[10px]">
+                            <Badge variant="warning">
                                 {AUTO_DISMISS_REASON_LABELS[listing.auto_dismiss_reason] ?? listing.auto_dismiss_reason.replace('_', ' ')}
                             </Badge>
                         ) : null}
@@ -690,13 +704,13 @@ function ListingRow({
                             onEdit={onEdit}
                         />
                         {listing.posted_at !== null && (
-                            <span className="whitespace-nowrap text-muted-foreground/70">
+                            <div className="text-xs whitespace-nowrap">
                                 posted <RelativeDate iso={listing.posted_at} />
-                            </span>
+                            </div>
                         )}
                         {listing.stack_tags && listing.stack_tags.length > 0 && (
                             <div
-                                className="focus-visible:ring-ring flex flex-wrap items-center gap-1 rounded focus-visible:outline-none focus-visible:ring-2"
+                                className="flex flex-wrap items-center gap-1 rounded-md focus-visible:outline-2 focus-visible:outline-ring"
                                 onClick={(e) => {
                                     e.stopPropagation();
                                     onEdit('stack_tags');
@@ -713,16 +727,13 @@ function ListingRow({
                                 aria-label="Edit stack tags"
                             >
                                 {listing.stack_tags.slice(0, 8).map((tag) => (
-                                    <span
-                                        key={tag}
-                                        className="rounded-full bg-muted px-2 py-0.5 text-[11px] text-muted-foreground"
-                                    >
+                                    <Badge key={tag} variant="secondary">
                                         {tag}
-                                    </span>
+                                    </Badge>
                                 ))}
                                 <span
                                     className={cn(
-                                        'invisible text-[10px] text-muted-foreground/60 hover:text-foreground group-hover/row:visible',
+                                        'invisible text-xs text-muted-foreground group-hover/row:visible',
                                         isFocused && 'visible',
                                     )}
                                 >
@@ -739,7 +750,7 @@ function ListingRow({
                         // buttons out of tab order and hit-testing. Below sm
                         // nothing hides (touch needs always-visible targets)
                         // and the cluster wraps onto its own full-width row.
-                        'col-span-2 flex flex-wrap items-center gap-1 sm:col-span-1 sm:flex-nowrap',
+                        'col-span-2 flex flex-wrap items-center gap-2 sm:col-span-1 sm:flex-nowrap sm:gap-1',
                         'sm:invisible group-hover/row:sm:visible group-focus-within/row:sm:visible',
                         isFocused && 'sm:visible',
                     )}
@@ -748,7 +759,7 @@ function ListingRow({
                         <Button
                             size="sm"
                             variant="outline"
-                            className="min-h-11 sm:min-h-9"
+                            className="min-h-11 sm:min-h-0"
                             asChild
                         >
                             <a
@@ -765,7 +776,7 @@ function ListingRow({
                         <Button
                             size="sm"
                             variant="outline"
-                            className="min-h-11 sm:min-h-9"
+                            className="min-h-11 sm:min-h-0"
                             asChild
                         >
                             <a
@@ -781,8 +792,8 @@ function ListingRow({
                     )}
                     <Button
                         size="sm"
-                        variant="default"
-                        className="min-h-11 sm:min-h-9"
+                        variant="outline"
+                        className="min-h-11 sm:min-h-0"
                         onClick={(e) => {
                             e.stopPropagation();
                             onAction('keep');
@@ -793,7 +804,7 @@ function ListingRow({
                     <Button
                         size="sm"
                         variant="outline"
-                        className="min-h-11 sm:min-h-9"
+                        className="min-h-11 sm:min-h-0"
                         onClick={(e) => {
                             e.stopPropagation();
                             onAction('bookmark');
@@ -804,7 +815,7 @@ function ListingRow({
                     <Button
                         size="sm"
                         variant="outline"
-                        className="min-h-11 sm:min-h-9"
+                        className="min-h-11 sm:min-h-0"
                         onClick={(e) => {
                             e.stopPropagation();
                             onAction('snooze');
@@ -815,7 +826,7 @@ function ListingRow({
                     <Button
                         size="sm"
                         variant="ghost"
-                        className="min-h-11 sm:min-h-9"
+                        className="min-h-11 sm:min-h-0"
                         onClick={(e) => {
                             e.stopPropagation();
                             onAction('dismiss');
@@ -829,10 +840,10 @@ function ListingRow({
                                 size="sm"
                                 variant="ghost"
                                 aria-label="More actions"
-                                className="min-h-11 px-2 data-[state=open]:sm:visible sm:min-h-9"
+                                className="min-h-11 px-2 data-[state=open]:sm:visible sm:min-h-0"
                                 onClick={(e) => e.stopPropagation()}
                             >
-                                <span aria-hidden="true">⋯</span>
+                                <MoreHorizontal aria-hidden="true" />
                             </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
@@ -846,8 +857,8 @@ function ListingRow({
                                 <DropdownMenuItem onSelect={onSaveFixture}>Save as fixture</DropdownMenuItem>
                             )}
                             {debug && listing.parser_version != null && (
-                                <div className="px-2 py-1.5 font-mono text-[10px] uppercase tracking-wide text-muted-foreground">
-                                    parsed by v<span className="tabular-nums">{listing.parser_version}</span>
+                                <div className="px-2 py-1.5 text-xs text-muted-foreground">
+                                    Parsed by v<span className="tabular-nums">{listing.parser_version}</span>
                                 </div>
                             )}
                         </DropdownMenuContent>
@@ -855,7 +866,7 @@ function ListingRow({
                 </div>
             </div>
             {editingField !== null && (
-                <div className="px-3 pb-3 sm:px-4">
+                <div className="px-1 pb-3 sm:px-3">
                     <CorrectionEditor
                         listing={listing}
                         field={editingField}
@@ -901,9 +912,9 @@ function EditablePill({
     const muted = emphasis === 'muted';
     const isNumeric = field === 'comp_min_usd' || field === 'comp_max_usd';
     const toneClass = placeholder
-        ? 'rounded-full border border-dashed border-muted-foreground/25 font-mono text-xs uppercase tracking-wide text-muted-foreground/50 hover:border-muted-foreground/40 hover:text-muted-foreground'
+        ? 'rounded-md border border-dashed border-border text-xs text-muted-foreground'
         : muted
-          ? 'font-mono text-xs uppercase tracking-wide text-muted-foreground'
+          ? 'text-muted-foreground'
           : '';
 
     return (
@@ -914,20 +925,20 @@ function EditablePill({
                 onEdit(field);
             }}
             className={cn(
-                'group inline-flex items-center gap-1 rounded px-1 hover:bg-muted/60',
+                'group inline-flex items-center gap-1 rounded-md px-1 hover:bg-accent focus-visible:outline-2 focus-visible:outline-ring',
                 toneClass,
-                placeholder && cn('invisible group-hover/row:visible', revealed && 'visible'),
+                placeholder && cn('invisible group-hover/row:visible', revealed ? 'visible' : 'max-sm:hidden'),
                 className,
             )}
             title={placeholder ? `Add ${field.replace('_', ' ')}` : `Edit ${field.replace('_', ' ')}`}
         >
-            <span className={isNumeric ? 'font-mono tabular-nums' : undefined}>{label}</span>
+            <span className={isNumeric ? 'tabular-nums' : undefined}>{label}</span>
             {!placeholder && confidence != null && confidence < 0.7 && (
-                <Badge variant="warning" className="hidden px-1 py-0 text-[10px] group-hover:inline-flex">
+                <Badge variant="warning" className="hidden group-hover:inline-flex">
                     {Math.round(confidence * 100)}%
                 </Badge>
             )}
-            <span aria-hidden="true" className="hidden text-[10px] text-muted-foreground/60 group-hover:inline">✎</span>
+            <Pencil aria-hidden="true" className="hidden size-3 shrink-0 text-muted-foreground group-hover:inline" />
         </button>
     );
 }
@@ -956,14 +967,14 @@ function CorrectionEditor({ listing, field, debug, onSave, onCancel, onSaveFixtu
         <form
             onSubmit={submit}
             onClick={(e) => e.stopPropagation()}
-            className="mt-2 space-y-2 rounded-2xl border border-border bg-muted/30 p-3 text-sm"
+            className="mt-2 flex flex-col gap-3 rounded-xl border border-border bg-background p-4 text-base sm:text-sm"
         >
             <div className="flex flex-wrap items-center gap-2">
                 <span className="font-medium">Edit {field.replace('_', ' ')}</span>
                 {slot && (
                     <>
                         <Badge variant={slot.confidence >= 0.7 ? 'success' : 'warning'}>
-                            confidence <span className="font-mono tabular-nums">{(slot.confidence * 100).toFixed(0)}%</span>
+                            confidence <span className="tabular-nums">{(slot.confidence * 100).toFixed(0)}%</span>
                         </Badge>
                         <Badge variant="outline">source: {slot.source}</Badge>
                     </>
@@ -971,14 +982,14 @@ function CorrectionEditor({ listing, field, debug, onSave, onCancel, onSaveFixtu
             </div>
 
             {slot?.evidence && (
-                <p className="rounded-md bg-background px-2 py-1 text-xs text-muted-foreground">
+                <p className="rounded-md bg-muted px-2 py-1 text-xs text-pretty text-muted-foreground">
                     <span className="font-medium text-foreground">evidence:</span> {slot.evidence}
                 </p>
             )}
 
             <FieldInput field={field} value={value} onChange={setValue} />
 
-            <div className="flex items-center gap-2 pt-1">
+            <div className="flex flex-wrap items-center gap-2">
                 <Button type="submit" size="sm">
                     Save
                 </Button>
@@ -993,14 +1004,14 @@ function CorrectionEditor({ listing, field, debug, onSave, onCancel, onSaveFixtu
                 <button
                     type="button"
                     onClick={() => setShowRaw((v) => !v)}
-                    className="ml-auto text-xs text-muted-foreground hover:text-foreground"
+                    className="ml-auto text-xs text-muted-foreground hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring"
                 >
                     {showRaw ? 'Hide raw' : 'View raw'}
                 </button>
             </div>
 
             {showRaw && (
-                <pre className="max-h-64 overflow-auto rounded-md border border-border bg-background p-2 font-mono text-[11px] leading-tight">
+                <pre className="max-h-64 overflow-auto rounded-md border border-border bg-muted p-2 font-mono text-xs leading-tight">
                     {JSON.stringify(listing.raw, null, 2)}
                 </pre>
             )}
@@ -1019,22 +1030,26 @@ function FieldInput({
 }) {
     if (field === 'remote_type') {
         return (
-            <select
+            <NativeSelect
+                name="remote_type"
+                aria-label="Remote type"
                 value={typeof value === 'string' ? value : 'unknown'}
                 onChange={(e) => onChange(e.currentTarget.value)}
-                className="w-full rounded-md border border-border bg-background px-2 py-1"
+                wrapperClassName="w-full"
             >
                 <option value="remote">remote</option>
                 <option value="hybrid">hybrid</option>
                 <option value="on_site">on_site</option>
                 <option value="unknown">unknown</option>
-            </select>
+            </NativeSelect>
         );
     }
     if (field === 'comp_min_usd' || field === 'comp_max_usd') {
         return (
             <Input
                 type="number"
+                name={field}
+                aria-label={field === 'comp_min_usd' ? 'Minimum compensation (USD)' : 'Maximum compensation (USD)'}
                 min={0}
                 value={typeof value === 'number' ? value : ''}
                 onChange={(e) => onChange(e.currentTarget.value === '' ? null : Number(e.currentTarget.value))}
@@ -1047,6 +1062,8 @@ function FieldInput({
         return (
             <Input
                 type="text"
+                name="stack_tags"
+                aria-label="Stack tags"
                 value={text}
                 onChange={(e) =>
                     onChange(
@@ -1063,6 +1080,8 @@ function FieldInput({
     return (
         <Input
             type="text"
+            name={field}
+            aria-label={`Edit ${field.replace('_', ' ')}`}
             value={typeof value === 'string' ? value : ''}
             onChange={(e) => onChange(e.currentTarget.value)}
         />
@@ -1110,13 +1129,7 @@ function currentValueFor(listing: Listing, field: EditableField): CorrectionValu
     }
 }
 
-function EmptyState() {
-    return (
-        <Card>
-            <CardContent className="py-12 text-center text-sm text-muted-foreground">
-                Nothing in this view. Try a different status tab or run the scrapers.
-            </CardContent>
-        </Card>
-    );
+function DiscoverEmptyState() {
+    return <EmptyState>Nothing in this view. Try a different status tab or run the scrapers.</EmptyState>;
 }
 
