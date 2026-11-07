@@ -10,12 +10,12 @@
  * into the same job as the specs it feeds. Playwright is not a project
  * dependency; run it ad hoc against a running app:
  *
- *   pnpm dlx playwright install chromium
+ *   pnpm exec playwright install chromium
  *   APP_URL=http://localhost:8080 \
  *   LOGIN_EMAIL=admin@vantagejobs.test \
  *   LOGIN_PASSWORD=... \
  *   STORAGE_STATE=/tmp/vj-auth.json \
- *     pnpm dlx playwright test tests/browser/capture-auth-state.ts
+ *     pnpm exec playwright test tests/browser/capture-auth-state.ts
  *
  * Authentication: this app uses session cookies (Fortify). The seeded user
  * must not have two-factor confirmed, or Fortify will redirect to the 2FA

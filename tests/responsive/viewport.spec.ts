@@ -10,9 +10,9 @@
  * into CI. Playwright is not a project dependency; run it ad hoc against a
  * running dev server:
  *
- *   pnpm dlx playwright install chromium
+ *   pnpm exec playwright install chromium
  *   APP_URL=http://localhost STORAGE_STATE=tests/responsive/.auth.json \
- *     pnpm dlx playwright test tests/responsive/viewport.spec.ts
+ *     pnpm exec playwright test tests/responsive/viewport.spec.ts
  *
  * Authentication: this app uses session cookies (Fortify). Capture a logged-in
  * storage state once and point STORAGE_STATE at it, or set BYPASS_AUTH in a

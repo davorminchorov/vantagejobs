@@ -12,12 +12,11 @@
  * into CI. Neither Playwright nor axe-core is a project dependency; run it ad
  * hoc against a running dev server:
  *
- *   pnpm dlx playwright install chromium
+ *   pnpm exec playwright install chromium
  *   APP_URL=http://localhost STORAGE_STATE=tests/a11y/.auth.json \
- *     pnpm dlx playwright test tests/a11y/axe.spec.ts
+ *     pnpm exec playwright test tests/a11y/axe.spec.ts
  *
- * The `@axe-core/playwright` integration is loaded with `pnpm dlx` at run time
- * so it never lands in package.json.
+ * The `@axe-core/playwright` integration is a devDependency.
  *
  * Authentication: this app uses session cookies (Fortify). Capture a logged-in
  * storage state once and point STORAGE_STATE at it. Without auth the priority

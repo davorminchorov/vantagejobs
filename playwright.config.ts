@@ -1,7 +1,7 @@
 /**
  * Shared config for the dev-only Playwright specs under tests/responsive,
- * tests/a11y, and tests/browser. Neither Playwright nor axe-core is a
- * project dependency; run these ad hoc with `pnpm dlx playwright test ...`
+ * tests/a11y, and tests/browser. @playwright/test and @axe-core/playwright
+ * are devDependencies; run the specs with `pnpm exec playwright test ...`
  * (see each spec's own docblock for the exact invocation and env vars).
  *
  * STORAGE_STATE, when set, seeds every test's browser context so the

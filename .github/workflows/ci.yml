@@ -88,10 +88,9 @@ jobs:
         if: always()
         run: $COMPOSE down -v
 
-  # Playwright specs against a real, seeded app. Neither Playwright nor
-  # axe-core is a project dependency (see the specs' own docblocks); both are
-  # fetched ad hoc with pnpm dlx. Hasn't run in CI before, so it doesn't gate
-  # the pipeline yet.
+  # Playwright specs against a real, seeded app, using the @playwright/test
+  # and @axe-core/playwright devDependencies. Non-blocking until it has a
+  # track record of passing.
   browser:
     runs-on: ubuntu-latest
     continue-on-error: true
@@ -179,16 +178,13 @@ jobs:
           exit 1
 
       - name: Install Playwright browsers
-        run: pnpm dlx playwright@latest install --with-deps chromium
+        run: pnpm exec playwright install --with-deps chromium
 
       - name: Capture an authenticated storage state
-        run: pnpm dlx playwright@latest test tests/browser/capture-auth-state.ts
+        run: pnpm exec playwright test tests/browser/capture-auth-state.ts
 
-      # Both specs run in one invocation per their own docblocks; axe.spec.ts
-      # imports @axe-core/playwright, so it's pulled in as a second dlx
-      # package alongside playwright itself.
       - name: Run responsive and a11y specs
-        run: pnpm dlx --package playwright@latest --package @axe-core/playwright playwright test tests/responsive/viewport.spec.ts tests/a11y/axe.spec.ts
+        run: pnpm exec playwright test tests/responsive/viewport.spec.ts tests/a11y/axe.spec.ts
 
       - name: Dump app logs on failure
         if: failure()
