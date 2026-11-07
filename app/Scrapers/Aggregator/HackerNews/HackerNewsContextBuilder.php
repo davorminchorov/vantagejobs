@@ -40,6 +40,10 @@ final class HackerNewsContextBuilder
      */
     private const SEPARATORS = ['|', ' – ', ' — ', ' - '];
 
+    public function __construct(
+        private readonly JobSeekerDetector $jobSeekerDetector = new JobSeekerDetector(),
+    ) {}
+
     /**
      * @param  array{id?: int|string, author?: string, text?: string, created_at?: string}  $comment
      */
@@ -75,6 +79,7 @@ final class HackerNewsContextBuilder
             postedAt: $postedAt,
             externalId: $externalId,
             url: $contextUrl,
+            autoDismissReason: $this->jobSeekerDetector->looksLikeJobSeeker($bodyText) ? JobSeekerDetector::REASON : null,
         );
     }
 

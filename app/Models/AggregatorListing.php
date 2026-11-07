@@ -37,6 +37,7 @@ use Illuminate\Database\Eloquent\Relations\MorphMany;
     'requisition_id',
     'ghost_flag',
     'ghost_reasons',
+    'auto_dismiss_reason',
     'status',
     'matched_company_id',
     'duplicate_of_id',

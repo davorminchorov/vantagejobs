@@ -98,7 +98,9 @@ final readonly class AggregatorListingPersister
         }
 
         // Preserve user-set status on re-fetch — the triage UI is downstream.
-        unset($attrs['status']);
+        // The auto-dismiss reason only ever accompanies the status set at
+        // creation, so it isn't rewritten either.
+        unset($attrs['status'], $attrs['auto_dismiss_reason']);
         $existing->fill($attrs)->save();
 
         $this->touchLinkedRole($existing);
@@ -403,7 +405,13 @@ final readonly class AggregatorListingPersister
             'normalized_role_key' => $roleKey = $this->normalizer->normalize($this->asString($parsed->value('role_title'))),
             'location_bucket' => $locationBucket = $this->asString($parsed->value('region')),
             'role_hash' => $this->hasher->hash($companyKey, $roleKey, $locationBucket),
-            'status' => AggregatorListingStatus::NEW->value,
+            // A source-specific detector (e.g. a job seeker posting in the HN
+            // hiring thread) can route the listing straight to the
+            // Auto-dismissed tab, where it stays recoverable via Keep.
+            'status' => $context->autoDismissReason !== null
+                ? AggregatorListingStatus::AUTO_DISMISSED->value
+                : AggregatorListingStatus::NEW->value,
+            'auto_dismiss_reason' => $context->autoDismissReason,
             'posted_at' => $context->postedAt,
             'fetched_at' => CarbonImmutable::now(),
         ];

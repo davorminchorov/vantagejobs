@@ -40,6 +40,7 @@ interface Listing {
     stack_tags: string[] | null;
     location_bucket: string | null;
     status: string;
+    auto_dismiss_reason: string | null;
     posted_at: string | null;
     source: SourceRef | null;
     parsed: Record<string, ParsedSlot> | null;
@@ -547,6 +548,9 @@ function ListingRow({
     onReparse,
     ref,
 }: ListingRowProps) {
+    const hnCommentUrl = hackerNewsCommentUrl(listing);
+    const titleHref = listing.url ?? hnCommentUrl;
+
     return (
         <li
             ref={ref}
@@ -578,9 +582,9 @@ function ListingRow({
                 <div className="min-w-0">
                     <div className="flex flex-wrap items-baseline gap-2 sm:flex-nowrap">
                         <h3 className="min-w-0 text-sm font-medium sm:truncate">
-                            {listing.url ? (
+                            {titleHref ? (
                                 <a
-                                    href={listing.url}
+                                    href={titleHref}
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     onClick={(e) => e.stopPropagation()}
@@ -662,6 +666,11 @@ function ListingRow({
                                     {listing.source.type}
                                 </span>
                             ))}
+                        {listing.auto_dismiss_reason ? (
+                            <Badge variant="warning" className="px-2 py-0 text-[10px]">
+                                {AUTO_DISMISS_REASON_LABELS[listing.auto_dismiss_reason] ?? listing.auto_dismiss_reason.replace('_', ' ')}
+                            </Badge>
+                        ) : null}
                         <EditablePill
                             listing={listing}
                             field="remote_type"
@@ -749,6 +758,24 @@ function ListingRow({
                                 onClick={(e) => e.stopPropagation()}
                             >
                                 Open ↗
+                            </a>
+                        </Button>
+                    )}
+                    {hnCommentUrl && (
+                        <Button
+                            size="sm"
+                            variant="outline"
+                            className="min-h-11 sm:min-h-9"
+                            asChild
+                        >
+                            <a
+                                href={hnCommentUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                title="View this posting on Hacker News"
+                                onClick={(e) => e.stopPropagation()}
+                            >
+                                HN ↗
                             </a>
                         </Button>
                     )}
@@ -1040,6 +1067,18 @@ function FieldInput({
             onChange={(e) => onChange(e.currentTarget.value)}
         />
     );
+}
+
+const AUTO_DISMISS_REASON_LABELS: Record<string, string> = {
+    job_seeker: 'looks like a job seeker',
+};
+
+/** The posting's own comment on Hacker News (HN listings use the comment id as external_id). */
+function hackerNewsCommentUrl(listing: Listing): string | null {
+    if (listing.source?.type !== 'hackernews' || !listing.external_id) {
+        return null;
+    }
+    return `https://news.ycombinator.com/item?id=${encodeURIComponent(listing.external_id)}`;
 }
 
 function hostnameFromUrl(url: string): string {

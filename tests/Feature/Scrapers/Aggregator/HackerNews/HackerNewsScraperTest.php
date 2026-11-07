@@ -100,6 +100,47 @@ final class HackerNewsScraperTest extends TestCase
     }
 
     #[Test]
+    public function job_seeker_comments_are_auto_dismissed_with_a_reason(): void
+    {
+        $this->fakeAlgolia($this->buildThread([[
+            'id' => 70000001,
+            'author' => 'seeker',
+            'text' => 'I&#x27;m Jane Doe, a Software Engineer focused on full-stack development and AI-powered applications. I work with React, TypeScript and Python.',
+            'created_at' => '2026-11-06T05:11:29Z',
+            'children' => [],
+        ]]));
+
+        $result = $this->scraper->run($this->source);
+
+        $listing = AggregatorListing::query()->where('external_id', '70000001')->firstOrFail();
+        $this->assertSame(1, $result->newCount);
+        $this->assertSame(AggregatorListingStatus::AUTO_DISMISSED, $listing->status);
+        $this->assertSame('job_seeker', $listing->auto_dismiss_reason);
+    }
+
+    #[Test]
+    public function refetching_a_restored_job_seeker_listing_keeps_the_users_status(): void
+    {
+        $thread = $this->buildThread([[
+            'id' => 70000002,
+            'author' => 'seeker',
+            'text' => 'Location: Dorset, UK<p>Remote: Yes<p>Willing to relocate: No<p>Technologies: Ruby on Rails, Python, PostgreSQL',
+            'created_at' => '2026-11-06T05:11:29Z',
+            'children' => [],
+        ]]);
+        $this->fakeAlgolia($thread);
+        $this->scraper->run($this->source);
+
+        $listing = AggregatorListing::query()->where('external_id', '70000002')->firstOrFail();
+        $listing->update(['status' => AggregatorListingStatus::KEPT]);
+
+        $this->fakeAlgolia($thread);
+        $this->scraper->run($this->source);
+
+        $this->assertSame(AggregatorListingStatus::KEPT, $listing->fresh()->status);
+    }
+
+    #[Test]
     public function persists_the_full_apply_url_for_real_shaped_multi_paragraph_comments(): void
     {
         $this->fakeAlgolia($this->buildThread($this->loadFixtureChildren()));

@@ -34,5 +34,6 @@ final readonly class SourceContext
         public ?CarbonImmutable $postedAt = null,
         public ?string $externalId = null,
         public ?string $url = null,
+        public ?string $autoDismissReason = null,
     ) {}
 }
