@@ -7,6 +7,7 @@ namespace App\Console\Commands;
 use App\Models\Company;
 use App\Models\FundingCandidate;
 use App\Signals\Funding\FundingFetchException;
+use App\Signals\Funding\FundingHeadlineFilter;
 use App\Signals\Funding\GoogleNewsClient;
 use App\Tenancy\Tenant;
 use App\Tenancy\TenantContext;
@@ -19,7 +20,9 @@ use Throwable;
 /**
  * Weekly per-company scan of Google News RSS for funding keywords.
  * Each plausible hit becomes a CANDIDATE funding event stored in the
- * funding_candidates review queue. No Company funding scalars are
+ * funding_candidates review queue. Before each company is scanned, its
+ * unreviewed candidates are re-checked against FundingHeadlineFilter and
+ * the ones that no longer pass are removed. No Company funding scalars are
  * touched — a user confirms in the UI to promote a candidate into a
  * real funding Event. See PRD §6.3.5, SOURCES §4.5.
  *
@@ -37,6 +40,7 @@ final class SignalsFundingNewsCommand extends Command
         private readonly GoogleNewsClient $client,
         private readonly LoggerInterface $logger,
         private readonly ConnectionInterface $db,
+        private readonly FundingHeadlineFilter $filter,
     ) {
         parent::__construct();
     }
@@ -66,6 +70,7 @@ final class SignalsFundingNewsCommand extends Command
         $companiesScanned = 0;
         $candidatesNew = 0;
         $candidatesTotal = 0;
+        $candidatesPruned = 0;
         $errors = 0;
 
         foreach ($companies as $company) {
@@ -75,6 +80,8 @@ final class SignalsFundingNewsCommand extends Command
             if ($name === '') {
                 continue;
             }
+
+            $candidatesPruned += $this->pruneUnreviewed($company, $name);
 
             try {
                 $items = $this->client->search($name);
@@ -129,11 +136,33 @@ final class SignalsFundingNewsCommand extends Command
             'companies_scanned' => $companiesScanned,
             'candidates_new' => $candidatesNew,
             'candidates_total' => $candidatesTotal,
+            'candidates_pruned' => $candidatesPruned,
             'errors' => $errors,
             'duration_ms' => $finishedAt->diffInMilliseconds($startedAt, true),
         ], JSON_THROW_ON_ERROR));
 
         return self::SUCCESS;
+    }
+
+    /**
+     * Re-check the company's unreviewed candidates against the current filter
+     * rules and delete the ones that no longer pass (too old, rule changes).
+     * Confirmed and dismissed rows are history and are never touched.
+     */
+    private function pruneUnreviewed(Company $company, string $name): int
+    {
+        $stale = FundingCandidate::query()
+            ->where('company_id', $company->id)
+            ->where('status', FundingCandidate::STATUS_NEW)
+            ->get(['id', 'title', 'published_at'])
+            ->reject(fn (FundingCandidate $row): bool => $this->filter->accepts((string) $row->title, $name, $row->published_at))
+            ->pluck('id');
+
+        if ($stale->isEmpty()) {
+            return 0;
+        }
+
+        return FundingCandidate::query()->whereKey($stale->all())->delete();
     }
 
     /**

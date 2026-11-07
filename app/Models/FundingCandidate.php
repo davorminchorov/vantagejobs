@@ -53,6 +53,28 @@ final class FundingCandidate extends Model
         'closes round',
     ];
 
+    /**
+     * Articles published longer ago than this are not stored, so the review
+     * queue only holds recent news.
+     */
+    public const MAX_AGE_MONTHS = 12;
+
+    /**
+     * Company directory and profile sites. Their pages ("2026 Funding Rounds
+     * & List of Investors") match funding keywords without reporting news.
+     * Compared against the RSS source host and the publisher name with
+     * spaces and punctuation removed.
+     *
+     * @var list<string>
+     */
+    public const DIRECTORY_SITES = [
+        'tracxn',
+        'getlatka',
+        'crunchbase',
+        'pitchbook',
+        'cbinsights',
+    ];
+
     protected function casts(): array
     {
         return [

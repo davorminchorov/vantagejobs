@@ -8,6 +8,7 @@ use App\Models\Company;
 use App\Models\FundingCandidate;
 use App\Tenancy\Tenant;
 use App\Tenancy\TenantContext;
+use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Http;
@@ -23,6 +24,7 @@ final class FundingNewsTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        CarbonImmutable::setTestNow('2026-11-07 12:00:00');
         $this->tenant = Tenant::factory()->create(['slug' => 'primary']);
         app(TenantContext::class)->setCurrent($this->tenant);
     }
@@ -184,19 +186,121 @@ final class FundingNewsTest extends TestCase
         );
     }
 
+    #[Test]
+    public function articles_older_than_twelve_months_or_undated_are_skipped(): void
+    {
+        $company = Company::factory()->create(['name' => 'Acme Co', 'is_active' => true]);
+
+        Http::fake([
+            'news.google.com/*' => Http::response($this->rssFeed([
+                ['guid' => 'recent', 'title' => 'Acme Co raised $20M Series B', 'link' => 'https://news.example.com/1', 'pubDate' => 'Mon, 10 Nov 2025 10:00:00 +0000'],
+                ['guid' => 'old', 'title' => 'Acme Co raised $5M Series A', 'link' => 'https://news.example.com/2', 'pubDate' => 'Wed, 05 Nov 2025 10:00:00 +0000'],
+                ['guid' => 'undated', 'title' => 'Acme Co raised $1M seed', 'link' => 'https://news.example.com/3', 'pubDate' => ''],
+            ]), 200, ['Content-Type' => 'application/rss+xml']),
+        ]);
+
+        Artisan::call('signals:funding:news', ['--tenant' => 'primary']);
+
+        $this->assertSame(['recent'], FundingCandidate::query()->where('company_id', $company->id)->pluck('external_id')->all());
+    }
+
+    #[Test]
+    public function headlines_that_do_not_name_the_company_are_skipped(): void
+    {
+        $laravel = Company::factory()->create(['name' => 'Laravel', 'is_active' => true]);
+        $wex = Company::factory()->create(['name' => 'WEX Inc.', 'is_active' => true]);
+
+        Http::fake([
+            'news.google.com/*' => Http::sequence()
+                ->push($this->rssFeed([
+                    ['guid' => 'other-company', 'title' => 'CodeRabbit raised $60M and celebrated with a short film - Laravel News', 'link' => 'https://news.example.com/1', 'pubDate' => 'Tue, 11 Nov 2025 10:00:00 +0000'],
+                    ['guid' => 'named', 'title' => 'Laravel raised $57M Series A - TechCrunch', 'link' => 'https://news.example.com/2', 'pubDate' => 'Tue, 11 Nov 2025 10:00:00 +0000'],
+                ]), 200, ['Content-Type' => 'application/rss+xml'])
+                ->push($this->rssFeed([
+                    ['guid' => 'substring', 'title' => 'Wexford startup raised $3M', 'link' => 'https://news.example.com/3', 'pubDate' => 'Tue, 11 Nov 2025 10:00:00 +0000'],
+                    ['guid' => 'wex', 'title' => 'WEX closes round with new lenders', 'link' => 'https://news.example.com/4', 'pubDate' => 'Tue, 11 Nov 2025 10:00:00 +0000'],
+                ]), 200, ['Content-Type' => 'application/rss+xml']),
+        ]);
+
+        Artisan::call('signals:funding:news', ['--tenant' => 'primary']);
+
+        $this->assertSame(['named'], FundingCandidate::query()->where('company_id', $laravel->id)->pluck('external_id')->all());
+        $this->assertSame(['wex'], FundingCandidate::query()->where('company_id', $wex->id)->pluck('external_id')->all());
+    }
+
+    #[Test]
+    public function company_directory_sites_are_skipped(): void
+    {
+        $company = Company::factory()->create(['name' => 'Vercel', 'is_active' => true]);
+
+        Http::fake([
+            'news.google.com/*' => Http::response($this->rssFeed([
+                ['guid' => 'tracxn', 'title' => 'Vercel - 2026 Funding Rounds &amp; List of Investors - Tracxn', 'link' => 'https://news.example.com/1', 'pubDate' => 'Sat, 10 Oct 2026 10:00:00 +0000', 'source' => 'https://tracxn.com'],
+                ['guid' => 'cb-insights', 'title' => 'Vercel raised $250M Series E - CB Insights', 'link' => 'https://news.example.com/2', 'pubDate' => 'Sat, 10 Oct 2026 10:00:00 +0000'],
+                ['guid' => 'news', 'title' => 'Vercel raised $250M Series E - Fortune', 'link' => 'https://news.example.com/3', 'pubDate' => 'Sat, 10 Oct 2026 10:00:00 +0000', 'source' => 'https://fortune.com'],
+            ]), 200, ['Content-Type' => 'application/rss+xml']),
+        ]);
+
+        Artisan::call('signals:funding:news', ['--tenant' => 'primary']);
+
+        $this->assertSame(['news'], FundingCandidate::query()->where('company_id', $company->id)->pluck('external_id')->all());
+    }
+
+    #[Test]
+    public function unreviewed_candidates_that_no_longer_pass_the_filters_are_removed(): void
+    {
+        $company = Company::factory()->create(['name' => 'Airbnb', 'is_active' => true]);
+        $noise = FundingCandidate::factory()->create([
+            'company_id' => $company->id,
+            'title' => 'Airbnb price target raised to $230 from $210 at Oppenheimer - Yahoo Finance',
+            'published_at' => CarbonImmutable::parse('2026-11-06'),
+        ]);
+        $tooOld = FundingCandidate::factory()->create([
+            'company_id' => $company->id,
+            'title' => 'Airbnb raises $1B Series F - TechCrunch',
+            'published_at' => CarbonImmutable::parse('2020-04-06'),
+        ]);
+        $kept = FundingCandidate::factory()->create([
+            'company_id' => $company->id,
+            'title' => 'Airbnb closes round led by Sequoia - Reuters',
+            'published_at' => CarbonImmutable::parse('2026-10-01'),
+        ]);
+        $dismissedNoise = FundingCandidate::factory()->create([
+            'company_id' => $company->id,
+            'status' => FundingCandidate::STATUS_DISMISSED,
+            'title' => 'Airbnb Raised Guidance While Travel Rivals Got Cautious - Money Morning',
+            'published_at' => CarbonImmutable::parse('2026-11-06'),
+        ]);
+
+        Http::fake(['news.google.com/*' => Http::response($this->rssFeed([]), 200, ['Content-Type' => 'application/rss+xml'])]);
+
+        Artisan::call('signals:funding:news', ['--tenant' => 'primary']);
+        $summary = json_decode(trim(Artisan::output()), true);
+
+        $this->assertSame(2, $summary['candidates_pruned']);
+        $this->assertNull(FundingCandidate::query()->find($noise->id));
+        $this->assertNull(FundingCandidate::query()->find($tooOld->id));
+        $this->assertNotNull(FundingCandidate::query()->find($kept->id));
+        $this->assertNotNull(FundingCandidate::query()->find($dismissedNoise->id));
+    }
+
     /**
-     * @param  list<array{guid: string, title: string, link: string, pubDate: string}>  $items
+     * @param  list<array{guid: string, title: string, link: string, pubDate: string, source?: string}>  $items
      */
     private function rssFeed(array $items): string
     {
         $itemXml = '';
         foreach ($items as $item) {
+            $source = isset($item['source'])
+                ? '<source url="'.$item['source'].'">'.parse_url($item['source'], PHP_URL_HOST).'</source>'
+                : '';
             $itemXml .= <<<XML
                 <item>
                   <guid>{$item['guid']}</guid>
                   <title>{$item['title']}</title>
                   <link>{$item['link']}</link>
                   <pubDate>{$item['pubDate']}</pubDate>
+                  {$source}
                 </item>
                 XML;
         }
