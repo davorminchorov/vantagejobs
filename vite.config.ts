@@ -21,6 +21,10 @@ const devHttps =
         : undefined;
 
 export default defineConfig(({ command }) => ({
+    // Pre-commit (.vite-hooks/pre-commit): format, lint and type-check staged files.
+    staged: {
+        '*.{ts,tsx}': 'vp check --fix',
+    },
     fmt: {
         singleQuote: true,
         tabWidth: 4,
