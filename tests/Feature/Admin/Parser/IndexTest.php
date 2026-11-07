@@ -141,6 +141,8 @@ final class IndexTest extends TestCase
         DB::enableQueryLog();
         $response = $this->actingAs($this->user)->get('/admin/parser');
         $response->assertOk();
+        $response->assertInertia(fn ($page) => $page
+            ->where('recent_corrections.0.source_id', $this->remotive->id));
         $queries = DB::getQueryLog();
         DB::disableQueryLog();
 

@@ -11,6 +11,7 @@ use App\Models\ParseCorrection;
 use App\Models\ParserConfidenceDaily;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\ConnectionInterface;
+use Illuminate\Database\Eloquent\Collection;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -82,8 +83,8 @@ final readonly class IndexController
      * Aggregate (source_id, field) → {n, weighted_p50, n_corrections}
      * over the 30-day window. Returns indexed cells for the heat-map.
      *
-     * @param  \Illuminate\Database\Eloquent\Collection<int, ParserConfidenceDaily>  $rollups
-     * @param  \Illuminate\Database\Eloquent\Collection<int, AggregatorSource>  $sources
+     * @param  Collection<int, ParserConfidenceDaily>  $rollups
+     * @param  Collection<int, AggregatorSource>  $sources
      * @return array<int, array{
      *     source_id: int,
      *     source_type: string,
@@ -145,8 +146,8 @@ final readonly class IndexController
      * Weight by log(n+1) so a 1-row outlier with p50=0 doesn't beat a 100-row
      * pair with p50=0.3.
      *
-     * @param  \Illuminate\Database\Eloquent\Collection<int, ParserConfidenceDaily>  $rollups
-     * @param  \Illuminate\Database\Eloquent\Collection<int, AggregatorSource>  $sources
+     * @param  Collection<int, ParserConfidenceDaily>  $rollups
+     * @param  Collection<int, AggregatorSource>  $sources
      * @return list<array{
      *     source_id: int,
      *     source_type: string,
@@ -183,8 +184,8 @@ final readonly class IndexController
     /**
      * Top 10 (source, field) pairs by correction count over the window.
      *
-     * @param  \Illuminate\Database\Eloquent\Collection<int, ParserConfidenceDaily>  $rollups
-     * @param  \Illuminate\Database\Eloquent\Collection<int, AggregatorSource>  $sources
+     * @param  Collection<int, ParserConfidenceDaily>  $rollups
+     * @param  Collection<int, AggregatorSource>  $sources
      * @return list<array{
      *     source_id: int,
      *     source_type: string,
@@ -224,6 +225,7 @@ final readonly class IndexController
      *     id: int,
      *     created_at: string,
      *     field: string,
+     *     source_id: ?int,
      *     source_type: string,
      *     listing_id: int,
      *     listing_role_title: ?string,
@@ -248,6 +250,7 @@ final readonly class IndexController
                         ? $c->created_at->toIso8601String()
                         : (string) $c->created_at,
                     'field' => (string) $c->field,
+                    'source_id' => $listing?->source_id !== null ? (int) $listing->source_id : null,
                     'source_type' => $sourceType instanceof AggregatorSourceType
                         ? $sourceType->value
                         : (string) ($sourceType ?? ''),

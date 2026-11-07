@@ -3,6 +3,7 @@ import { useMemo, useState } from 'react';
 
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Button } from '@/components/ui/button';
+import { DataTableScroll } from '@/components/ui/data-table-scroll';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -47,6 +48,7 @@ interface RecentCorrection {
     id: number;
     created_at: string;
     field: string;
+    source_id: number | null;
     source_type: string;
     listing_id: number;
     listing_role_title: string | null;
@@ -71,22 +73,44 @@ interface Props {
     thresholds: Thresholds;
 }
 
-function classifyConfidence(p50: number | null, thresholds: Thresholds): string {
+const FIELD_LABELS: Record<string, string> = {
+    company_name: 'Company name',
+    role_title: 'Role title',
+    discipline: 'Discipline',
+    seniority: 'Seniority',
+    location: 'Location',
+    region: 'Region',
+    remote: 'Remote',
+    compensation: 'Compensation',
+    stack_tags: 'Stack tags',
+    employment_type: 'Employment type',
+    visa_sponsorship: 'Visa sponsorship',
+};
+
+function fieldLabel(field: string): string {
+    if (FIELD_LABELS[field]) {
+        return FIELD_LABELS[field];
+    }
+    const spaced = field.replace(/_/g, ' ');
+    return spaced.charAt(0).toUpperCase() + spaced.slice(1);
+}
+
+function confidenceTextClass(p50: number | null, thresholds: Thresholds): string {
     if (p50 === null) {
-        return 'bg-muted text-muted-foreground';
+        return 'text-muted-foreground';
     }
     if (p50 < thresholds.red_below) {
-        return 'bg-rose-50 text-rose-700 dark:bg-rose-400/10 dark:text-rose-300';
+        return 'text-rose-700 dark:text-rose-300';
     }
     if (p50 < thresholds.green_at_or_above) {
-        return 'bg-amber-50 text-amber-800 dark:bg-amber-400/10 dark:text-amber-300';
+        return 'text-amber-800 dark:text-amber-300';
     }
-    return 'bg-emerald-50 text-emerald-700 dark:bg-emerald-400/10 dark:text-emerald-300';
+    return 'text-emerald-700 dark:text-emerald-300';
 }
 
 function summarizeValue(value: unknown): string {
     if (value === null || value === undefined) {
-        return '—';
+        return '–';
     }
     if (typeof value === 'string') {
         return value;
@@ -117,6 +141,14 @@ export default function AdminParserIndex({
 }: Props) {
     const [showConfirm, setShowConfirm] = useState(false);
     const [confirmText, setConfirmText] = useState('');
+
+    const sourceNameById = useMemo(() => {
+        const map: Record<number, string> = {};
+        for (const source of sources) {
+            map[source.id] = source.name;
+        }
+        return map;
+    }, [sources]);
 
     const cellByKey = useMemo(() => {
         const map: Record<string, MatrixCell> = {};
@@ -198,20 +230,20 @@ export default function AdminParserIndex({
                     <>
                         <section className="flex flex-col gap-3">
                             <SectionLabel>Median confidence by source × field</SectionLabel>
-                            <div className="w-full max-w-full overflow-x-auto">
+                            <DataTableScroll>
                                 <table className="min-w-full text-base sm:text-sm">
                                     <thead>
                                         <tr className="border-border border-b text-left">
-                                            <th className="text-muted-foreground px-3 py-2 text-sm font-medium whitespace-nowrap">
+                                            <th className="bg-background text-muted-foreground sticky left-0 z-10 px-3 py-2 text-sm font-medium whitespace-nowrap">
                                                 Source
                                             </th>
                                             {fields.map((field) => (
                                                 <th
                                                     key={field}
-                                                    className="text-muted-foreground px-2 py-2 text-center text-sm font-medium whitespace-nowrap"
+                                                    className="text-muted-foreground px-3 py-2 text-right text-sm font-medium whitespace-nowrap"
                                                     title={field}
                                                 >
-                                                    {field}
+                                                    {fieldLabel(field)}
                                                 </th>
                                             ))}
                                         </tr>
@@ -219,23 +251,24 @@ export default function AdminParserIndex({
                                     <tbody className="divide-border divide-y">
                                         {sources.map((source) => (
                                             <tr key={source.id}>
-                                                <td className="px-3 py-2 font-medium whitespace-nowrap">{source.name}</td>
+                                                <td className="bg-background sticky left-0 z-10 px-3 py-2 font-medium whitespace-nowrap">
+                                                    {source.name}
+                                                </td>
                                                 {fields.map((field) => {
                                                     const cell = cellByKey[`${source.id}:${field}`];
                                                     const p50 = cell?.p50 ?? null;
-                                                    const klass = classifyConfidence(p50, thresholds);
                                                     return (
-                                                        <td key={field} className="px-1 py-1 text-center">
+                                                        <td key={field} className="px-3 py-2 text-right">
                                                             <a
                                                                 href={discoverLinkFor(source.type)}
-                                                                className={`hover:ring-ring block rounded-md px-2 py-2 font-mono text-sm tabular-nums hover:ring-2 hover:ring-offset-1 ${klass}`}
+                                                                className={`text-sm tabular-nums hover:underline ${confidenceTextClass(p50, thresholds)}`}
                                                                 title={
                                                                     cell
-                                                                        ? `n=${cell.n}  p50=${p50?.toFixed(2) ?? '—'}  corrections=${cell.n_corrections}`
+                                                                        ? `n=${cell.n}  p50=${p50?.toFixed(2) ?? '–'}  corrections=${cell.n_corrections}`
                                                                         : 'no data'
                                                                 }
                                                             >
-                                                                {p50 === null ? '—' : p50.toFixed(2)}
+                                                                {p50 === null ? '–' : p50.toFixed(2)}
                                                             </a>
                                                         </td>
                                                     );
@@ -244,7 +277,7 @@ export default function AdminParserIndex({
                                         ))}
                                     </tbody>
                                 </table>
-                            </div>
+                            </DataTableScroll>
                         </section>
 
                         <div className="border-border grid grid-cols-1 gap-8 border-t pt-6 lg:grid-cols-2">
@@ -264,14 +297,14 @@ export default function AdminParserIndex({
                                                         href={discoverLinkFor(row.source_type)}
                                                         className="text-primary font-medium hover:underline"
                                                     >
-                                                        {row.source_type}
+                                                        {sourceNameById[row.source_id] ?? row.source_type}
                                                     </a>
                                                     <span className="text-muted-foreground"> · </span>
-                                                    <span>{row.field}</span>
+                                                    <span>{fieldLabel(row.field)}</span>
                                                 </div>
                                                 <div className="text-muted-foreground shrink-0 text-right text-sm">
-                                                    p50 <span className="font-mono tabular-nums">{row.p50.toFixed(2)}</span> · n{' '}
-                                                    <span className="font-mono tabular-nums">{row.n}</span>
+                                                    p50 <span className="tabular-nums">{row.p50.toFixed(2)}</span> · n{' '}
+                                                    <span className="tabular-nums">{row.n}</span>
                                                 </div>
                                             </li>
                                         ))}
@@ -295,12 +328,12 @@ export default function AdminParserIndex({
                                                         href={discoverLinkFor(row.source_type)}
                                                         className="text-primary font-medium hover:underline"
                                                     >
-                                                        {row.source_type}
+                                                        {sourceNameById[row.source_id] ?? row.source_type}
                                                     </a>
                                                     <span className="text-muted-foreground"> · </span>
-                                                    <span>{row.field}</span>
+                                                    <span>{fieldLabel(row.field)}</span>
                                                 </div>
-                                                <div className="shrink-0 text-right font-mono tabular-nums">{row.n_corrections}</div>
+                                                <div className="shrink-0 text-right tabular-nums">{row.n_corrections}</div>
                                             </li>
                                         ))}
                                     </ul>
@@ -329,7 +362,9 @@ export default function AdminParserIndex({
                                                 <TableCell className="text-muted-foreground whitespace-nowrap tabular-nums">
                                                     {c.created_at}
                                                 </TableCell>
-                                                <TableCell>{c.source_type}</TableCell>
+                                                <TableCell>
+                                                    {(c.source_id !== null ? sourceNameById[c.source_id] : undefined) ?? c.source_type}
+                                                </TableCell>
                                                 <TableCell>
                                                     <a href={discoverLinkFor(c.source_type)} className="text-primary hover:underline">
                                                         {c.listing_role_title ?? (
@@ -337,7 +372,7 @@ export default function AdminParserIndex({
                                                         )}
                                                     </a>
                                                 </TableCell>
-                                                <TableCell>{c.field}</TableCell>
+                                                <TableCell>{fieldLabel(c.field)}</TableCell>
                                                 <TableCell className="font-mono">
                                                     <span className="text-muted-foreground">{summarizeValue(c.old_value)}</span>
                                                     <span className="text-muted-foreground px-1">→</span>

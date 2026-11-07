@@ -25,7 +25,7 @@ export default function ImportUploadPage() {
     return (
         <AuthenticatedLayout>
             <Head title="Import" />
-            <div className="mx-auto flex max-w-2xl flex-col gap-8">
+            <div className="flex flex-col gap-8">
                 <PageHeader
                     title="Import companies"
                     subtitle="Drop a CSV of companies. We'll auto-detect columns, preview the first 10 rows, and dedup on website domain."
@@ -40,9 +40,9 @@ export default function ImportUploadPage() {
                     </div>
                 ) : null}
 
-                <section className="flex flex-col gap-4">
+                <section className="flex max-w-2xl flex-col gap-4">
                     <div className="flex flex-col gap-1">
-                        <h2 className="text-base font-semibold text-balance">Step 1 — Upload</h2>
+                        <h2 className="text-base font-semibold text-balance">Step 1: Upload</h2>
                         <p className="text-base text-pretty text-muted-foreground sm:text-sm">
                             CSV with a header row. Up to <span className="tabular-nums">5,000</span> rows, max{' '}
                             <span className="tabular-nums">1 MB</span>. Required: a column we can map to{' '}
@@ -86,14 +86,14 @@ export default function ImportUploadPage() {
                     </form>
                 </section>
 
-                <section className="flex flex-col gap-3 border-t border-border pt-6">
+                <section className="flex max-w-2xl flex-col gap-3 border-t border-border pt-6">
                     <SectionLabel>Expected columns</SectionLabel>
                     <p className="text-base text-pretty text-muted-foreground sm:text-sm">
                         We&apos;ll guess the mapping from your header names. Anything we can&apos;t guess, you&apos;ll set on the next step.
                     </p>
                     <ul role="list" className="flex list-disc flex-col gap-1 pl-5 text-base sm:text-sm">
                         <li>
-                            <code className="rounded bg-muted px-1 font-mono">name</code> — required (also matches{' '}
+                            <code className="rounded bg-muted px-1 font-mono">name</code>: required (also matches{' '}
                             <code className="rounded bg-muted px-1 font-mono">company</code>)
                         </li>
                         <li>
