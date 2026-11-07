@@ -18,15 +18,6 @@ export default function TwoFactorPage({ two_factor_enabled, two_factor_confirmed
     const [confirmCode, setConfirmCode] = useState('');
     const [confirmError, setConfirmError] = useState<string | null>(null);
 
-    useEffect(() => {
-        if (two_factor_enabled && !two_factor_confirmed) {
-            void loadQr();
-        }
-        if (two_factor_enabled) {
-            void loadRecoveryCodes();
-        }
-    }, [two_factor_enabled, two_factor_confirmed]);
-
     async function loadQr(): Promise<void> {
         const res = await fetch('/user/two-factor-qr-code', { headers: { Accept: 'application/json' } });
         if (res.ok) {
@@ -42,6 +33,15 @@ export default function TwoFactorPage({ two_factor_enabled, two_factor_confirmed
             setRecoveryCodes(data);
         }
     }
+
+    useEffect(() => {
+        if (two_factor_enabled && !two_factor_confirmed) {
+            void loadQr();
+        }
+        if (two_factor_enabled) {
+            void loadRecoveryCodes();
+        }
+    }, [two_factor_enabled, two_factor_confirmed]);
 
     function enable(): void {
         router.post('/user/two-factor-authentication', {}, { preserveScroll: true });
