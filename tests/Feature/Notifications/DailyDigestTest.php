@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace Tests\Feature\Notifications;
 
 use App\Enums\AggregatorListingStatus;
+use App\Mail\DailyDigestMail;
 use App\Models\AggregatorListing;
 use App\Models\AggregatorSource;
-use App\Mail\DailyDigestMail;
 use App\Models\Company;
 use App\Models\Event;
 use App\Models\Role;
