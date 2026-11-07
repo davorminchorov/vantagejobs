@@ -174,6 +174,44 @@ final class IdentityExtractorsTest extends TestCase
         $this->assertTrue((new DisciplineExtractor)->extract($this->ctx(['title' => 'Senior Marketing Manager']))->isMissing());
     }
 
+    #[Test]
+    public function discipline_ignores_the_description_of_a_non_tech_title(): void
+    {
+        $extractor = new DisciplineExtractor;
+
+        $this->assertTrue($extractor->extract($this->ctx(['title' => 'Recruiter (GTM & G&A)'], 'You will partner with our engineering leaders.'))->isMissing());
+        $this->assertTrue($extractor->extract($this->ctx(['title' => 'Account Executive (Mid-market)'], 'Sell our full-stack observability platform.'))->isMissing());
+    }
+
+    #[Test]
+    public function discipline_description_refines_a_generic_tech_title(): void
+    {
+        $field = (new DisciplineExtractor)->extract($this->ctx(['title' => 'Software Engineer II'], 'You will own our backend services and APIs.'));
+
+        $this->assertSame('backend', $field->value);
+        $this->assertSame(0.6, $field->confidence);
+    }
+
+    #[Test]
+    public function discipline_reads_the_description_when_hacker_news_title_is_free_text(): void
+    {
+        $context = new SourceContext(
+            sourceType: AggregatorSourceType::HACKERNEWS,
+            structured: ['title' => 'Full time'],
+            bodyText: 'Acme | Backend Engineer | Remote (EU)',
+        );
+
+        $this->assertSame('backend', (new DisciplineExtractor)->extract($context)->value);
+    }
+
+    #[Test]
+    public function discipline_reads_the_description_when_there_is_no_title(): void
+    {
+        $field = (new DisciplineExtractor)->extract($this->ctx([], 'We are hiring a software engineer to join the team.'));
+
+        $this->assertSame('engineering', $field->value);
+    }
+
     /* ----- Seniority ----- */
 
     #[Test]
@@ -224,11 +262,12 @@ final class IdentityExtractorsTest extends TestCase
     /**
      * @param  array<string, mixed>  $structured
      */
-    private function ctx(array $structured): SourceContext
+    private function ctx(array $structured, ?string $bodyText = null): SourceContext
     {
         return new SourceContext(
             sourceType: AggregatorSourceType::REMOTIVE,
             structured: $structured,
+            bodyText: $bodyText,
         );
     }
 }
