@@ -104,6 +104,20 @@ final class UnlockedFiltersTest extends TestCase
     }
 
     #[Test]
+    public function new_this_week_and_unscraped_round_trip_through_filter_array_shape(): void
+    {
+        $array = CompanyListFilters::fromArray(['new_this_week' => '1', 'unscraped' => 'true', 'last_checked' => 'older_than_7d'])->toArray();
+
+        $this->assertTrue($array['new_this_week']);
+        $this->assertTrue($array['unscraped']);
+        $this->assertSame('older_than_7d', $array['last_checked']);
+
+        $cleared = CompanyListFilters::fromArray([])->toArray();
+        $this->assertFalse($cleared['new_this_week']);
+        $this->assertFalse($cleared['unscraped']);
+    }
+
+    #[Test]
     public function graveyard_exclusion_still_applies_alongside_new_filters(): void
     {
         $now = CarbonImmutable::now();

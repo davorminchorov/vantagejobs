@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Feature\Companies;
 
 use App\Models\Company;
+use App\Models\CompanySnapshot;
 use App\Models\Role;
 use App\Models\User;
 use App\Tenancy\Tenant;
@@ -278,7 +279,7 @@ final class IndexCompaniesTest extends TestCase
             ->assertOk()
             ->assertInertia(fn ($page) => $page
                 ->where('filters.sort', 'newest_posting')
-                ->where('options.sorts', ['newest_posting', 'tier', 'name'])
+                ->where('options.sorts', ['newest_posting', 'tier', 'name', 'new_this_week', 'quality'])
                 ->where('companies.data.0.name', 'Zeta')
                 ->where('companies.data.1.name', 'Alpha')
                 ->where('companies.data.2.name', 'Aaron')
@@ -347,5 +348,199 @@ final class IndexCompaniesTest extends TestCase
             ->get('/companies?sort=drop_table')
             ->assertOk()
             ->assertInertia(fn ($page) => $page->where('filters.sort', 'newest_posting'));
+    }
+
+    #[Test]
+    public function stale_filter_older_than_7d_includes_old_and_never_checked_companies(): void
+    {
+        $now = CarbonImmutable::now();
+        $fresh = Company::factory()->create(['name' => 'Fresh', 'last_checked_at' => $now->subDays(2)]);
+        $old = Company::factory()->create(['name' => 'Old', 'last_checked_at' => $now->subDays(10)]);
+        $never = Company::factory()->create(['name' => 'Never', 'last_checked_at' => null]);
+
+        $this->actingAs($this->user)
+            ->get('/companies?last_checked=older_than_7d&sort=name')
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->where('filters.last_checked', 'older_than_7d')
+                ->has('companies.data', 2)
+                ->where('companies.data.0.id', $never->id)
+                ->where('companies.data.1.id', $old->id));
+
+        $this->assertNotNull($fresh);
+    }
+
+    #[Test]
+    public function older_than_7d_is_a_listed_last_checked_option(): void
+    {
+        $this->actingAs($this->user)
+            ->get('/companies')
+            ->assertInertia(fn ($page) => $page->where('options.last_checked', fn ($v) => in_array('older_than_7d', $v->all(), true)));
+    }
+
+    #[Test]
+    public function new_this_week_filter_keeps_companies_with_open_roles_created_in_last_seven_days(): void
+    {
+        $fresh = Company::factory()->create(['name' => 'Fresh']);
+        $stale = Company::factory()->create(['name' => 'Stale']);
+        $closed = Company::factory()->create(['name' => 'Closed']);
+
+        Role::factory()->create(['company_id' => $fresh->id, 'is_open' => true, 'created_at' => CarbonImmutable::now()->subDays(2)]);
+        Role::factory()->create(['company_id' => $stale->id, 'is_open' => true, 'created_at' => CarbonImmutable::now()->subDays(20)]);
+        Role::factory()->create(['company_id' => $closed->id, 'is_open' => false, 'created_at' => CarbonImmutable::now()->subDay()]);
+
+        $this->actingAs($this->user)
+            ->get('/companies?new_this_week=1')
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->where('filters.new_this_week', true)
+                ->has('companies.data', 1)
+                ->where('companies.data.0.id', $fresh->id)
+                ->where('companies.data.0.new_roles_7d', 1));
+    }
+
+    #[Test]
+    public function unscraped_filter_matches_missing_ats_type_slug_or_failed_redetection(): void
+    {
+        $noType = Company::factory()->create(['name' => 'NoType', 'ats_type' => null]);
+        $noSlug = Company::factory()->create(['name' => 'NoSlug', 'ats_slug' => null]);
+        $failed = Company::factory()->create(['name' => 'Failed', 'ats_status' => 'redetect_failed']);
+        Company::factory()->create(['name' => 'Healthy', 'ats_type' => 'greenhouse', 'ats_slug' => 'healthy']);
+
+        $this->actingAs($this->user)
+            ->get('/companies?unscraped=1&sort=name')
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->where('filters.unscraped', true)
+                ->has('companies.data', 3)
+                ->where('companies.data.0.id', $failed->id)
+                ->where('companies.data.1.id', $noSlug->id)
+                ->where('companies.data.2.id', $noType->id));
+    }
+
+    #[Test]
+    public function new_filters_default_to_false_and_ignore_garbage(): void
+    {
+        $this->actingAs($this->user)
+            ->get('/companies?new_this_week=banana&unscraped[]=1')
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->where('filters.new_this_week', false)
+                ->where('filters.unscraped', false));
+    }
+
+    #[Test]
+    public function rows_expose_new_roles_quality_score_signals_and_funding(): void
+    {
+        $now = CarbonImmutable::now();
+        $company = Company::factory()->create([
+            'funding_last_raised_at' => $now->subMonths(2),
+            'last_checked_at' => $now->subHour(),
+        ]);
+        $bare = Company::factory()->create(['name' => 'Zed']);
+
+        Role::factory()->count(2)->create(['company_id' => $company->id, 'is_open' => true, 'created_at' => $now->subDay()]);
+        Role::factory()->create(['company_id' => $company->id, 'is_open' => true, 'created_at' => $now->subDays(30)]);
+
+        CompanySnapshot::factory()->create([
+            'company_id' => $company->id,
+            'snapshot_date' => $now->subDays(5)->toDateString(),
+            'quality_score' => 40,
+            'has_recent_layoff_event' => false,
+        ]);
+        CompanySnapshot::factory()->create([
+            'company_id' => $company->id,
+            'snapshot_date' => $now->toDateString(),
+            'quality_score' => 77,
+            'has_recent_layoff_event' => true,
+        ]);
+
+        $this->actingAs($this->user)
+            ->get('/companies?sort=name')
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->where('companies.data.0.id', $company->id)
+                ->where('companies.data.0.new_roles_7d', 2)
+                ->where('companies.data.0.open_roles_count', 3)
+                ->where('companies.data.0.quality_score', 77)
+                ->where('companies.data.0.has_recent_layoff_event', true)
+                ->has('companies.data.0.funding_last_raised_at')
+                ->has('companies.data.0.last_checked_at')
+                ->has('companies.data.0.ats_type')
+                ->has('companies.data.0.ats_slug')
+                ->has('companies.data.0.ats_status')
+                ->where('companies.data.1.id', $bare->id)
+                ->where('companies.data.1.quality_score', null)
+                ->where('companies.data.1.new_roles_7d', 0));
+    }
+
+    #[Test]
+    public function hiring_trend_is_ninety_daily_values_forward_filled_and_null_before_first_snapshot(): void
+    {
+        $today = CarbonImmutable::today();
+        $company = Company::factory()->create(['name' => 'Trendy']);
+        $empty = Company::factory()->create(['name' => 'Zzz']);
+
+        CompanySnapshot::factory()->create(['company_id' => $company->id, 'snapshot_date' => $today->subDays(10)->toDateString(), 'open_role_count' => 5]);
+        CompanySnapshot::factory()->create(['company_id' => $company->id, 'snapshot_date' => $today->subDays(3)->toDateString(), 'open_role_count' => 9]);
+        CompanySnapshot::factory()->create(['company_id' => $company->id, 'snapshot_date' => $today->subDays(200)->toDateString(), 'open_role_count' => 99]);
+
+        $this->actingAs($this->user)
+            ->get('/companies?sort=name')
+            ->assertOk()
+            ->assertInertia(function ($page) use ($company, $empty): void {
+                $page->where('companies.data.0.id', $company->id);
+                $trend = $page->toArray()['props']['companies']['data'][0]['hiring_trend'];
+                $emptyTrend = $page->toArray()['props']['companies']['data'][1]['hiring_trend'];
+
+                $this->assertCount(90, $trend);
+                $this->assertNull($trend[0]);
+                $this->assertNull($trend[78]);
+                $this->assertSame(5, $trend[79]);
+                $this->assertSame(5, $trend[85]);
+                $this->assertSame(9, $trend[86]);
+                $this->assertSame(9, $trend[89]);
+                $this->assertSame(array_fill(0, 90, null), $emptyTrend);
+                $this->assertNotNull($empty);
+            });
+    }
+
+    #[Test]
+    public function sort_by_quality_puts_highest_score_first_and_unscored_last(): void
+    {
+        $low = Company::factory()->create(['name' => 'Low']);
+        $high = Company::factory()->create(['name' => 'High']);
+        $none = Company::factory()->create(['name' => 'None']);
+
+        CompanySnapshot::factory()->create(['company_id' => $low->id, 'quality_score' => 20]);
+        CompanySnapshot::factory()->create(['company_id' => $high->id, 'quality_score' => 90]);
+
+        $this->actingAs($this->user)
+            ->get('/companies?sort=quality')
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->where('filters.sort', 'quality')
+                ->where('companies.data.0.id', $high->id)
+                ->where('companies.data.1.id', $low->id)
+                ->where('companies.data.2.id', $none->id));
+    }
+
+    #[Test]
+    public function sort_by_new_this_week_orders_by_new_role_count(): void
+    {
+        $one = Company::factory()->create(['name' => 'One']);
+        $three = Company::factory()->create(['name' => 'Three']);
+        $zero = Company::factory()->create(['name' => 'Zero']);
+
+        Role::factory()->count(1)->create(['company_id' => $one->id, 'is_open' => true]);
+        Role::factory()->count(3)->create(['company_id' => $three->id, 'is_open' => true]);
+
+        $this->actingAs($this->user)
+            ->get('/companies?sort=new_this_week')
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->where('companies.data.0.id', $three->id)
+                ->where('companies.data.1.id', $one->id)
+                ->where('companies.data.2.id', $zero->id));
     }
 }
