@@ -9,7 +9,7 @@ import { cn } from '@/lib/utils';
 import { CorrectionEditor } from './CorrectionEditor';
 import { EditablePill } from './EditablePill';
 import { ListingActions } from './ListingActions';
-import { AUTO_DISMISS_REASON_LABELS, compLabel, hackerNewsCommentUrl, regionLabel } from './helpers';
+import { AUTO_DISMISS_REASON_LABELS, compLabel, hackerNewsCommentUrl, postingUrl, regionLabel } from './helpers';
 import type { CorrectionValue, EditableField, Listing, ListingAction } from './types';
 
 export interface ListingDetailProps {
@@ -46,7 +46,7 @@ export function ListingDetail({
     onSelectSameCompany,
     className,
 }: ListingDetailProps) {
-    const titleHref = listing.url ?? hackerNewsCommentUrl(listing);
+    const titleHref = postingUrl(listing) ?? hackerNewsCommentUrl(listing);
     const company = listing.parsed_company_name;
 
     return (

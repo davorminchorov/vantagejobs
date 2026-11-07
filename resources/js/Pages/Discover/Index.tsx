@@ -8,7 +8,7 @@ import { DiscoverEmptyState } from '@/components/discover/DiscoverEmptyState';
 import { FilterBar } from '@/components/discover/FilterBar';
 import { SplitViewLayout } from '@/components/discover/SplitViewLayout';
 import { StatusTabs } from '@/components/discover/StatusTabs';
-import { hackerNewsCommentUrl } from '@/components/discover/helpers';
+import { hackerNewsCommentUrl, postingUrl } from '@/components/discover/helpers';
 import type {
     CorrectionValue,
     DiscoverLayoutProps,
@@ -104,7 +104,7 @@ export default function DiscoverIndex({ listings, filters, counts, options }: Pr
                 e.preventDefault();
                 actOn(listing, 'bookmark');
             } else if (e.key === 'o') {
-                const href = listing.url ?? hackerNewsCommentUrl(listing);
+                const href = postingUrl(listing) ?? hackerNewsCommentUrl(listing);
                 if (href) {
                     e.preventDefault();
                     window.open(href, '_blank', 'noopener,noreferrer');

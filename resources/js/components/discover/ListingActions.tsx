@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 
-import { hackerNewsCommentUrl } from './helpers';
+import { hackerNewsCommentUrl, postingUrl } from './helpers';
 import type { Listing, ListingAction } from './types';
 
 export interface ListingActionsProps {
@@ -24,6 +24,7 @@ export interface ListingActionsProps {
  */
 export function ListingActions({ listing, isFocused, debug, onAction, onReparse, onSaveFixture, className }: ListingActionsProps) {
     const hnCommentUrl = hackerNewsCommentUrl(listing);
+    const url = postingUrl(listing);
 
     return (
         <div
@@ -39,7 +40,7 @@ export function ListingActions({ listing, isFocused, debug, onAction, onReparse,
                 className,
             )}
         >
-            {listing.url && (
+            {url && (
                 <Button
                     size="sm"
                     variant="outline"
@@ -47,7 +48,7 @@ export function ListingActions({ listing, isFocused, debug, onAction, onReparse,
                     asChild
                 >
                     <a
-                        href={listing.url}
+                        href={url}
                         target="_blank"
                         rel="noopener noreferrer"
                         onClick={(e) => e.stopPropagation()}
