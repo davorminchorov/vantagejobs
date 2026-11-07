@@ -3,6 +3,7 @@ import { useState, type ReactNode } from 'react';
 
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Badge } from '@/components/ui/badge';
+import { formatDuration, kindLabel, RunStatusBadge } from '@/components/runs/run-status';
 import { Button } from '@/components/ui/button';
 import { SectionLabel } from '@/components/ui/section-label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -49,35 +50,6 @@ interface Props {
     artifacts: ArtifactRow[];
 }
 
-function statusVariant(status: string): 'success' | 'warning' | 'destructive' | 'secondary' | 'outline' {
-    switch (status) {
-        case 'completed':
-            return 'success';
-        case 'partial':
-            return 'warning';
-        case 'error':
-            return 'destructive';
-        case 'running':
-            return 'outline';
-        default:
-            return 'secondary';
-    }
-}
-
-const RUNNING_CLASS = 'bg-sky-50 text-sky-700 inset-ring-sky-600/20 dark:bg-sky-400/10 dark:text-sky-300 dark:inset-ring-sky-400/20';
-
-function formatDuration(seconds: number | null): string {
-    if (seconds === null) {
-        return '—';
-    }
-    if (seconds < 60) {
-        return `${seconds}s`;
-    }
-    const m = Math.floor(seconds / 60);
-    const s = seconds % 60;
-    return s === 0 ? `${m}m` : `${m}m ${s}s`;
-}
-
 function formatBytes(bytes: number): string {
     if (bytes < 1024) return `${bytes} B`;
     if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
@@ -97,7 +69,7 @@ function ErrorRow({ entry, index }: { entry: ErrorEntry; index: number }) {
 
     return (
         <li className="flex items-start gap-3 py-4">
-            <span className="text-muted-foreground font-mono text-sm tabular-nums">#{index + 1}</span>
+            <span className="text-muted-foreground text-sm tabular-nums">#{index + 1}</span>
             <div className="flex min-w-0 flex-1 flex-col gap-2">
                 <p className="text-base text-pretty sm:text-sm">{entry.message}</p>
                 {ctx !== null && <pre className="bg-muted/50 overflow-x-auto rounded-lg p-4 font-mono text-sm">{ctxShown}</pre>}
@@ -113,11 +85,13 @@ function ErrorRow({ entry, index }: { entry: ErrorEntry; index: number }) {
     );
 }
 
-function Stat({ label, children }: { label: string; children: ReactNode }) {
+function Stat({ label, title, children }: { label: string; title?: string; children: ReactNode }) {
     return (
         <div className="flex min-w-0 flex-col gap-0.5">
-            <dt className="text-foreground truncate text-sm font-medium">{label}</dt>
-            <dd className="text-muted-foreground truncate font-mono text-base tabular-nums sm:text-sm">{children}</dd>
+            <dt className="text-muted-foreground truncate text-base sm:text-sm">{label}</dt>
+            <dd title={title} className="truncate text-base tabular-nums sm:text-sm">
+                {children}
+            </dd>
         </div>
     );
 }
@@ -135,13 +109,10 @@ export default function RunsShow({ run, errors, artifacts }: Props) {
                         title={`Run #${run.id}`}
                         actions={
                             <>
-                                <Badge variant={statusVariant(run.status)} className={run.status === 'running' ? RUNNING_CLASS : undefined}>
-                                    {run.status}
-                                </Badge>
-                                <Badge variant="outline" className="font-mono">
-                                    {run.source_kind}
-                                </Badge>
-                                <span className="text-muted-foreground text-base sm:text-sm">{run.source_label}</span>
+                                <RunStatusBadge status={run.status} />
+                                <span className="text-muted-foreground text-base sm:text-sm">
+                                    {kindLabel(run.source_kind)} · {run.source_label}
+                                </span>
                             </>
                         }
                     />
@@ -153,16 +124,18 @@ export default function RunsShow({ run, errors, artifacts }: Props) {
                         <Stat label="Started">{formatDateTime(run.started_at)}</Stat>
                         <Stat label="Finished">{formatDateTime(run.finished_at)}</Stat>
                         <Stat label="Duration">{formatDuration(run.duration_seconds)}</Stat>
-                        <Stat label="Source">{run.source}</Stat>
+                        <Stat label="Source" title={run.source}>
+                            {run.source_label}
+                        </Stat>
                         <Stat label="Fetched">{run.fetched}</Stat>
                         <Stat label="New">{run.new_count}</Stat>
                         <Stat label="Closed">{run.closed_count}</Stat>
                         <div className="flex min-w-0 flex-col gap-0.5">
-                            <dt className="text-foreground truncate text-sm font-medium">Errors</dt>
+                            <dt className="text-muted-foreground truncate text-base sm:text-sm">Errors</dt>
                             <dd
                                 className={
-                                    'truncate font-mono text-base tabular-nums sm:text-sm ' +
-                                    (run.error_count > 0 ? 'text-rose-700 dark:text-rose-300' : 'text-muted-foreground')
+                                    'truncate text-base tabular-nums sm:text-sm ' +
+                                    (run.error_count > 0 ? 'text-rose-700 dark:text-rose-300' : '')
                                 }
                             >
                                 {run.error_count}
@@ -192,8 +165,7 @@ export default function RunsShow({ run, errors, artifacts }: Props) {
                     </SectionLabel>
                     {artifacts.length === 0 ? (
                         <p className="text-muted-foreground text-base text-pretty sm:text-sm">
-                            No artifacts captured for this run. (Phase 1 ATS scrapes don&apos;t write artifacts, and aggregator runs that
-                            finished before step 7 won&apos;t have any.)
+                            No artifacts were captured for this run. ATS runs don&apos;t save artifacts.
                         </p>
                     ) : (
                         <Table>
@@ -214,16 +186,16 @@ export default function RunsShow({ run, errors, artifacts }: Props) {
                                 {artifacts.map((artifact) => (
                                     <TableRow key={artifact.id} className={artifact.expired ? 'opacity-50' : ''}>
                                         <TableCell className="whitespace-nowrap tabular-nums">
-                                            {artifact.fetched_at ? <RelativeDate iso={artifact.fetched_at} /> : '—'}
+                                            {artifact.fetched_at ? <RelativeDate iso={artifact.fetched_at} /> : '–'}
                                         </TableCell>
                                         <TableCell className="font-mono">{artifact.connector}</TableCell>
                                         <TableCell className="font-mono" title={artifact.request_endpoint}>
                                             {truncate(artifact.request_endpoint, 80)}
                                         </TableCell>
-                                        <TableCell className="text-right font-mono tabular-nums">{artifact.http_status ?? '—'}</TableCell>
+                                        <TableCell className="text-right font-mono tabular-nums">{artifact.http_status ?? '–'}</TableCell>
                                         <TableCell className="text-right tabular-nums">{formatBytes(artifact.size_bytes)}</TableCell>
                                         <TableCell className="whitespace-nowrap tabular-nums">
-                                            {artifact.retained_until ? <RelativeDate iso={artifact.retained_until} /> : '—'}
+                                            {artifact.retained_until ? <RelativeDate iso={artifact.retained_until} /> : '–'}
                                         </TableCell>
                                         <TableCell className="text-right">
                                             {artifact.expired ? (
@@ -233,7 +205,7 @@ export default function RunsShow({ run, errors, artifacts }: Props) {
                                                     <a href={artifact.download_url}>Download</a>
                                                 </Button>
                                             ) : (
-                                                '—'
+                                                '–'
                                             )}
                                         </TableCell>
                                     </TableRow>
