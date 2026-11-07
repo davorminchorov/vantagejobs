@@ -29,6 +29,16 @@ export default defineConfig(({ command }) => ({
             clientPort: 443,
         },
         https: command === 'serve' ? devHttps : undefined,
+        // The dev server runs in Docker on a macOS bind mount, where native
+        // file events miss newly created folders (a new resources/js/Pages
+        // directory after a branch switch shows "Inertia page not found"
+        // until Vite restarts). Polling catches them. Heavy folders Vite
+        // never serves are excluded to keep the polling cost down.
+        watch: {
+            usePolling: true,
+            interval: 300,
+            ignored: ['**/vendor/**', '**/storage/**', '**/.pnpm-store/**', '**/.playwright-mcp/**'],
+        },
     },
     resolve: {
         alias: {
