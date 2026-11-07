@@ -31,6 +31,8 @@ use Illuminate\Http\Request;
  *     domain: ?string,
  *     q: ?string,
  *     recently_funded: ?bool,
+ *     new_this_week: bool,
+ *     unscraped: bool,
  *     sort: string
  * }
  */
@@ -56,13 +58,14 @@ final readonly class CompanyListFilters
      */
     public const SORT_NEWEST_POSTING = 'newest_posting';
 
-    public const VALID_SORTS = [self::SORT_NEWEST_POSTING, 'tier', 'name'];
+    public const VALID_SORTS = [self::SORT_NEWEST_POSTING, 'tier', 'name', 'new_this_week', 'quality'];
 
     public const VALID_LAST_CHECKED = [
         'never',
         'last_24h',
         'last_7d',
         'last_30d',
+        'older_than_7d',
         'older_than_30d',
     ];
 
@@ -89,6 +92,8 @@ final readonly class CompanyListFilters
         public ?string $q,
         public bool $graveyard,
         public ?bool $recentlyFunded,
+        public bool $newThisWeek = false,
+        public bool $unscraped = false,
         public string $sort = self::SORT_NEWEST_POSTING,
     ) {}
 
@@ -121,6 +126,9 @@ final readonly class CompanyListFilters
             default => null,
         };
 
+        $newThisWeek = self::truthy($input['new_this_week'] ?? null);
+        $unscraped = self::truthy($input['unscraped'] ?? null);
+
         return new self(
             tier: self::filterMulti($input['tier'] ?? null, self::VALID_TIERS),
             status: self::filterMulti($input['status'] ?? null, self::VALID_STATUSES),
@@ -135,6 +143,8 @@ final readonly class CompanyListFilters
             q: self::nonEmptyString($input['q'] ?? null),
             graveyard: $graveyard,
             recentlyFunded: $recentlyFunded,
+            newThisWeek: $newThisWeek,
+            unscraped: $unscraped,
             sort: self::inSet($input['sort'] ?? null, self::VALID_SORTS) ?? self::SORT_NEWEST_POSTING,
         );
     }
@@ -171,6 +181,23 @@ final readonly class CompanyListFilters
             $query->whereHas('roles', fn ($q) => $q->where('is_open', true));
         } elseif ($this->hasOpenRoles === false) {
             $query->whereDoesntHave('roles', fn ($q) => $q->where('is_open', true));
+        }
+
+        if ($this->newThisWeek) {
+            $query->whereHas('roles', fn ($q) => $q
+                ->where('is_open', true)
+                ->where('created_at', '>=', CarbonImmutable::now()->subDays(7)));
+        }
+
+        // Mirrors isUnscrapeable() in Companies/Show.tsx.
+        if ($this->unscraped) {
+            $query->where(function ($q): void {
+                $q->whereNull('ats_type')
+                    ->orWhere('ats_type', '')
+                    ->orWhereNull('ats_slug')
+                    ->orWhere('ats_slug', '')
+                    ->orWhere('ats_status', 'redetect_failed');
+            });
         }
 
         $this->applyLastCheckedRange($query);
@@ -222,6 +249,13 @@ final readonly class CompanyListFilters
         match ($this->sort) {
             'name' => $query->orderBy('name'),
             'tier' => $query->orderBy('tier')->orderBy('name'),
+            'new_this_week' => $query
+                ->orderByDesc('new_roles_7d')
+                ->orderByRaw('latest_open_posted_at DESC NULLS LAST')
+                ->orderBy('name'),
+            'quality' => $query
+                ->orderByRaw('quality_score DESC NULLS LAST')
+                ->orderBy('name'),
             default => $query
                 ->orderByRaw('latest_open_posted_at DESC NULLS LAST')
                 ->orderBy('tier')
@@ -248,6 +282,8 @@ final readonly class CompanyListFilters
      *     domain: ?string,
      *     q: ?string,
      *     recently_funded: ?bool,
+     *     new_this_week: bool,
+     *     unscraped: bool,
      *     sort: string
      * }
      */
@@ -267,6 +303,8 @@ final readonly class CompanyListFilters
             'q' => $this->q,
             'graveyard' => $this->graveyard,
             'recently_funded' => $this->recentlyFunded,
+            'new_this_week' => $this->newThisWeek,
+            'unscraped' => $this->unscraped,
             'sort' => $this->sort,
         ];
     }
@@ -318,6 +356,11 @@ final readonly class CompanyListFilters
         return in_array($value, $set, true) ? $value : null;
     }
 
+    private static function truthy(mixed $value): bool
+    {
+        return in_array($value, ['1', 1, true, 'true', 'yes'], true);
+    }
+
     private static function nonEmptyString(mixed $value): ?string
     {
         if (! is_string($value)) {
@@ -341,6 +384,9 @@ final readonly class CompanyListFilters
             'last_24h' => $query->where('last_checked_at', '>=', $now->subDay()),
             'last_7d' => $query->where('last_checked_at', '>=', $now->subDays(7)),
             'last_30d' => $query->where('last_checked_at', '>=', $now->subDays(30)),
+            'older_than_7d' => $query->where(function ($q) use ($now): void {
+                $q->whereNull('last_checked_at')->orWhere('last_checked_at', '<', $now->subDays(7));
+            }),
             'older_than_30d' => $query->where('last_checked_at', '<', $now->subDays(30)),
             default => null,
         };
