@@ -70,7 +70,10 @@ final readonly class PersonioScraper implements AtsScraperInterface
             $body = (string) $response->body();
 
             $previous = libxml_use_internal_errors(true);
-            $xml = simplexml_load_string($body);
+            // Job descriptions arrive as CDATA. Without LIBXML_NOCDATA the
+            // json_encode() in parsePosition() drops that text and stores
+            // every description section as an empty value.
+            $xml = simplexml_load_string($body, SimpleXMLElement::class, LIBXML_NOCDATA);
             libxml_clear_errors();
             libxml_use_internal_errors($previous);
 

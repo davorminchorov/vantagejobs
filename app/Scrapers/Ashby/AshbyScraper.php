@@ -157,16 +157,21 @@ final class AshbyScraper implements AtsScraperInterface
         if (isset($job['compensation'])) {
             $raw['compensation'] = $job['compensation'];
         }
+        if (isset($job['descriptionHtml']) && is_string($job['descriptionHtml']) && trim($job['descriptionHtml']) !== '') {
+            $raw['descriptionHtml'] = $job['descriptionHtml'];
+        } elseif (isset($job['descriptionPlain']) && is_string($job['descriptionPlain']) && trim($job['descriptionPlain']) !== '') {
+            $raw['descriptionPlain'] = $job['descriptionPlain'];
+        }
 
         return new ParsedRole(
             externalId: (string) $job['id'],
             title: (string) $job['title'],
             url: isset($job['jobUrl']) ? (string) $job['jobUrl'] : null,
-            location: isset($job['locationName']) ? (string) $job['locationName'] : null,
+            location: $this->stringField($job, 'location', 'locationName'),
             isRemote: isset($job['isRemote']) ? (bool) $job['isRemote'] : null,
             workplaceType: $workplaceType,
-            department: isset($job['departmentName']) ? (string) $job['departmentName'] : null,
-            team: isset($job['teamName']) ? (string) $job['teamName'] : null,
+            department: $this->stringField($job, 'department', 'departmentName'),
+            team: $this->stringField($job, 'team', 'teamName'),
             compMin: $comp['min'],
             compMax: $comp['max'],
             compCurrency: $comp['currency'],
@@ -174,6 +179,24 @@ final class AshbyScraper implements AtsScraperInterface
             raw: $raw === [] ? null : $raw,
             postedAt: isset($job['publishedAt']) ? CarbonImmutable::parse((string) $job['publishedAt']) : null,
         );
+    }
+
+    /**
+     * First non-empty string among the given keys. The public posting API
+     * sends `location` / `department` / `team`; the `*Name` variants are
+     * kept as fallbacks for older payloads.
+     *
+     * @param  array<string, mixed>  $job
+     */
+    private function stringField(array $job, string ...$keys): ?string
+    {
+        foreach ($keys as $key) {
+            if (isset($job[$key]) && is_string($job[$key]) && trim($job[$key]) !== '') {
+                return trim($job[$key]);
+            }
+        }
+
+        return null;
     }
 
     private function mapWorkplaceType(?string $workplaceType, ?bool $isRemote): WorkplaceType

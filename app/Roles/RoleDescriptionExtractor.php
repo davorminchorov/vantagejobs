@@ -22,7 +22,7 @@ final readonly class RoleDescriptionExtractor
      *
      * @var list<string>
      */
-    private const array TEXT_SOURCES = ['greenhouse', 'lever', 'teamtailor', 'recruitee', 'personio', 'pinpoint'];
+    private const array TEXT_SOURCES = ['greenhouse', 'lever', 'teamtailor', 'recruitee', 'personio', 'pinpoint', 'ashby', 'workable'];
 
     public function __construct(private SourceContextFactory $contextFactory) {}
 
@@ -53,6 +53,8 @@ final readonly class RoleDescriptionExtractor
                 || $this->filled($raw['key_responsibilities'] ?? null)
                 || $this->filled($raw['skills_knowledge_expertise'] ?? null)
                 || $this->filled($raw['benefits'] ?? null),
+            'ashby' => $this->filled($raw['descriptionHtml'] ?? null) || $this->filled($raw['descriptionPlain'] ?? null),
+            'workable' => $this->filled($raw['description'] ?? null),
             default => false,
         };
     }
@@ -94,6 +96,8 @@ final readonly class RoleDescriptionExtractor
             ]),
             'personio' => $this->personio($raw),
             'pinpoint' => $this->pinpoint($raw),
+            'ashby' => $this->html($raw['descriptionHtml'] ?? null) ?? $this->plain($raw['descriptionPlain'] ?? null),
+            'workable' => $this->html($raw['description'] ?? null),
             default => null,
         };
     }

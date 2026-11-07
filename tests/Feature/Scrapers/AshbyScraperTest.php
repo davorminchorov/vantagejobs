@@ -106,6 +106,42 @@ final class AshbyScraperTest extends TestCase
     }
 
     #[Test]
+    public function reads_location_department_team_and_description_from_the_public_api_keys(): void
+    {
+        Saloon::fake([
+            JobBoardRequest::class => MockResponse::make(
+                body: [
+                    'jobs' => [[
+                        'id' => 'ashby-live-shape',
+                        'title' => 'Unity Animator',
+                        'department' => 'Gaming',
+                        'team' => 'BeachBum',
+                        'location' => 'Raanana',
+                        'isRemote' => false,
+                        'workplaceType' => 'Hybrid',
+                        'secondaryLocations' => [],
+                        'publishedAt' => '2026-11-03T12:23:17.543+00:00',
+                        'jobUrl' => 'https://jobs.ashbyhq.com/acme/ashby-live-shape',
+                        'descriptionHtml' => '<h1>About</h1><p>We make games.</p>',
+                        'descriptionPlain' => "ABOUT\n\nWe make games.",
+                    ]],
+                ],
+                status: 200,
+            ),
+        ]);
+
+        $result = $this->scraper()->run($this->company);
+
+        $this->assertFalse($result->hasErrors());
+        $role = Role::query()->where('external_id', 'ashby-live-shape')->firstOrFail();
+        $this->assertSame('Raanana', $role->location);
+        $this->assertSame('Gaming', $role->department);
+        $this->assertSame('BeachBum', $role->team);
+        $this->assertSame('<h1>About</h1><p>We make games.</p>', $role->raw['descriptionHtml']);
+        $this->assertArrayNotHasKey('descriptionPlain', $role->raw);
+    }
+
+    #[Test]
     public function picks_highest_paying_salary_tier_for_compensation_fields(): void
     {
         Saloon::fake([
