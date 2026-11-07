@@ -47,6 +47,9 @@ export default tseslint.config(
         },
         rules: {
             ...reactHooks.configs.recommended.rules,
+            // New in eslint-plugin-react-hooks 7. Existing violations are
+            // tracked for a follow-up refactor; warn until they are fixed.
+            'react-hooks/set-state-in-effect': 'warn',
             'react/react-in-jsx-scope': 'off',
             'react/prop-types': 'off',
         },
