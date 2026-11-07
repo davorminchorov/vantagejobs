@@ -38,8 +38,6 @@
         "@vitejs/plugin-react": "^6.2.1",
         "chokidar": "^6.0.0",
         "concurrently": "^10.0.6",
-        "fontaine": "^1.0.3",
-        "globals": "^17.14.0",
         "laravel-vite-plugin": "^3.2.1",
         "tailwindcss": "^4.3.5",
         "typescript": "^6.0.3",
