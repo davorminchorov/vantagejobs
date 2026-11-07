@@ -15,7 +15,7 @@ use Illuminate\Queue\SerializesModels;
 
 /**
  * Queued daily digest of tracked-company activity, the discover backlog, stale
- * A-tier targets, and the follow-up queue. Dispatched once per tenant per day
+ * A-tier targets, and applications needing attention. Dispatched once per tenant per day
  * by the digest:send-daily sweep at the recipient's configured local time.
  *
  * Provider is config-driven via MAIL_MAILER — no provider SDK is hardcoded.

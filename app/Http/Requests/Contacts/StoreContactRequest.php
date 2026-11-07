@@ -27,6 +27,7 @@ final class StoreContactRequest extends FormRequest
             'linkedin_url' => ['nullable', 'string', 'max:500', 'url'],
             'email' => ['nullable', 'string', 'max:255', 'email'],
             'notes' => ['nullable', 'string', 'max:10000'],
+            'return_to' => ['nullable', 'string', 'in:applications'],
             'company_id' => [
                 'nullable',
                 'integer',

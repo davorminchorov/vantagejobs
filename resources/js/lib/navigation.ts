@@ -19,11 +19,9 @@ export const TOP_LEVEL_ITEMS: ReadonlyArray<NavLinkItem> = [
 ];
 
 export const TRACKER_ITEMS: ReadonlyArray<NavLinkItem> = [
-    { name: 'Pipeline', href: '/pipeline' },
+    { name: 'Applications', href: '/applications' },
     { name: 'Contacts', href: '/contacts' },
-    { name: 'Follow-ups', href: '/follow-ups' },
     { name: 'Templates', href: '/templates' },
-    { name: 'Calendar', href: '/calendar' },
 ];
 
 export const INSIGHTS_ITEMS: ReadonlyArray<NavLinkItem> = [

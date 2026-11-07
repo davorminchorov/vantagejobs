@@ -16,7 +16,7 @@ export interface RoleLineProps {
     expanded: boolean;
     focused: boolean;
     dismissedView: boolean;
-    /** The company closed this role; it can't be dismissed or added to the pipeline. */
+    /** The company closed this role; it can't be dismissed or added to applications. */
     closed?: boolean;
     onToggle: () => void;
     onDismiss: () => void;
@@ -74,7 +74,7 @@ export function RoleLine({
                     ) : null}
                     {role.pipeline_status !== null ? (
                         <Badge variant="success" className="shrink-0">
-                            In pipeline
+                            In applications
                         </Badge>
                     ) : null}
                     <span className="w-20 shrink-0 text-right text-xs text-muted-foreground tabular-nums">
@@ -162,11 +162,11 @@ function RoleDetails({
                 ) : null}
                 {closed && role.pipeline_status === null ? null : role.pipeline_status === null ? (
                     <Button type="button" size="sm" onClick={onAddToPipeline}>
-                        Add to pipeline
+                        Add to applications
                     </Button>
                 ) : (
                     <Button asChild size="sm" variant="outline">
-                        <Link href={`/pipeline/roles/${role.id}`}>View in pipeline</Link>
+                        <Link href={`/applications?role=${role.id}`}>View application</Link>
                     </Button>
                 )}
             </div>

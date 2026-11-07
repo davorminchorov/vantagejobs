@@ -186,7 +186,7 @@ final class SendDailyDigestCommand extends Command
             'context' => [
                 'event_count' => $digest->eventCount(),
                 'discover_queue' => $digest->discoverQueueCount,
-                'follow_up_queue' => $digest->followUpQueueCount,
+                'needs_attention' => count($digest->attentionItems),
                 'stale_a_tier' => $digest->staleATierCompanies->count(),
             ],
             'sent_at' => $now,

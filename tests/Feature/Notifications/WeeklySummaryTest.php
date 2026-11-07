@@ -79,6 +79,34 @@ final class WeeklySummaryTest extends TestCase
     }
 
     #[Test]
+    public function lists_applications_needing_attention_with_links(): void
+    {
+        Mail::fake();
+
+        $company = Company::factory()->create(['name' => 'Acme']);
+        $role = Role::factory()->create([
+            'company_id' => $company->id,
+            'title' => 'Staff Engineer',
+            'pipeline_status' => 'applied',
+            'applied_at' => now()->subDays(15),
+        ]);
+
+        Artisan::call('notifications:send-weekly-summary', ['--tenant' => 'primary']);
+
+        Mail::assertQueued(WeeklySummaryMail::class, function (WeeklySummaryMail $mail) use ($role): bool {
+            $this->assertCount(1, $mail->summary['needs_attention']);
+            $this->assertSame($role->id, $mail->summary['needs_attention'][0]['role_id']);
+            $this->assertSame('No activity for 15 days', $mail->summary['needs_attention'][0]['reason']);
+
+            $mail->assertSeeInHtml('Staff Engineer, Acme');
+            $mail->assertSeeInHtml('No activity for 15 days');
+            $mail->assertSeeInHtml(route('applications.index', ['role' => $role->id]));
+
+            return true;
+        });
+    }
+
+    #[Test]
     public function ranks_top_signals_by_event_type_priority(): void
     {
         Mail::fake();

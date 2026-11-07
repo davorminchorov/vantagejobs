@@ -29,6 +29,11 @@ final class SettingKey
     public const string WEEKLY_SUMMARY_ENABLED = 'weekly_summary_enabled';
 
     /*
+    | Applications
+    */
+    public const string FOLLOW_UP_THRESHOLD_DAYS = 'follow_up_threshold_days';
+
+    /*
     | Triage
     */
     public const string AUTO_DISMISS_THRESHOLD = 'auto_dismiss_threshold';

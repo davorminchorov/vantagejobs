@@ -96,24 +96,65 @@ final class DashboardTest extends TestCase
     }
 
     #[Test]
-    public function follow_ups_due_reports_count_and_top_three(): void
+    public function applications_attention_reports_count_and_top_three(): void
     {
-        $tenant = Tenant::factory()->create(['slug' => 'dashboard-follow-ups']);
+        $tenant = Tenant::factory()->create(['slug' => 'dashboard-attention']);
         app(TenantContext::class)->setCurrent($tenant);
         $user = User::factory()->create();
 
         $company = Company::factory()->create(['name' => 'Overdue Co']);
-        Role::factory()->create(['company_id' => $company->id, 'pipeline_status' => PipelineStatus::APPLIED]);
-        Contact::factory()->stale()->create(['company_id' => $company->id, 'name' => 'Overdue Olive']);
+        $overdue = Role::factory()->create([
+            'company_id' => $company->id,
+            'title' => 'Staff Engineer',
+            'pipeline_status' => PipelineStatus::ONSITE,
+            'next_action_date' => now()->subDays(2)->toDateString(),
+        ]);
+        $quiet = Role::factory()->create([
+            'company_id' => $company->id,
+            'title' => 'Backend Engineer',
+            'pipeline_status' => PipelineStatus::APPLIED,
+            'applied_at' => now()->subDays(12),
+        ]);
+        Role::factory()->count(3)->create([
+            'company_id' => $company->id,
+            'pipeline_status' => PipelineStatus::APPLIED,
+            'applied_at' => now()->subDays(40),
+        ]);
+        Role::factory()->create(['company_id' => $company->id, 'pipeline_status' => PipelineStatus::APPLIED, 'applied_at' => now()]);
 
         $this->actingAs($user)
             ->get('/dashboard')
             ->assertOk()
             ->assertInertia(fn ($page) => $page
-                ->where('follow_ups_due.count', 1)
-                ->has('follow_ups_due.top', 1)
-                ->where('follow_ups_due.top.0.contact_name', 'Overdue Olive')
-                ->where('follow_ups_due.top.0.company_name', 'Overdue Co')
+                ->where('applications_attention.count', 5)
+                ->has('applications_attention.top', 3)
+                ->where('applications_attention.top.0.role_id', $overdue->id)
+                ->where('applications_attention.top.0.title', 'Staff Engineer')
+                ->where('applications_attention.top.0.company_name', 'Overdue Co')
+                ->where('applications_attention.top.0.reason', 'next_step_overdue')
+                ->where('applications_attention.top.0.reason_label', 'Next step overdue')
+                ->where('applications_attention.top.0.url', "/applications?role={$overdue->id}")
+                ->where('applications_attention.top.1.reason', 'quiet')
+                ->where('applications_attention.top.1.reason_label', 'No activity for 40 days')
+            );
+
+        $this->assertNotSame($quiet->id, $overdue->id);
+    }
+
+    #[Test]
+    public function applications_attention_is_empty_without_applications_needing_it(): void
+    {
+        $tenant = Tenant::factory()->create(['slug' => 'dashboard-attention-empty']);
+        app(TenantContext::class)->setCurrent($tenant);
+        $user = User::factory()->create();
+
+        Role::factory()->create(['pipeline_status' => PipelineStatus::REJECTED, 'applied_at' => now()->subDays(90)]);
+
+        $this->actingAs($user)
+            ->get('/dashboard')
+            ->assertInertia(fn ($page) => $page
+                ->where('applications_attention.count', 0)
+                ->has('applications_attention.top', 0)
             );
     }
 
@@ -137,6 +178,9 @@ final class DashboardTest extends TestCase
                 // Applied + Screen count, Rejected is terminal and excluded.
                 ->where('pipeline_summary.total_active', 2)
                 ->has('pipeline_summary.stages', 7)
+                ->where('pipeline_summary.stages.0.terminal', false)
+                ->where('pipeline_summary.stages.5.terminal', true)
+                ->where('pipeline_summary.stages.0.label', 'Researching')
             );
     }
 

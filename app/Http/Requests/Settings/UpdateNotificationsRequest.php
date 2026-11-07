@@ -25,6 +25,7 @@ final class UpdateNotificationsRequest extends FormRequest
             'digest_skip_empty' => ['required', 'boolean'],
             'notification_email' => ['required', 'string', 'email', 'max:255'],
             'weekly_summary_enabled' => ['required', 'boolean'],
+            'follow_up_threshold_days' => ['required', 'integer', 'min:1', 'max:60'],
         ];
     }
 }

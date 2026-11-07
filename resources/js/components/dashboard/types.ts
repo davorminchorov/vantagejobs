@@ -40,20 +40,26 @@ export interface AutoDismissRule {
     dismiss_count: number;
 }
 
-export interface FollowUpDue {
-    contact_name: string;
+export interface AttentionRow {
+    role_id: number;
+    title: string;
     company_name: string | null;
-    days_overdue: number | null;
+    reason: 'next_step_overdue' | 'quiet';
+    /** Plain wording, e.g. "Next step overdue" or "No activity for 9 days". */
+    reason_label: string;
+    /** Relative path to /applications?role=ID. */
+    url: string;
 }
 
-export interface FollowUpsDue {
+export interface ApplicationsAttention {
     count: number;
-    top: FollowUpDue[];
+    top: AttentionRow[];
 }
 
 export interface PipelineStage {
     status: string;
     label: string;
+    terminal: boolean;
     count: number;
 }
 
@@ -67,12 +73,10 @@ export interface DashboardProps {
     companies_count: number;
     active_auto_dismiss_rules: AutoDismissRule[];
     source_health?: SourceHealthSummary;
-    follow_ups_due: FollowUpsDue;
+    applications_attention: ApplicationsAttention;
     pipeline_summary: PipelineSummary;
     discover_new_count: number;
 }
-
-export const TERMINAL_STAGES = new Set(['rejected', 'withdrawn']);
 
 export const tierVariant: Record<string, 'success' | 'warning' | 'secondary' | 'destructive'> = {
     A: 'success',
@@ -83,8 +87,4 @@ export const tierVariant: Record<string, 'success' | 'warning' | 'secondary' | '
 
 export function pluralize(count: number, singular: string, plural: string): string {
     return `${count} ${count === 1 ? singular : plural}`;
-}
-
-export function overdueLabel(daysOverdue: number | null): string {
-    return daysOverdue === null ? 'Never contacted' : `${daysOverdue}d overdue`;
 }

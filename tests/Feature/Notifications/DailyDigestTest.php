@@ -7,8 +7,8 @@ namespace Tests\Feature\Notifications;
 use App\Enums\AggregatorListingStatus;
 use App\Models\AggregatorListing;
 use App\Models\AggregatorSource;
+use App\Mail\DailyDigestMail;
 use App\Models\Company;
-use App\Models\Contact;
 use App\Models\Event;
 use App\Models\Role;
 use App\Notifications\DailyDigestQuery;
@@ -144,23 +144,49 @@ final class DailyDigestTest extends TestCase
     }
 
     #[Test]
-    public function counts_due_follow_ups(): void
+    public function lists_applications_needing_attention(): void
     {
         $now = CarbonImmutable::now();
 
-        $company = Company::factory()->create();
-        Role::factory()->create([
+        $company = Company::factory()->create(['name' => 'Acme']);
+        $role = Role::factory()->create([
             'company_id' => $company->id,
+            'title' => 'Staff Engineer',
             'pipeline_status' => 'applied',
+            'applied_at' => $now->subDays(20),
         ]);
-        Contact::factory()->create([
-            'company_id' => $company->id,
-            'last_touch' => null,
-        ]);
+        // Recently active: not listed.
+        Role::factory()->create(['company_id' => $company->id, 'pipeline_status' => 'applied', 'applied_at' => $now->subDay()]);
 
         $digest = $this->query()->build($now);
 
-        $this->assertSame(1, $digest->followUpQueueCount);
+        $this->assertCount(1, $digest->attentionItems);
+        $item = $digest->attentionItems[0];
+        $this->assertSame($role->id, $item->roleId);
+        $this->assertSame('Acme', $item->companyName);
+        $this->assertSame('No activity for 20 days', $item->describe());
+        $this->assertSame(route('applications.index', ['role' => $role->id]), $item->url());
+        $this->assertFalse($digest->isEmpty());
+    }
+
+    #[Test]
+    public function mail_lists_each_application_needing_attention_with_a_link(): void
+    {
+        $company = Company::factory()->create(['name' => 'Acme']);
+        $role = Role::factory()->create([
+            'company_id' => $company->id,
+            'title' => 'Staff Engineer',
+            'pipeline_status' => 'onsite',
+            'next_action_date' => now()->subDays(3)->toDateString(),
+        ]);
+
+        $digest = $this->query()->build(CarbonImmutable::now());
+        $mail = new DailyDigestMail($digest, 'UTC');
+
+        $mail->assertSeeInHtml('Applications needing attention');
+        $mail->assertSeeInHtml('Staff Engineer, Acme');
+        $mail->assertSeeInHtml('Next step overdue');
+        $mail->assertSeeInHtml(route('applications.index', ['role' => $role->id]));
     }
 
     #[Test]
@@ -173,7 +199,7 @@ final class DailyDigestTest extends TestCase
         $this->assertTrue($digest->isEmpty());
         $this->assertSame(0, $digest->eventCount());
         $this->assertSame(0, $digest->discoverQueueCount);
-        $this->assertSame(0, $digest->followUpQueueCount);
+        $this->assertSame([], $digest->attentionItems);
         $this->assertTrue($digest->staleATierCompanies->isEmpty());
     }
 

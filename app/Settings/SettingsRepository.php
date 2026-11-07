@@ -51,7 +51,7 @@ final readonly class SettingsRepository
         'a_tier_stale_days' => 'notifications.a_tier_stale_days',
         'consecutive_failure_alert' => 'sources.consecutive_failure_alert',
         'confidence_drop_wow_pct' => 'sources.confidence_drop_wow_pct',
-        'auto_dismiss_threshold_days' => 'pipeline.follow_up_threshold_days',
+        'follow_up_threshold_days' => 'pipeline.follow_up_threshold_days',
         'artifact_retention_days' => 'scrapers.artifact_retention_days',
         'backup_retention_daily_days' => 'backup.retention.daily_days',
         'backup_retention_weekly_weeks' => 'backup.retention.weekly_weeks',

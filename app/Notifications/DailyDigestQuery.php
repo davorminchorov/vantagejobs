@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace App\Notifications;
 
 use App\Enums\AggregatorListingStatus;
-use App\FollowUps\DueFollowUpsQuery;
 use App\Models\AggregatorListing;
 use App\Models\Company;
 use App\Models\Event;
+use App\Pipeline\ApplicationAttention;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\Config\Repository as ConfigRepository;
 use Illuminate\Database\Eloquent\Collection;
@@ -24,9 +24,9 @@ use Illuminate\Database\Eloquent\Collection;
  *  - Stale A-tier: A-tier companies whose last_checked_at is older than the
  *    configured stale threshold (or never checked), so high-priority targets
  *    don't silently rot.
- *  - Follow-up queue: count of contacts due for a follow-up, reusing the
- *    shared DueFollowUpsQuery definition so the digest never drifts from the
- *    /follow-ups page.
+ *  - Applications needing attention: overdue next steps and quiet
+ *    applications, from the shared ApplicationAttention definition so the
+ *    digest never drifts from the Applications page.
  *
  * All reads run through the Eloquent global tenant scope, so callers never
  * pass a tenant id; the active TenantContext bounds every query.
@@ -46,7 +46,7 @@ final readonly class DailyDigestQuery
 
     public function __construct(
         private ConfigRepository $config,
-        private DueFollowUpsQuery $dueFollowUps,
+        private ApplicationAttention $attention,
     ) {}
 
     /**
@@ -61,7 +61,7 @@ final readonly class DailyDigestQuery
             companyActivity: $this->companyActivity($windowStart),
             discoverQueueCount: $this->discoverQueueCount(),
             staleATierCompanies: $this->staleATierCompanies($now),
-            followUpQueueCount: $this->dueFollowUps->count(),
+            attentionItems: $this->attention->needingAttention()->all(),
         );
     }
 

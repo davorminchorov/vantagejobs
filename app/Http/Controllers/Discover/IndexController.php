@@ -7,6 +7,7 @@ namespace App\Http\Controllers\Discover;
 use App\Enums\AggregatorListingStatus;
 use App\Enums\AggregatorSourceType;
 use App\Models\AggregatorListing;
+use App\Models\Role;
 use App\Scrapers\Aggregator\SourceContextFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
@@ -54,8 +55,11 @@ final readonly class IndexController
             ->paginate(25)
             ->withQueryString();
 
-        $listings->getCollection()->each(function (AggregatorListing $listing): void {
+        $pipelineRoleIds = $this->pipelineRoleIds($listings->getCollection()->pluck('id')->all());
+
+        $listings->getCollection()->each(function (AggregatorListing $listing) use ($pipelineRoleIds): void {
             $listing->setAttribute('body_text', $this->bodyTextFor($listing));
+            $listing->setAttribute('pipeline_role_id', $pipelineRoleIds[$listing->id] ?? null);
         });
 
         return Inertia::render('Discover/Index', [
@@ -76,6 +80,28 @@ final readonly class IndexController
                 ),
             ],
         ]);
+    }
+
+    /**
+     * Role ids (already in the pipeline) keyed by the listing they came from,
+     * loaded in one query for the visible page.
+     *
+     * @param  list<int>  $listingIds
+     * @return array<int, int>
+     */
+    private function pipelineRoleIds(array $listingIds): array
+    {
+        if ($listingIds === []) {
+            return [];
+        }
+
+        return Role::query()
+            ->whereIn('aggregator_listing_id', $listingIds)
+            ->whereNotNull('pipeline_status')
+            ->orderByDesc('id')
+            ->pluck('id', 'aggregator_listing_id')
+            ->map(static fn (mixed $id): int => (int) $id)
+            ->all();
     }
 
     /**

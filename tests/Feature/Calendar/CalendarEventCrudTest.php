@@ -50,27 +50,26 @@ final class CalendarEventCrudTest extends TestCase
         ]);
 
         $this->actingAs($this->user)
-            ->get('/calendar')
+            ->get('/applications?view=upcoming')
             ->assertOk()
             ->assertInertia(fn ($page) => $page
-                ->component('Calendar/Index')
-                ->has('events.data', 2)
-                ->has('options.types')
-                ->has('options.owner_types')
+                ->component('Applications/Index')
+                ->has('agenda', 2)
+                ->has('event_types')
                 ->where('filters.past', false));
     }
 
     #[Test]
-    public function index_can_include_past_events(): void
+    public function index_can_show_past_events(): void
     {
         CalendarEvent::factory()->create(['starts_at' => now()->subDays(2)]);
         CalendarEvent::factory()->create(['starts_at' => now()->addDays(2)]);
 
         $this->actingAs($this->user)
-            ->get('/calendar?past=1')
+            ->get('/applications?view=upcoming&past=1')
             ->assertOk()
             ->assertInertia(fn ($page) => $page
-                ->has('events.data', 2)
+                ->has('agenda', 1)
                 ->where('filters.past', true));
     }
 
@@ -91,7 +90,7 @@ final class CalendarEventCrudTest extends TestCase
                 'type' => CalendarEventType::FOLLOW_UP->value,
                 'reminder_minutes' => 15,
             ])
-            ->assertRedirect(route('calendar.index'));
+            ->assertRedirect(route('applications.index', ['view' => 'upcoming']));
 
         $event = CalendarEvent::query()->where('title', 'Coffee chat')->sole();
         $this->assertSame($this->tenant->id, $event->tenant_id);
@@ -257,7 +256,7 @@ final class CalendarEventCrudTest extends TestCase
                 'type' => CalendarEventType::DEADLINE->value,
                 'reminder_minutes' => 60,
             ])
-            ->assertRedirect(route('calendar.index'));
+            ->assertRedirect(route('applications.index', ['view' => 'upcoming']));
 
         $fresh = $event->fresh();
         $this->assertSame('New title', $fresh->title);
@@ -319,7 +318,7 @@ final class CalendarEventCrudTest extends TestCase
 
         $this->actingAs($this->user)
             ->delete("/calendar/{$event->id}")
-            ->assertRedirect(route('calendar.index'));
+            ->assertRedirect(route('applications.index', ['view' => 'upcoming']));
 
         $this->assertDatabaseMissing('calendar_events', ['id' => $event->id]);
         $this->assertNull($cache->get($key));

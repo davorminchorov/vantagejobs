@@ -10,6 +10,9 @@ use App\Http\Controllers\Admin\Runs\DownloadArtifactController;
 use App\Http\Controllers\Admin\Runs\IndexController as AdminRunsIndexController;
 use App\Http\Controllers\Admin\Runs\ShowController as AdminRunsShowController;
 use App\Http\Controllers\Admin\Runs\TriggerController;
+use App\Http\Controllers\Applications\IndexController as ApplicationsIndexController;
+use App\Http\Controllers\Applications\LegacyCalendarRedirectController;
+use App\Http\Controllers\Applications\LegacyRoleRedirectController;
 use App\Http\Controllers\Bookmarks\CreateBookmarkController;
 use App\Http\Controllers\Bookmarks\DeleteBookmarkController;
 use App\Http\Controllers\Bookmarks\IndexController as BookmarksIndexController;
@@ -17,7 +20,6 @@ use App\Http\Controllers\Bulk\PerformBulkActionController;
 use App\Http\Controllers\Bulk\UndoBulkActionController;
 use App\Http\Controllers\Calendar\DestroyController as CalendarDestroyController;
 use App\Http\Controllers\Calendar\FeedController as CalendarFeedController;
-use App\Http\Controllers\Calendar\IndexController as CalendarIndexController;
 use App\Http\Controllers\Calendar\StoreController as CalendarStoreController;
 use App\Http\Controllers\Calendar\UpdateController as CalendarUpdateController;
 use App\Http\Controllers\Companies\AddFundingController;
@@ -38,6 +40,7 @@ use App\Http\Controllers\Contacts\ShowController as ContactsShowController;
 use App\Http\Controllers\Contacts\StoreController as ContactsStoreController;
 use App\Http\Controllers\Contacts\UpdateController as ContactsUpdateController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\Discover\AddListingToPipelineController;
 use App\Http\Controllers\Discover\BookmarkListingController;
 use App\Http\Controllers\Discover\DismissListingController;
 use App\Http\Controllers\Discover\IndexController as DiscoverIndexController;
@@ -50,7 +53,6 @@ use App\Http\Controllers\Discover\Sources\IndexController as SourcesIndexControl
 use App\Http\Controllers\Discover\Sources\RevokeAutoDismissController;
 use App\Http\Controllers\Discover\Sources\RunSourceController;
 use App\Http\Controllers\Discover\Sources\ToggleSourceController;
-use App\Http\Controllers\FollowUps\IndexController as FollowUpsIndexController;
 use App\Http\Controllers\FollowUps\QuickTouchController as FollowUpsQuickTouchController;
 use App\Http\Controllers\HealthController;
 use App\Http\Controllers\Import\CancelImportController;
@@ -68,11 +70,9 @@ use App\Http\Controllers\Insights\FundingCandidatesController;
 use App\Http\Controllers\Insights\HiringInsightsController;
 use App\Http\Controllers\LivenessController;
 use App\Http\Controllers\Pipeline\AddRoleController;
-use App\Http\Controllers\Pipeline\IndexController as PipelineIndexController;
 use App\Http\Controllers\Pipeline\Offers\ComparisonController as PipelineOffersComparisonController;
 use App\Http\Controllers\Pipeline\Offers\UpsertController as PipelineOffersUpsertController;
 use App\Http\Controllers\Pipeline\RemoveRoleController;
-use App\Http\Controllers\Pipeline\ShowRoleController;
 use App\Http\Controllers\Pipeline\StageNotes\StoreController as PipelineStageNotesStoreController;
 use App\Http\Controllers\Pipeline\UpdateApplicationController;
 use App\Http\Controllers\Pipeline\UpdateStatusController as PipelineUpdateStatusController;
@@ -162,6 +162,7 @@ Route::middleware(['auth'])->group(function (): void {
     Route::post('/discover/{listing}/corrections', SaveCorrectionController::class)->name('discover.listings.corrections.store');
     Route::post('/discover/{listing}/save-fixture', SaveFixtureController::class)->name('discover.listings.save-fixture');
     Route::post('/discover/{listing}/reparse', ReparseController::class)->name('discover.listings.reparse');
+    Route::post('/discover/{listing}/pipeline', AddListingToPipelineController::class)->name('discover.listings.pipeline');
 
     Route::get('/discover/sources', SourcesIndexController::class)->name('discover.sources.index');
     Route::post('/discover/sources/{source}/toggle', ToggleSourceController::class)->name('discover.sources.toggle');
@@ -185,7 +186,9 @@ Route::middleware(['auth'])->group(function (): void {
 
     Route::get('/search', GlobalSearchController::class)->name('search');
 
-    Route::get('/pipeline', PipelineIndexController::class)->name('pipeline.index');
+    Route::get('/applications', ApplicationsIndexController::class)->name('applications.index');
+
+    Route::redirect('/pipeline', '/applications')->name('pipeline.index');
     Route::post('/pipeline/status', PipelineUpdateStatusController::class)->name('pipeline.status.update');
     Route::get('/pipeline/offers/comparison', PipelineOffersComparisonController::class)->name('pipeline.offers.comparison');
     Route::post('/pipeline/roles/{role}/add', AddRoleController::class)
@@ -194,7 +197,7 @@ Route::middleware(['auth'])->group(function (): void {
     Route::delete('/pipeline/roles/{role}/remove', RemoveRoleController::class)
         ->whereNumber('role')
         ->name('pipeline.roles.remove');
-    Route::get('/pipeline/roles/{role}', ShowRoleController::class)
+    Route::get('/pipeline/roles/{role}', LegacyRoleRedirectController::class)
         ->whereNumber('role')
         ->name('pipeline.roles.show');
     Route::put('/pipeline/roles/{role}/application', UpdateApplicationController::class)
@@ -234,12 +237,12 @@ Route::middleware(['auth'])->group(function (): void {
         ->whereNumber('template')
         ->name('templates.destroy');
 
-    Route::get('/follow-ups', FollowUpsIndexController::class)->name('follow-ups.index');
+    Route::redirect('/follow-ups', '/applications?view=attention')->name('follow-ups.index');
     Route::post('/follow-ups/{contact}/touch', FollowUpsQuickTouchController::class)
         ->whereNumber('contact')
         ->name('follow-ups.touch');
 
-    Route::get('/calendar', CalendarIndexController::class)->name('calendar.index');
+    Route::get('/calendar', LegacyCalendarRedirectController::class)->name('calendar.index');
     Route::post('/calendar', CalendarStoreController::class)->name('calendar.store');
     Route::put('/calendar/{calendarEvent}', CalendarUpdateController::class)
         ->whereNumber('calendarEvent')

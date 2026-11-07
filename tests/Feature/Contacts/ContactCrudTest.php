@@ -11,9 +11,12 @@ use App\Models\OutreachLogEntry;
 use App\Models\Role;
 use App\Models\Template;
 use App\Models\User;
+use App\Settings\SettingKey;
+use App\Settings\SettingsRepository;
 use App\Tenancy\Tenant;
 use App\Tenancy\TenantContext;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
@@ -75,6 +78,34 @@ final class ContactCrudTest extends TestCase
         $this->assertSame('jane@acme.com', $contact->email);
         $this->assertSame($company->id, $contact->company_id);
         $this->assertSame($this->tenant->id, $contact->tenant_id);
+    }
+
+    #[Test]
+    public function store_returns_to_applications_when_requested(): void
+    {
+        $this->actingAs($this->user)
+            ->from('/applications?role=9')
+            ->post('/contacts', ['name' => 'Panel Pat', 'return_to' => 'applications'])
+            ->assertRedirect('/applications?role=9');
+
+        $this->assertSame(1, Contact::query()->where('name', 'Panel Pat')->count());
+    }
+
+    #[Test]
+    public function store_redirects_to_the_contact_without_return_to(): void
+    {
+        $this->actingAs($this->user)
+            ->from('/applications?role=9')
+            ->post('/contacts', ['name' => 'Page Pat'])
+            ->assertRedirect(route('contacts.show', Contact::query()->where('name', 'Page Pat')->value('id')));
+    }
+
+    #[Test]
+    public function store_rejects_an_unknown_return_to(): void
+    {
+        $this->actingAs($this->user)
+            ->post('/contacts', ['name' => 'Bad', 'return_to' => 'elsewhere'])
+            ->assertSessionHasErrors('return_to');
     }
 
     #[Test]
@@ -239,6 +270,37 @@ final class ContactCrudTest extends TestCase
         $this->actingAs($this->user)
             ->get('/contacts')
             ->assertInertia(fn ($page) => $page->where('contacts.data.0.id', $contact->id)->where('contacts.data.0.needs_followup', true));
+    }
+
+    #[Test]
+    public function needs_followup_uses_the_per_tenant_threshold_setting(): void
+    {
+        $company = Company::factory()->create();
+        Role::factory()->create(['company_id' => $company->id, 'pipeline_status' => PipelineStatus::APPLIED->value]);
+        $contact = Contact::factory()->create(['company_id' => $company->id, 'last_touch' => now()->subDays(10)]);
+
+        $this->actingAs($this->user)->get('/contacts')
+            ->assertInertia(fn ($page) => $page->where('contacts.data.0.needs_followup', true));
+
+        app(SettingsRepository::class)->set(SettingKey::FOLLOW_UP_THRESHOLD_DAYS, 14);
+
+        $this->actingAs($this->user)->get('/contacts')
+            ->assertInertia(fn ($page) => $page->where('contacts.data.0.id', $contact->id)->where('contacts.data.0.needs_followup', false));
+    }
+
+    #[Test]
+    public function needs_followup_adds_no_per_row_settings_query(): void
+    {
+        $company = Company::factory()->create();
+        Role::factory()->create(['company_id' => $company->id, 'pipeline_status' => PipelineStatus::APPLIED->value]);
+        Contact::factory()->count(6)->create(['company_id' => $company->id, 'last_touch' => now()->subDays(30)]);
+
+        DB::enableQueryLog();
+        $this->actingAs($this->user)->get('/contacts')->assertOk();
+        $settingsQueries = collect(DB::getQueryLog())->filter(fn (array $q): bool => str_contains($q['query'], 'from "settings"'))->count();
+        DB::disableQueryLog();
+
+        $this->assertLessThanOrEqual(2, $settingsQueries);
     }
 
     #[Test]

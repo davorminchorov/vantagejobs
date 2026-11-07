@@ -267,7 +267,7 @@ export default function RolesIndex({ groups, filters, counts, options }: Props) 
                     subtitle={
                         <>
                             Open roles at the companies you watch, grouped by company
-                            <span className="hidden md:inline"> · J/K move · Enter expand · X dismiss · P pipeline · O open</span>
+                            <span className="hidden md:inline"> · J/K move · Enter expand · X dismiss · P add to applications · O open</span>
                         </>
                     }
                     actions={

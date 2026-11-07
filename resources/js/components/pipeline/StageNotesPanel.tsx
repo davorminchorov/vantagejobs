@@ -7,58 +7,38 @@ import { SectionLabel } from '@/components/ui/section-label';
 import { RelativeDate } from '@/lib/dates';
 import { cn } from '@/lib/utils';
 
-export type PipelineStage =
-    | 'researching'
-    | 'applied'
-    | 'screen'
-    | 'onsite'
-    | 'offer'
-    | 'rejected'
-    | 'withdrawn';
-
 export interface StageNote {
     id: number;
-    stage: PipelineStage;
+    stage: string;
     body: string;
     created_at: string;
+}
+
+export interface StageLabel {
+    value: string;
+    label: string;
 }
 
 interface StageNotesPanelProps {
     roleId: number;
     notes: StageNote[];
+    /** Every stage in display order, with its label. */
+    stages: StageLabel[];
     /**
      * The stage new notes are filed under. Defaults to the role's current
      * pipeline status so notes attach to whatever stage the work is in.
      */
-    activeStage: PipelineStage;
+    activeStage: string;
     className?: string;
 }
 
-const STAGE_LABELS: Record<PipelineStage, string> = {
-    researching: 'Researching',
-    applied: 'Applied',
-    screen: 'Screen',
-    onsite: 'Onsite',
-    offer: 'Offer',
-    rejected: 'Rejected',
-    withdrawn: 'Withdrawn',
-};
+export default function StageNotesPanel({ roleId, notes, stages, activeStage, className }: StageNotesPanelProps) {
+    const stageLabel = (value: string): string => stages.find((stage) => stage.value === value)?.label ?? value;
 
-const STAGE_ORDER: PipelineStage[] = [
-    'researching',
-    'applied',
-    'screen',
-    'onsite',
-    'offer',
-    'rejected',
-    'withdrawn',
-];
-
-export default function StageNotesPanel({ roleId, notes, activeStage, className }: StageNotesPanelProps) {
     const [body, setBody] = useState('');
     const [busy, setBusy] = useState(false);
 
-    const grouped = STAGE_ORDER.map((stage) => ({
+    const grouped = stages.map(({ value: stage }) => ({
         stage,
         notes: notes
             .filter((note) => note.stage === stage)
@@ -88,7 +68,7 @@ export default function StageNotesPanel({ roleId, notes, activeStage, className 
         <section className={cn('flex flex-col gap-6', className)}>
             <header className="flex items-center justify-between gap-2">
                 <h2 className="text-base font-semibold text-balance">Stage notes</h2>
-                <Badge variant="default">{STAGE_LABELS[activeStage]}</Badge>
+                <Badge variant="default">{stageLabel(activeStage)}</Badge>
             </header>
 
             {grouped.length === 0 ? (
@@ -99,7 +79,7 @@ export default function StageNotesPanel({ roleId, notes, activeStage, className 
                 <ol role="list" className="flex flex-col gap-6">
                     {grouped.map((group) => (
                         <li key={group.stage} className="flex flex-col gap-2">
-                            <SectionLabel>{STAGE_LABELS[group.stage]}</SectionLabel>
+                            <SectionLabel>{stageLabel(group.stage)}</SectionLabel>
                             <ul role="list" className="divide-y divide-border border-y border-border">
                                 {group.notes.map((note) => (
                                     <li key={note.id} className="flex flex-col gap-1 py-3">
@@ -118,14 +98,14 @@ export default function StageNotesPanel({ roleId, notes, activeStage, className 
 
             <div className="flex flex-col gap-2 border-t border-border pt-4">
                 <label htmlFor="stage-note-body" className="sr-only">
-                    Add a note for the {STAGE_LABELS[activeStage]} stage
+                    Add a note for the {stageLabel(activeStage)} stage
                 </label>
                 <textarea
                     id="stage-note-body"
                     name="stage_note_body"
                     value={body}
                     disabled={busy}
-                    placeholder={`Add a note for the ${STAGE_LABELS[activeStage]} stage…`}
+                    placeholder={`Add a note for the ${stageLabel(activeStage)} stage…`}
                     onChange={(event) => setBody(event.target.value)}
                     onKeyDown={(event) => {
                         if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') {

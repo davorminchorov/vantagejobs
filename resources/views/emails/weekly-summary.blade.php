@@ -14,14 +14,22 @@ Here's what happened between {{ $windowStartLabel }} and {{ $windowEndLabel }}.
 | Companies added | {{ $companiesAdded }} |
 | Applications sent | {{ $applicationsSent }} |
 | Offers recorded | {{ $offersRecorded }} |
-| Follow-ups due | {{ $followUpsDue }} |
+| Applications needing attention | {{ count($needsAttention) }} |
 @endcomponent
+
+@if (! empty($needsAttention))
+## Applications needing attention
+
+@foreach ($needsAttention as $item)
+- [{{ $item['title'] }}@if (! empty($item['company'])), {{ $item['company'] }}@endif]({{ $item['url'] }}): {{ $item['reason'] }}
+@endforeach
+@endif
 
 @if (! empty($topSignals))
 ## Top signals of the week
 
 @foreach ($topSignals as $signal)
-- **{{ $signal['label'] }}**@if (! empty($signal['company'])) · {{ $signal['company'] }}@endif@if (! empty($signal['title'])) — {{ $signal['title'] }}@endif
+- **{{ $signal['label'] }}**@if (! empty($signal['company'])) · {{ $signal['company'] }}@endif @if (! empty($signal['title'])): {{ $signal['title'] }}@endif
 
 @endforeach
 @endif

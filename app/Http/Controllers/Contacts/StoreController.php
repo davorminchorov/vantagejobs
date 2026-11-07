@@ -24,8 +24,11 @@ final readonly class StoreController
             'company_id' => $data['company_id'] ?? null,
         ]);
 
-        return redirect()
-            ->route('contacts.show', $contact)
+        $redirect = $request->input('return_to') === 'applications'
+            ? redirect()->back(fallback: route('applications.index'))
+            : redirect()->route('contacts.show', $contact);
+
+        return $redirect
             ->with('success', "Added {$contact->name} to contacts.");
     }
 }

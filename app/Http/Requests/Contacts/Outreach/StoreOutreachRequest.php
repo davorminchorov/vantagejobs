@@ -25,6 +25,7 @@ final class StoreOutreachRequest extends FormRequest
             'subject' => ['nullable', 'string', 'max:255'],
             'body' => ['nullable', 'string', 'max:5000'],
             'occurred_at' => ['nullable', 'date'],
+            'return_to' => ['nullable', 'string', 'in:applications'],
         ];
     }
 }

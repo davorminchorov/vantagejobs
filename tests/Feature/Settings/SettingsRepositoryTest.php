@@ -46,8 +46,23 @@ final class SettingsRepositoryTest extends TestCase
         config()->set('export.download_ttl_hours', 24);
 
         $this->assertSame(3, $this->settings->get('consecutive_failure_alert'));
-        $this->assertSame(7, $this->settings->get('auto_dismiss_threshold_days'));
+        $this->assertSame(7, $this->settings->get('follow_up_threshold_days'));
         $this->assertSame(24, $this->settings->get('export_download_ttl_hours'));
+    }
+
+    #[Test]
+    public function follow_up_threshold_days_is_overridable_per_tenant(): void
+    {
+        config()->set('pipeline.follow_up_threshold_days', 7);
+
+        $this->settings->set('follow_up_threshold_days', 21);
+
+        $this->assertSame(21, $this->settings->get('follow_up_threshold_days'));
+        $this->assertSame(21, $this->settings->all()['follow_up_threshold_days']);
+
+        $this->settings->forget('follow_up_threshold_days');
+
+        $this->assertSame(7, $this->settings->get('follow_up_threshold_days'));
     }
 
     #[Test]

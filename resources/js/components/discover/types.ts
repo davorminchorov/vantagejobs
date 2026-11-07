@@ -34,6 +34,8 @@ export interface Listing {
     parser_version: number | null;
     raw: Record<string, unknown> | null;
     body_text?: string | null;
+    /** Role created from this listing that is already in the pipeline, if any. */
+    pipeline_role_id?: number | null;
 }
 
 export interface Paginator<T> {
@@ -75,7 +77,7 @@ export type EditableField =
 /** Values the inline correction editor can produce for any editable field. */
 export type CorrectionValue = string | number | string[] | null;
 
-export type ListingAction = 'keep' | 'dismiss' | 'snooze' | 'bookmark';
+export type ListingAction = 'keep' | 'dismiss' | 'snooze' | 'bookmark' | 'pipeline';
 
 export interface EditingState {
     listingId: number;

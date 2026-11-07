@@ -29,18 +29,24 @@ final readonly class UpdateStatusController
 
         if ($from === $to) {
             return redirect()
-                ->route('pipeline.index')
+                ->back(fallback: route('applications.index'))
                 ->with('success', "{$role->title} is already in {$to->value}.");
         }
 
         DB::transaction(function () use ($role, $from, $to): void {
-            $role->fill([
+            $attributes = [
                 'pipeline_status' => $to,
-                // Moving stage resets the follow-up clock — the prior stage's
-                // pending action no longer applies to the new column.
+                // Moving stage resets the follow-up clock: the prior stage's
+                // pending action no longer applies to the new stage.
                 'next_action' => null,
                 'next_action_date' => null,
-            ])->save();
+            ];
+
+            if ($to === PipelineStatus::APPLIED && $role->applied_at === null) {
+                $attributes['applied_at'] = CarbonImmutable::now();
+            }
+
+            $role->fill($attributes)->save();
 
             Event::query()->create([
                 'company_id' => $role->company_id,
@@ -56,7 +62,7 @@ final readonly class UpdateStatusController
         });
 
         return redirect()
-            ->route('pipeline.index')
+            ->back(fallback: route('applications.index'))
             ->with('success', "Moved {$role->title} to {$to->value}.");
     }
 }

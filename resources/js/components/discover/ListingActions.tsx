@@ -1,3 +1,4 @@
+import { Link } from '@inertiajs/react';
 import { MoreHorizontal } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -73,6 +74,33 @@ export function ListingActions({ listing, isFocused, debug, onAction, onReparse,
                     >
                         HN ↗
                     </a>
+                </Button>
+            )}
+            {listing.pipeline_role_id != null ? (
+                <Button
+                    size="sm"
+                    variant="outline"
+                    className="min-h-11 sm:min-h-0"
+                    asChild
+                >
+                    <Link
+                        href={`/applications?role=${listing.pipeline_role_id}`}
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        In applications
+                    </Link>
+                </Button>
+            ) : (
+                <Button
+                    size="sm"
+                    variant="outline"
+                    className="min-h-11 sm:min-h-0"
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        onAction('pipeline');
+                    }}
+                >
+                    Add to applications
                 </Button>
             )}
             <Button

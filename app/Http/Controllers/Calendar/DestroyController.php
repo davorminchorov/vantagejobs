@@ -26,7 +26,7 @@ final readonly class DestroyController
         }
 
         return redirect()
-            ->route('calendar.index')
+            ->back(fallback: route('applications.index', ['view' => 'upcoming']))
             ->with('success', "Removed \"{$title}\" from your calendar.");
     }
 }

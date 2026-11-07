@@ -54,7 +54,7 @@ function toField(value: number | null | undefined): string {
 
 function formatUsd(value: number | null | undefined): string {
     if (value === null || value === undefined) {
-        return '—';
+        return 'n/a';
     }
     return new Intl.NumberFormat('en-US', {
         style: 'currency',
@@ -225,7 +225,7 @@ export default function OfferPanel({ offer, action }: OfferPanelProps) {
                                     <span>
                                         {revision.created_at
                                             ? new Date(revision.created_at).toLocaleString()
-                                            : '—'}
+                                            : 'n/a'}
                                     </span>
                                     <span className="font-medium text-foreground">
                                         {formatUsd(revision.computed_total_comp_usd)}

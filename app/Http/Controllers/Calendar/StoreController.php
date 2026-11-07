@@ -48,7 +48,7 @@ final readonly class StoreController
         $this->forgetFeedCache($request);
 
         return redirect()
-            ->route('calendar.index')
+            ->back(fallback: route('applications.index', ['view' => 'upcoming']))
             ->with('success', "Added \"{$event->title}\" to your calendar.");
     }
 
