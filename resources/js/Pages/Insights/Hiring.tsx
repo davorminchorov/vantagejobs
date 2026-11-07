@@ -1,65 +1,83 @@
-import { Head, Link } from '@inertiajs/react';
+import { Head, router } from '@inertiajs/react';
+import { useMemo, useState } from 'react';
 
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import HiringTrendChart from '@/components/charts/HiringTrendChart';
+import { HiringStats } from '@/components/hiring/HiringStats';
+import { MomentumTable } from '@/components/hiring/MomentumTable';
+import { sortCompanies } from '@/components/hiring/helpers';
+import type { CompanyMomentum, HiringPoint, HiringSummary, SortState, TierFilter } from '@/components/hiring/types';
 import InsightsNav from '@/components/insights/InsightsNav';
 import PageHeader from '@/components/PageHeader';
 import { EmptyState } from '@/components/ui/empty-state';
+import { NativeSelect } from '@/components/ui/native-select';
 import { SectionLabel } from '@/components/ui/section-label';
 
-interface TrendPoint {
-    date: string;
-    open_role_count: number;
-    listings_count: number;
-}
-
-interface CompanyTrend {
-    id: number;
-    name: string;
-    series: TrendPoint[];
-}
-
 interface Props {
-    global: TrendPoint[];
-    companies: CompanyTrend[];
+    filters: { tier: TierFilter };
+    summary: HiringSummary;
+    series: HiringPoint[];
+    companies: CompanyMomentum[];
 }
 
-export default function HiringInsightsPage({ global, companies }: Props) {
-    const noTrendData = global.length === 0 && companies.every((c) => c.series.length === 0);
+const TIER_OPTIONS: ReadonlyArray<{ value: TierFilter; label: string }> = [
+    { value: 'all', label: 'All tiers' },
+    { value: 'A', label: 'Tier A' },
+    { value: 'B', label: 'Tier B' },
+    { value: 'C', label: 'Tier C' },
+];
+
+export default function HiringInsightsPage({ filters, summary, series, companies }: Props) {
+    const [sort, setSort] = useState<SortState>({ key: 'change_30d', direction: 'desc' });
+    const sorted = useMemo(() => sortCompanies(companies, sort), [companies, sort]);
+
+    const changeTier = (tier: TierFilter) => {
+        router.get('/insights/hiring', tier === 'all' ? {} : { tier }, {
+            preserveState: true,
+            preserveScroll: true,
+            replace: true,
+        });
+    };
 
     return (
         <AuthenticatedLayout>
             <Head title="Hiring trends" />
             <div className="flex flex-col gap-6">
                 <PageHeader
-                    title="Hiring trends (A-tier)"
-                    subtitle="Daily snapshots across active A-tier companies, last 90 days."
+                    title="Hiring trends"
+                    subtitle="Who is ramping up and who is slowing down, from daily open-role snapshots."
+                    actions={
+                        <NativeSelect
+                            aria-label="Tier"
+                            value={filters.tier}
+                            onChange={(event) => changeTier(event.target.value as TierFilter)}
+                        >
+                            {TIER_OPTIONS.map((option) => (
+                                <option key={option.value} value={option.value}>
+                                    {option.label}
+                                </option>
+                            ))}
+                        </NativeSelect>
+                    }
                 />
 
                 <InsightsNav />
 
-                {noTrendData ? (
-                    <EmptyState>No hiring trend data yet for tracked A-tier companies.</EmptyState>
+                {companies.length === 0 ? (
+                    <EmptyState>No active companies in this tier.</EmptyState>
                 ) : (
                     <>
+                        <HiringStats summary={summary} />
+
                         <section className="flex flex-col gap-3">
-                            <SectionLabel>Global volume</SectionLabel>
-                            <HiringTrendChart data={global} height={320} />
+                            <SectionLabel>Open roles, last 90 days</SectionLabel>
+                            <HiringTrendChart data={series} showListings={false} showLegend={false} curve="step" height={240} />
                         </section>
 
-                        <ul role="list" className="grid gap-x-8 gap-y-6 border-t border-border pt-6 lg:grid-cols-2">
-                            {companies.map((c) => (
-                                <li key={c.id} className="flex min-w-0 flex-col gap-3">
-                                    <Link
-                                        href={`/companies/${c.id}`}
-                                        className="truncate text-base font-medium text-primary hover:underline sm:text-sm"
-                                    >
-                                        {c.name}
-                                    </Link>
-                                    <HiringTrendChart data={c.series} showListings={false} height={140} />
-                                </li>
-                            ))}
-                        </ul>
+                        <section className="flex flex-col gap-3">
+                            <SectionLabel>Companies</SectionLabel>
+                            <MomentumTable companies={sorted} sort={sort} onSort={setSort} />
+                        </section>
                     </>
                 )}
             </div>
