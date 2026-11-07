@@ -10,25 +10,25 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # pnpm/lint/typecheck/build on a Linux (case-sensitive) runner. This also
-  # guards resources/js/Pages: git tracks only the capital-P casing, and a
-  # bad import that only works on macOS's case-folding APFS fails here.
+  # Vite+ format/lint/type checks and build on a Linux (case-sensitive)
+  # runner. This also guards resources/js/Pages: git tracks only the
+  # capital-P casing, and a bad import that only works on macOS's
+  # case-folding APFS fails here.
   frontend:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - uses: pnpm/action-setup@v4
-
-      - uses: actions/setup-node@v4
+      # Vite+ version comes from the pnpm-workspace.yaml catalog.
+      - uses: voidzero-dev/setup-vp@v1.22.0
         with:
           node-version: 22
-          cache: pnpm
+          cache: true
+          run-install: false
 
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm lint
-      - run: pnpm typecheck
-      - run: pnpm build
+      - run: vp install --frozen-lockfile
+      - run: vp check
+      - run: vp build
 
   # PHPUnit against the ci compose stack (docker-compose.yml + docker-compose.ci.yml).
   backend:
