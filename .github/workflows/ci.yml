@@ -60,7 +60,7 @@ jobs:
 
       - name: Wait for Postgres
         run: |
-          for i in $(seq 1 30); do
+          for _ in $(seq 1 30); do
             if $COMPOSE exec -T postgres pg_isready -U postgres -d laravel; then
               exit 0
             fi
@@ -92,11 +92,15 @@ jobs:
     env:
       COMPOSE: docker compose -f docker-compose.yml -f docker-compose.ci.yml
       APP_URL: http://localhost:8080
-      STORAGE_STATE: ${{ runner.temp }}/vj-auth.json
       LOGIN_EMAIL: admin@vantagejobs.test
       LOGIN_PASSWORD: ci-only-throwaway-password-2026
     steps:
       - uses: actions/checkout@v4
+
+      # The runner context isn't available in a job-level env block, and
+      # using it there makes GitHub reject the whole workflow file.
+      - name: Set auth storage state path
+        run: echo "STORAGE_STATE=${RUNNER_TEMP}/vj-auth.json" >> "$GITHUB_ENV"
 
       - uses: pnpm/action-setup@v4
 
@@ -130,7 +134,7 @@ jobs:
 
       - name: Wait for Postgres
         run: |
-          for i in $(seq 1 30); do
+          for _ in $(seq 1 30); do
             if $COMPOSE exec -T postgres pg_isready -U postgres -d laravel; then
               exit 0
             fi
@@ -159,7 +163,7 @@ jobs:
 
       - name: Wait for the app server
         run: |
-          for i in $(seq 1 30); do
+          for _ in $(seq 1 30); do
             if curl -sf "${APP_URL}/login" -o /dev/null; then
               exit 0
             fi
