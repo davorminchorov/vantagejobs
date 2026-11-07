@@ -69,6 +69,12 @@ jobs:
           echo "Postgres did not become ready in time" >&2
           exit 1
 
+      # phpunit.xml points tests at laravel_testing; the ci postgres service
+      # only creates POSTGRES_DB (laravel). --recreate-databases derives the
+      # per-process databases from this one, so it has to exist first.
+      - name: Create test database
+        run: $COMPOSE exec -T postgres createdb -U postgres laravel_testing
+
       - name: Install PHP dependencies
         run: $COMPOSE run --rm -T php composer install --no-interaction --prefer-dist
 
@@ -152,11 +158,11 @@ jobs:
       - name: Migrate
         run: $COMPOSE run --rm -T php php artisan migrate --force --no-interaction
 
+      # One process: CreateAdminUserSeeder reads the tenant that
+      # CreateInitialTenantSeeder puts in TenantContext, which doesn't
+      # survive across separate artisan invocations.
       - name: Seed a tenant, an admin user, and example companies
-        run: |
-          $COMPOSE run --rm -T php php artisan db:seed --class=CreateInitialTenantSeeder --no-interaction --force
-          $COMPOSE run --rm -T php php artisan db:seed --class=CreateAdminUserSeeder --no-interaction --force
-          $COMPOSE run --rm -T php php artisan db:seed --class=ExampleCompaniesSeeder --no-interaction --force
+        run: $COMPOSE run --rm -T php php artisan db:seed --no-interaction --force
 
       - name: Start the app server
         run: $COMPOSE run --rm -d -p 8080:8080 --name vj-ci-app php php artisan octane:start --server=frankenphp --port=8080
