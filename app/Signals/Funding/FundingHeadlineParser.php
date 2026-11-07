@@ -11,8 +11,8 @@ namespace App\Signals\Funding;
  *
  * Amounts next to valuation wording ("valued at $4B", "$3 Billion
  * Valuation") are skipped so the parser reports the raise, not the
- * valuation. Only dollar amounts fill `amount_usd`; euro and pound
- * figures are reported in `amount_label` only.
+ * valuation. Only US dollar amounts fill `amount_usd`; euro, pound and
+ * other-dollar figures ("$12 million NZD") are reported in `amount_label` only.
  */
 final class FundingHeadlineParser
 {
@@ -23,11 +23,12 @@ final class FundingHeadlineParser
     private const MONEY_PATTERN = '/(?<currency>[$€£])\s?(?<number>\d{1,3}(?:,\d{3})+|\d+(?:\.\d+)?)(?:\s?(?<unit>billion|million|thousand|bn|mn|b|m|k)\b)?/iu';
 
     /**
+     * @param  bool  $hasPublisherSuffix  Google News titles end in " - Publisher"; feed titles from the publisher itself do not.
      * @return array{headline: string, publisher: string|null, stage: string|null, amount_usd: int|null, amount_label: string|null}
      */
-    public function parse(string $title): array
+    public function parse(string $title, bool $hasPublisherSuffix = true): array
     {
-        [$headline, $publisher] = $this->splitPublisher(trim($title));
+        [$headline, $publisher] = $hasPublisherSuffix ? $this->splitPublisher(trim($title)) : [trim($title), null];
         $amount = $this->amount($headline);
 
         return [
@@ -102,6 +103,11 @@ final class FundingHeadlineParser
             $value = $this->value($match['number'][0], $match['unit'][0] ?? '');
             if ($value === null) {
                 continue;
+            }
+
+            // "$12 million NZD": a dollar sign that is not US dollars.
+            if ($match['currency'][0] === '$' && preg_match('/^\s*(NZD|AUD|CAD|SGD|HKD|MXN)\b/', $after, $code) === 1) {
+                return ['currency' => $code[1].' ', 'value' => $value];
             }
 
             return ['currency' => $match['currency'][0], 'value' => $value];

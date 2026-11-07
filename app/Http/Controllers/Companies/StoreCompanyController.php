@@ -9,6 +9,8 @@ use App\Http\Requests\Companies\StoreCompanyRequest;
 use App\Jobs\RunCompanyScrapeJob;
 use App\Models\Company;
 use App\Models\Event;
+use App\Models\FundingAnnouncement;
+use App\Signals\Funding\FundingRoundRecorder;
 use App\Tenancy\TenantContext;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\RedirectResponse;
@@ -16,18 +18,25 @@ use Illuminate\Support\Facades\DB;
 
 final readonly class StoreCompanyController
 {
-    public function __construct(private TenantContext $context) {}
+    public function __construct(
+        private TenantContext $context,
+        private FundingRoundRecorder $fundingRecorder,
+    ) {}
 
     public function __invoke(StoreCompanyRequest $request): RedirectResponse
     {
         /** @var array<string, mixed> $data */
         $data = $request->validated();
 
+        $announcementId = isset($data['funding_announcement_id']) ? (int) $data['funding_announcement_id'] : null;
+        unset($data['funding_announcement_id']);
+        $announcement = $announcementId !== null ? FundingAnnouncement::query()->find($announcementId) : null;
+
         $data['domain'] = $this->resolveDomain($data);
         $data['tier'] ??= 'C';
         $data['status'] ??= 'researching';
 
-        $company = DB::transaction(function () use ($data): Company {
+        $company = DB::transaction(function () use ($data, $announcement): Company {
             $company = Company::query()->create($data);
 
             Event::query()->create([
@@ -38,6 +47,10 @@ final readonly class StoreCompanyController
                 'body' => null,
                 'occurred_at' => CarbonImmutable::now(),
             ]);
+
+            if ($announcement instanceof FundingAnnouncement) {
+                $this->trackFromAnnouncement($company, $announcement);
+            }
 
             return $company;
         });
@@ -51,6 +64,35 @@ final readonly class StoreCompanyController
         return redirect()
             ->route('companies.index')
             ->with('success', "Added {$company->name} to the watch list.");
+    }
+
+    /**
+     * The company came from Insights > Recently funded: record the round from
+     * the headline on it, and mark every headline about it as tracked.
+     */
+    private function trackFromAnnouncement(Company $company, FundingAnnouncement $announcement): void
+    {
+        $this->fundingRecorder->record(
+            company: $company,
+            stage: $announcement->stage,
+            amountUsd: $announcement->amount_usd,
+            raisedAt: $announcement->published_at,
+            url: $announcement->url,
+            notes: null,
+            context: ['source' => 'funding_feed', 'announcement_id' => $announcement->id],
+            title: $announcement->title,
+        );
+
+        FundingAnnouncement::query()
+            ->when(
+                $announcement->company_key !== null,
+                fn ($query) => $query->where('company_key', $announcement->company_key),
+                fn ($query) => $query->whereKey($announcement->id),
+            )
+            ->update([
+                'status' => FundingAnnouncement::STATUS_TRACKED,
+                'company_id' => $company->id,
+            ]);
     }
 
     /**

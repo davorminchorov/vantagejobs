@@ -17,6 +17,8 @@ export interface CompanyFormValues {
     ats_host: string;
     tier: string;
     status: string;
+    /** Set when tracking a company from Insights > Recently funded. */
+    funding_announcement_id: number | null;
 }
 
 export interface CompanyFormOptions {
@@ -44,6 +46,7 @@ const EMPTY: CompanyFormValues = {
     ats_host: '',
     tier: 'C',
     status: 'researching',
+    funding_announcement_id: null,
 };
 
 function humanize(value: string): string {
