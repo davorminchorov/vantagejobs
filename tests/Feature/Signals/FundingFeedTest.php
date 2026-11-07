@@ -31,7 +31,13 @@ final class FundingFeedTest extends TestCase
     {
         $this->fakeFeeds([
             FundingFeedSource::TechCrunch->url() => [
-                ['guid' => 'tc-1', 'title' => 'Northwood Space raises $375M Series C at a $2B valuation', 'pubDate' => 'Mon, 02 Nov 2026 10:00:00 +0000'],
+                [
+                    'guid' => 'tc-1',
+                    'title' => 'Northwood Space raises $375M Series C at a $2B valuation',
+                    'pubDate' => 'Mon, 02 Nov 2026 10:00:00 +0000',
+                    'categories' => ['Fundraising', 'Space', 'In Brief'],
+                    'description' => '<![CDATA[<img src="x.jpg"><p>Space infrastructure company Northwood Space said it had raised $375M.</p> The post Northwood appeared first on TechCrunch.]]>',
+                ],
                 ['guid' => 'tc-2', 'title' => 'TechCrunch Founder Summit 2026: Doors open at 9 a.m.', 'pubDate' => 'Mon, 02 Nov 2026 10:00:00 +0000'],
                 ['guid' => 'tc-3', 'title' => 'Fal doubles valuation to $16B', 'pubDate' => 'Mon, 02 Nov 2026 10:00:00 +0000'],
                 ['guid' => 'tc-old', 'title' => 'Oldco raises $5M seed round', 'pubDate' => 'Mon, 03 Aug 2026 10:00:00 +0000'],
@@ -51,10 +57,38 @@ final class FundingFeedTest extends TestCase
         $this->assertSame('Series C', $rows['tc-1']->stage);
         $this->assertSame(375_000_000, $rows['tc-1']->amount_usd);
         $this->assertSame('techcrunch', $rows['tc-1']->source);
+        $this->assertSame(['Fundraising', 'Space', 'In Brief'], $rows['tc-1']->categories);
+        $this->assertSame(['defence_space'], $rows['tc-1']->industries);
+        $this->assertFalse($rows['tc-1']->is_software);
+        $this->assertSame('Space infrastructure company Northwood Space said it had raised $375M.', $rows['tc-1']->summary);
 
         $this->assertSame('Neela', $rows['uk-1']->company_name);
         $this->assertNull($rows['uk-1']->amount_usd);
         $this->assertSame('£2.1M', $rows['uk-1']->amount_label);
+    }
+
+    #[Test]
+    public function rerunning_refreshes_article_fields_on_existing_rows(): void
+    {
+        $item = ['guid' => 'tc-1', 'title' => 'Harbinger raises $240M after expanding into defense', 'pubDate' => 'Thu, 05 Nov 2026 10:00:00 +0000'];
+        $updated = [...$item, 'categories' => ['Transportation'], 'description' => 'Electric trucks.'];
+        Http::fake([
+            FundingFeedSource::TechCrunch->url() => Http::sequence()
+                ->push($this->rss([$item]), 200, ['Content-Type' => 'application/rss+xml'])
+                ->push($this->rss([$updated]), 200, ['Content-Type' => 'application/rss+xml']),
+            '*' => Http::response($this->rss([]), 200, ['Content-Type' => 'application/rss+xml']),
+        ]);
+
+        Artisan::call('signals:funding:feed', ['--tenant' => 'primary', '--source' => 'techcrunch']);
+        $this->assertSame(['defence_space'], FundingAnnouncement::query()->sole()->industries);
+        FundingAnnouncement::query()->update(['status' => FundingAnnouncement::STATUS_DISMISSED]);
+
+        Artisan::call('signals:funding:feed', ['--tenant' => 'primary', '--source' => 'techcrunch']);
+
+        $row = FundingAnnouncement::query()->sole();
+        $this->assertSame(['mobility'], $row->industries);
+        $this->assertSame('Electric trucks.', $row->summary);
+        $this->assertSame(FundingAnnouncement::STATUS_DISMISSED, $row->status);
     }
 
     #[Test]
@@ -91,14 +125,16 @@ final class FundingFeedTest extends TestCase
     }
 
     /**
-     * @param  list<array{guid: string, title: string, pubDate: string}>  $items
+     * @param  list<array{guid: string, title: string, pubDate: string, categories?: list<string>, description?: string}>  $items
      */
     private function rss(array $items): string
     {
         $xml = '';
         foreach ($items as $item) {
+            $categories = implode('', array_map(static fn (string $c): string => "<category><![CDATA[{$c}]]></category>", $item['categories'] ?? []));
+            $description = isset($item['description']) ? "<description>{$item['description']}</description>" : '';
             $xml .= "<item><title>{$item['title']}</title><link>https://news.example.com/{$item['guid']}</link>"
-                ."<guid>{$item['guid']}</guid><pubDate>{$item['pubDate']}</pubDate></item>";
+                ."<guid>{$item['guid']}</guid><pubDate>{$item['pubDate']}</pubDate>{$categories}{$description}</item>";
         }
 
         return '<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"><channel><title>Feed</title>'.$xml.'</channel></rss>';

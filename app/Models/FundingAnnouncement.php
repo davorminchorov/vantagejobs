@@ -20,6 +20,10 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'external_id',
     'title',
     'url',
+    'summary',
+    'categories',
+    'industries',
+    'is_software',
     'published_at',
     'company_name',
     'company_key',
@@ -50,6 +54,9 @@ final class FundingAnnouncement extends Model
         return [
             'published_at' => 'immutable_datetime',
             'amount_usd' => 'integer',
+            'categories' => 'array',
+            'industries' => 'array',
+            'is_software' => 'boolean',
         ];
     }
 

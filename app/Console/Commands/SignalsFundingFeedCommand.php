@@ -11,6 +11,7 @@ use App\Signals\Funding\FundingFeedClient;
 use App\Signals\Funding\FundingFeedSource;
 use App\Signals\Funding\FundingHeadlineFilter;
 use App\Signals\Funding\FundingHeadlineParser;
+use App\Signals\Funding\IndustryClassifier;
 use App\Tenancy\Tenant;
 use App\Tenancy\TenantContext;
 use Carbon\CarbonImmutable;
@@ -25,7 +26,9 @@ use Throwable;
  * An item is kept when it was published within the last
  * FundingAnnouncement::MAX_AGE_DAYS, names a round or an amount that is not
  * a valuation, and either names who raised ("X raises ...") or contains a
- * funding keyword. Existing rows are left alone so review state survives.
+ * funding keyword. Each item also gets industries and a software label
+ * from IndustryClassifier. Existing rows get their article fields refreshed;
+ * their review state (status, tracked company) is never changed.
  */
 final class SignalsFundingFeedCommand extends Command
 {
@@ -41,6 +44,7 @@ final class SignalsFundingFeedCommand extends Command
         private readonly FundedCompanyExtractor $extractor,
         private readonly FundingHeadlineFilter $filter,
         private readonly CompanyKeyNormalizer $normalizer,
+        private readonly IndustryClassifier $classifier,
         private readonly LoggerInterface $logger,
     ) {
         parent::__construct();
@@ -101,26 +105,39 @@ final class SignalsFundingFeedCommand extends Command
                 }
                 $stats['kept']++;
 
-                $exists = FundingAnnouncement::query()
-                    ->where('source', $source->value)
-                    ->where('external_id', $item['external_id'])
-                    ->exists();
-                if ($exists) {
-                    continue;
-                }
-
-                FundingAnnouncement::query()->create([
-                    'source' => $source->value,
-                    'external_id' => $item['external_id'],
+                $industry = $this->classifier->classify($item['categories'], $item['title'], $item['summary']);
+                $content = [
                     'title' => $item['title'],
                     'url' => $item['url'],
+                    'summary' => $item['summary'],
+                    'categories' => $item['categories'],
+                    'industries' => $industry['industries'],
+                    'is_software' => $industry['is_software'],
                     'published_at' => $item['published_at'],
                     'company_name' => $companyName,
                     'company_key' => $this->normalizer->normalize($companyName),
                     'stage' => $parsed['stage'],
                     'amount_usd' => $parsed['amount_usd'],
                     'amount_label' => $parsed['amount_label'],
+                ];
+
+                $existing = FundingAnnouncement::query()
+                    ->where('source', $source->value)
+                    ->where('external_id', $item['external_id'])
+                    ->first();
+                if ($existing instanceof FundingAnnouncement) {
+                    // Refresh what the article says; review state (status,
+                    // tracked company) stays as the user left it.
+                    $existing->fill($content)->save();
+
+                    continue;
+                }
+
+                FundingAnnouncement::query()->create([
+                    'source' => $source->value,
+                    'external_id' => $item['external_id'],
                     'status' => FundingAnnouncement::STATUS_NEW,
+                    ...$content,
                 ]);
                 $stats['new']++;
             }

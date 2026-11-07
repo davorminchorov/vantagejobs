@@ -8,6 +8,7 @@ use App\Models\Company;
 use App\Models\FundingAnnouncement;
 use App\Scrapers\Aggregator\CompanyKeyNormalizer;
 use App\Signals\Funding\FundingFeedSource;
+use App\Signals\Funding\IndustryClassifier;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -46,6 +47,8 @@ final readonly class RecentlyFundedController
         $round = (string) $request->query('round', 'all');
         $round = array_key_exists($round, self::ROUND_STAGES) ? $round : 'all';
         $hideTracked = $request->query('tracked', 'hide') !== 'show';
+        $software = (string) $request->query('software', 'all');
+        $software = in_array($software, ['yes', 'no'], true) ? $software : 'all';
 
         /** @var Collection<int, FundingAnnouncement> $rows */
         $rows = FundingAnnouncement::query()
@@ -60,8 +63,11 @@ final readonly class RecentlyFundedController
         $groups = $rows
             ->groupBy(fn (FundingAnnouncement $row): string => $row->company_key ?? 'announcement:'.$row->id)
             ->map(fn (Collection $announcements, string $key): array => $this->group($key, $announcements, $tracked))
-            ->filter(function (array $group) use ($region, $round, $hideTracked): bool {
+            ->filter(function (array $group) use ($region, $round, $hideTracked, $software): bool {
                 if ($hideTracked && $group['tracked_company'] !== null) {
+                    return false;
+                }
+                if ($software !== 'all' && $group['is_software'] !== ($software === 'yes')) {
                     return false;
                 }
                 if ($region !== 'all' && array_intersect($group['regions'], self::REGION_SOURCES[$region]) === []) {
@@ -78,6 +84,7 @@ final readonly class RecentlyFundedController
                 'region' => $region,
                 'round' => $round,
                 'tracked' => $hideTracked ? 'hide' : 'show',
+                'software' => $software,
             ],
             'groups' => $groups,
             'max_age_days' => FundingAnnouncement::MAX_AGE_DAYS,
@@ -106,8 +113,15 @@ final readonly class RecentlyFundedController
             ->map(fn (FundingAnnouncement $row): ?FundingFeedSource => FundingFeedSource::tryFrom($row->source))
             ->filter();
 
+        $industries = $announcements
+            ->flatMap(fn (FundingAnnouncement $row): array => $row->industries ?? [])
+            ->unique()
+            ->values();
+
         return [
             'key' => $key,
+            'industries' => $industries->map(fn (string $industry): string => IndustryClassifier::label($industry))->all(),
+            'is_software' => $this->softwareVerdict($announcements),
             'announcement_id' => $newest->id,
             'company_name' => $announcements->first(fn (FundingAnnouncement $row): bool => $row->company_name !== null)?->company_name,
             'stage' => $withStage?->stage,
@@ -119,10 +133,28 @@ final readonly class RecentlyFundedController
                 'id' => $row->id,
                 'title' => $row->title,
                 'url' => $row->url,
+                'summary' => $row->summary,
                 'source' => FundingFeedSource::tryFrom($row->source)?->label() ?? $row->source,
                 'published_at' => $row->published_at?->toIso8601String(),
             ])->values()->all(),
         ];
+    }
+
+    /**
+     * Software when the articles that say anything agree on software, deep
+     * tech when they agree on that, otherwise unclear.
+     *
+     * @param  Collection<int, FundingAnnouncement>  $announcements
+     */
+    private function softwareVerdict(Collection $announcements): ?bool
+    {
+        $verdicts = $announcements
+            ->map(fn (FundingAnnouncement $row): ?bool => $row->is_software)
+            ->reject(fn (?bool $verdict): bool => $verdict === null)
+            ->unique()
+            ->values();
+
+        return $verdicts->count() === 1 ? $verdicts->first() : null;
     }
 
     /**
