@@ -56,11 +56,15 @@ export function ApplicationDetail({
 
     function addToApplications() {
         setBusy(true);
-        router.post(`/pipeline/roles/${role.id}/add`, {}, {
-            preserveScroll: true,
-            preserveState: true,
-            onFinish: () => setBusy(false),
-        });
+        router.post(
+            `/pipeline/roles/${role.id}/add`,
+            {},
+            {
+                preserveScroll: true,
+                preserveState: true,
+                onFinish: () => setBusy(false),
+            },
+        );
     }
 
     function remove() {

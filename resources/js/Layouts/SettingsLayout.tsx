@@ -27,9 +27,7 @@ const navSections: SettingsNavSection[] = [
     },
     {
         label: 'Notifications',
-        items: [
-            { title: 'Notifications', href: '/settings/notifications', routeName: 'settings.notifications' },
-        ],
+        items: [{ title: 'Notifications', href: '/settings/notifications', routeName: 'settings.notifications' }],
     },
     {
         label: 'Sources & triage',
@@ -73,9 +71,7 @@ export function SettingsSection({ title, description, children }: SettingsSectio
         <section className="grid grid-cols-1 gap-6 border-t border-border py-8 first:border-t-0 first:pt-0 lg:grid-cols-[1fr_2fr]">
             <div className="flex flex-col gap-1">
                 <h3 className="text-base font-semibold text-balance sm:text-sm">{title}</h3>
-                {description ? (
-                    <p className="text-base text-pretty text-muted-foreground sm:text-sm">{description}</p>
-                ) : null}
+                {description ? <p className="text-base text-pretty text-muted-foreground sm:text-sm">{description}</p> : null}
             </div>
             <div className="min-w-0 max-w-lg">{children}</div>
         </section>
@@ -97,9 +93,7 @@ export default function SettingsLayout({ children }: Props) {
                     >
                         {navSections.map((section) => (
                             <div key={section.label} className="contents lg:flex lg:flex-col lg:gap-1">
-                                <p className="hidden px-2.5 pb-1 text-xs font-medium text-muted-foreground/80 lg:block">
-                                    {section.label}
-                                </p>
+                                <p className="hidden px-2.5 pb-1 text-xs font-medium text-muted-foreground/80 lg:block">{section.label}</p>
                                 {section.items.map((item) => {
                                     const active = url.startsWith(item.href);
                                     return (

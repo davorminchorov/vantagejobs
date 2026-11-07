@@ -7,13 +7,7 @@ import TemplateForm, { humanizeCategory } from '@/components/templates/TemplateF
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogHeader,
-    DialogTitle,
-} from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { RelativeDate } from '@/lib/dates';
 
 interface TemplateRow {
@@ -29,10 +23,7 @@ interface Props {
     categories: string[];
 }
 
-type FormState =
-    | { mode: 'closed' }
-    | { mode: 'create' }
-    | { mode: 'edit'; template: TemplateRow };
+type FormState = { mode: 'closed' } | { mode: 'create' } | { mode: 'edit'; template: TemplateRow };
 
 export default function TemplatesIndexPage({ templates, categories }: Props) {
     const [formState, setFormState] = useState<FormState>({ mode: 'closed' });
@@ -86,9 +77,7 @@ export default function TemplatesIndexPage({ templates, categories }: Props) {
                         {grouped.map((group) => (
                             <section key={group.category} className="flex flex-col gap-3">
                                 <div className="flex items-center gap-2">
-                                    <h2 className="text-sm font-medium text-muted-foreground">
-                                        {humanizeCategory(group.category)}
-                                    </h2>
+                                    <h2 className="text-sm font-medium text-muted-foreground">{humanizeCategory(group.category)}</h2>
                                     <Badge variant="secondary" className="tabular-nums">
                                         {group.rows.length}
                                     </Badge>
@@ -186,9 +175,7 @@ export default function TemplatesIndexPage({ templates, categories }: Props) {
                     <DialogHeader>
                         <DialogTitle>Delete template</DialogTitle>
                         <DialogDescription>
-                            {pendingDelete
-                                ? `Delete "${pendingDelete.name}"? This cannot be undone.`
-                                : ''}
+                            {pendingDelete ? `Delete "${pendingDelete.name}"? This cannot be undone.` : ''}
                         </DialogDescription>
                     </DialogHeader>
                     <div className="flex items-center justify-end gap-3">

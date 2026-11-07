@@ -176,7 +176,11 @@ function SavedViewRow({ view, entity, onNavigate }: SavedViewRowProps) {
     }
 
     return (
-        <li ref={setNodeRef} style={style} className="group flex items-center gap-1 rounded-md pr-1 text-muted-foreground hover:bg-muted/60 hover:text-foreground">
+        <li
+            ref={setNodeRef}
+            style={style}
+            className="group flex items-center gap-1 rounded-md pr-1 text-muted-foreground hover:bg-muted/60 hover:text-foreground"
+        >
             <button
                 type="button"
                 className="cursor-grab touch-none p-1 opacity-0 group-focus-within:opacity-100 group-hover:opacity-100"
@@ -186,25 +190,24 @@ function SavedViewRow({ view, entity, onNavigate }: SavedViewRowProps) {
             >
                 <GripVertical className="size-3.5 shrink-0" aria-hidden="true" />
             </button>
-            <Link
-                href={href}
-                onClick={onNavigate}
-                className="flex min-w-0 flex-1 items-center gap-2 py-1.5 text-sm font-medium"
-            >
+            <Link href={href} onClick={onNavigate} className="flex min-w-0 flex-1 items-center gap-2 py-1.5 text-sm font-medium">
                 {view.is_default ? <Star className="size-3.5 shrink-0 fill-amber-500 stroke-amber-500" aria-label="Default view" /> : null}
                 <span className="truncate">{view.name}</span>
             </Link>
             <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" className="size-7 opacity-0 group-focus-within:opacity-100 group-hover:opacity-100 sm:size-7" aria-label="View actions">
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        className="size-7 opacity-0 group-focus-within:opacity-100 group-hover:opacity-100 sm:size-7"
+                        aria-label="View actions"
+                    >
                         <MoreHorizontal className="size-4" aria-hidden="true" />
                     </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
                     <DropdownMenuItem onSelect={renameView}>Rename</DropdownMenuItem>
-                    <DropdownMenuItem onSelect={setAsDefault}>
-                        {view.is_default ? 'Unset default' : 'Set as default'}
-                    </DropdownMenuItem>
+                    <DropdownMenuItem onSelect={setAsDefault}>{view.is_default ? 'Unset default' : 'Set as default'}</DropdownMenuItem>
                     <DropdownMenuItem onSelect={deleteView} className="text-destructive">
                         Delete
                     </DropdownMenuItem>

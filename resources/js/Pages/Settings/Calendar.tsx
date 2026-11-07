@@ -79,16 +79,10 @@ export default function CalendarPage({ feedUrl }: Props) {
                     }
                 >
                     <form onSubmit={regenerate} className="flex items-center gap-3">
-                        <Button
-                            type="submit"
-                            variant={feedUrl ? 'outline' : 'default'}
-                            disabled={processing}
-                        >
+                        <Button type="submit" variant={feedUrl ? 'outline' : 'default'} disabled={processing}>
                             {feedUrl ? 'Regenerate URL' : 'Generate URL'}
                         </Button>
-                        {recentlySuccessful && (
-                            <span className="text-sm text-muted-foreground">Done.</span>
-                        )}
+                        {recentlySuccessful && <span className="text-sm text-muted-foreground">Done.</span>}
                     </form>
                 </SettingsSection>
             </SettingsLayout>

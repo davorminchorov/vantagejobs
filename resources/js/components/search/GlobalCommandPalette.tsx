@@ -56,13 +56,7 @@ function humanize(value: string): string {
 }
 
 /** Every navigable page destination; Runs/Audit/Parser appended only for admins. Settings is not admin-gated. */
-const NON_ADMIN_PAGES: ReadonlyArray<NavLinkItem> = [
-    ...TOP_LEVEL_ITEMS,
-    ...TRACKER_ITEMS,
-    ...INSIGHTS_ITEMS,
-    SETTINGS_ITEM,
-    IMPORT_ITEM,
-];
+const NON_ADMIN_PAGES: ReadonlyArray<NavLinkItem> = [...TOP_LEVEL_ITEMS, ...TRACKER_ITEMS, ...INSIGHTS_ITEMS, SETTINGS_ITEM, IMPORT_ITEM];
 const ALL_PAGES: ReadonlyArray<NavLinkItem> = [...NON_ADMIN_PAGES, ...ADMIN_ONLY_ITEMS];
 
 export default function GlobalCommandPalette() {
@@ -199,10 +193,7 @@ export default function GlobalCommandPalette() {
             className="fixed inset-0 z-50 flex items-start justify-center bg-black/40"
             onClick={close}
         >
-            <div
-                className="mt-[10vh] w-full max-w-xl rounded-xl border border-border bg-popover"
-                onClick={(e) => e.stopPropagation()}
-            >
+            <div className="mt-[10vh] w-full max-w-xl rounded-xl border border-border bg-popover" onClick={(e) => e.stopPropagation()}>
                 <div className="flex items-center gap-2 border-b border-border px-3 py-3">
                     <Search className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
                     <input
@@ -223,13 +214,9 @@ export default function GlobalCommandPalette() {
 
                 <div className="max-h-[60vh] overflow-auto py-2">
                     {query.trim().length < 2 ? (
-                        <div className="px-3 py-6 text-center text-sm text-muted-foreground">
-                            Type at least 2 characters.
-                        </div>
+                        <div className="px-3 py-6 text-center text-sm text-muted-foreground">Type at least 2 characters.</div>
                     ) : flatItems.length === 0 ? (
-                        <div className="px-3 py-6 text-center text-sm text-muted-foreground">
-                            No matches.
-                        </div>
+                        <div className="px-3 py-6 text-center text-sm text-muted-foreground">No matches.</div>
                     ) : (
                         <>
                             {pageHits.length > 0 ? (
@@ -242,9 +229,7 @@ export default function GlobalCommandPalette() {
                                         >
                                             <div className="flex min-w-0 flex-col">
                                                 <span className="truncate text-base font-medium sm:text-sm">{page.name}</span>
-                                                <span className="truncate text-sm text-muted-foreground">
-                                                    {page.href}
-                                                </span>
+                                                <span className="truncate text-sm text-muted-foreground">{page.href}</span>
                                             </div>
                                         </ResultRow>
                                     ))}
@@ -264,16 +249,12 @@ export default function GlobalCommandPalette() {
                                                 <div className="flex min-w-0 flex-col">
                                                     <span className="truncate text-base font-medium sm:text-sm">{hit.name}</span>
                                                     {hit.domain ? (
-                                                        <span className="truncate text-xs text-muted-foreground">
-                                                            {hit.domain}
-                                                        </span>
+                                                        <span className="truncate text-xs text-muted-foreground">{hit.domain}</span>
                                                     ) : null}
                                                 </div>
                                                 <div className="flex shrink-0 items-center gap-1.5">
                                                     {hit.ats_type ? (
-                                                        <span className="text-xs text-muted-foreground">
-                                                            {humanize(hit.ats_type)}
-                                                        </span>
+                                                        <span className="text-xs text-muted-foreground">{humanize(hit.ats_type)}</span>
                                                     ) : null}
                                                     <Badge variant="outline">
                                                         {hit.tier === 'graveyard' ? 'Graveyard' : `Tier ${hit.tier}`}
@@ -335,23 +316,15 @@ export default function GlobalCommandPalette() {
 function Group({ label, children }: { label: string; children: React.ReactNode }) {
     return (
         <div className="px-1 py-1">
-            <div className="px-3 pb-1 pt-2 text-sm font-medium text-muted-foreground">
-                {label}
-            </div>
-            <ul role="list" className="flex flex-col gap-px">{children}</ul>
+            <div className="px-3 pb-1 pt-2 text-sm font-medium text-muted-foreground">{label}</div>
+            <ul role="list" className="flex flex-col gap-px">
+                {children}
+            </ul>
         </div>
     );
 }
 
-function ResultRow({
-    active,
-    onSelect,
-    children,
-}: {
-    active: boolean;
-    onSelect: () => void;
-    children: React.ReactNode;
-}) {
+function ResultRow({ active, onSelect, children }: { active: boolean; onSelect: () => void; children: React.ReactNode }) {
     return (
         <li>
             <button

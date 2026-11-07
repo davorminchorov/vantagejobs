@@ -50,9 +50,7 @@ export default function ResetPassword({ email, token }: ResetPasswordPageProps):
                         onChange={(event) => setData('email', event.target.value)}
                         required
                     />
-                    {errors.email ? (
-                        <p className="text-sm text-destructive">{errors.email}</p>
-                    ) : null}
+                    {errors.email ? <p className="text-sm text-destructive">{errors.email}</p> : null}
                 </div>
 
                 <div className="flex flex-col gap-2">
@@ -67,9 +65,7 @@ export default function ResetPassword({ email, token }: ResetPasswordPageProps):
                         required
                         autoFocus
                     />
-                    {errors.password ? (
-                        <p className="text-sm text-destructive">{errors.password}</p>
-                    ) : null}
+                    {errors.password ? <p className="text-sm text-destructive">{errors.password}</p> : null}
                 </div>
 
                 <div className="flex flex-col gap-2">

@@ -175,12 +175,22 @@ export default function ShowCompanyPage({
                                 {company.tier === 'graveyard' ? 'Graveyard' : `Tier ${company.tier}`}
                             </Badge>
                             {websiteUrl ? (
-                                <a href={websiteUrl} target="_blank" rel="noopener noreferrer" className="hover:text-foreground hover:underline">
+                                <a
+                                    href={websiteUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="hover:text-foreground hover:underline"
+                                >
                                     {company.domain ? bareDomain(company.domain) : 'Website'} ↗
                                 </a>
                             ) : null}
                             {careersUrl ? (
-                                <a href={careersUrl} target="_blank" rel="noopener noreferrer" className="hover:text-foreground hover:underline">
+                                <a
+                                    href={careersUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="hover:text-foreground hover:underline"
+                                >
                                     Careers page ↗
                                 </a>
                             ) : null}
@@ -222,7 +232,10 @@ export default function ShowCompanyPage({
                         </Tabs>
                     </main>
 
-                    <aside className="flex min-w-0 flex-col divide-y divide-border *:py-6 *:first:pt-0 lg:*:first:pt-1" aria-label="Company details">
+                    <aside
+                        className="flex min-w-0 flex-col divide-y divide-border *:py-6 *:first:pt-0 lg:*:first:pt-1"
+                        aria-label="Company details"
+                    >
                         <section className="flex flex-col gap-3">
                             <SectionLabel>Hiring, last 90 days</SectionLabel>
                             <HiringTrendChart data={hiring_trend} height={140} compact />
@@ -274,7 +287,11 @@ function FundingPanel({ company }: { company: CompanyDetail }) {
                 {company.funding_last_amount_usd ? (
                     <SideFact
                         label="Amount"
-                        value={<span className="tabular-nums">${(company.funding_last_amount_usd / 1_000_000).toLocaleString(undefined, { maximumFractionDigits: 1 })}M</span>}
+                        value={
+                            <span className="tabular-nums">
+                                ${(company.funding_last_amount_usd / 1_000_000).toLocaleString(undefined, { maximumFractionDigits: 1 })}M
+                            </span>
+                        }
                     />
                 ) : null}
                 {github ? (
@@ -415,7 +432,9 @@ function RolesPanel({
                                 onClick={() => applyRoleFilters({ state: state.value })}
                                 className={cn(
                                     'min-h-10 rounded-md px-3 text-base sm:min-h-8 sm:text-sm',
-                                    active ? 'bg-muted font-medium text-foreground' : 'text-muted-foreground hover:bg-muted/60 hover:text-foreground',
+                                    active
+                                        ? 'bg-muted font-medium text-foreground'
+                                        : 'text-muted-foreground hover:bg-muted/60 hover:text-foreground',
                                 )}
                             >
                                 {state.label}
@@ -483,8 +502,7 @@ function RolesPaginator({ roles }: { roles: PaginatedRoles }) {
     return (
         <div className="flex items-center justify-between gap-2 text-sm text-muted-foreground">
             <span>
-                Page <span className="tabular-nums">{roles.current_page}</span> of{' '}
-                <span className="tabular-nums">{roles.last_page}</span>
+                Page <span className="tabular-nums">{roles.current_page}</span> of <span className="tabular-nums">{roles.last_page}</span>
             </span>
             <div className="flex gap-2">
                 {roles.prev_page_url ? (
@@ -643,30 +661,22 @@ function GraveyardBanner({ info }: { info: GraveyardInfo }) {
     return (
         <div className="flex flex-col gap-2 rounded-lg border border-rose-600/20 bg-rose-50 p-4 dark:border-rose-400/20 dark:bg-rose-400/10">
             <div className="flex flex-wrap items-center gap-2">
-                    <Badge variant="destructive">Graveyard</Badge>
-                    <div className="text-sm text-muted-foreground">
-                        Demoted <span className="tabular-nums">{info.demoted_at ? new Date(info.demoted_at).toLocaleString() : ''}</span>
-                    </div>
-                    {info.tags.map((tag) => (
-                        <Badge key={tag} variant="outline">
-                            {humanize(tag)}
-                        </Badge>
-                    ))}
+                <Badge variant="destructive">Graveyard</Badge>
+                <div className="text-sm text-muted-foreground">
+                    Demoted <span className="tabular-nums">{info.demoted_at ? new Date(info.demoted_at).toLocaleString() : ''}</span>
+                </div>
+                {info.tags.map((tag) => (
+                    <Badge key={tag} variant="outline">
+                        {humanize(tag)}
+                    </Badge>
+                ))}
             </div>
             {info.reason ? <p className="max-w-prose text-base text-pretty text-muted-foreground sm:text-sm">{info.reason}</p> : null}
         </div>
     );
 }
 
-function GraveyardControls({
-    companyId,
-    status,
-    presetTags,
-}: {
-    companyId: number;
-    status: string;
-    presetTags: string[];
-}) {
+function GraveyardControls({ companyId, status, presetTags }: { companyId: number; status: string; presetTags: string[] }) {
     const [open, setOpen] = useState(false);
     const demote = useForm<{ reason: string; tags: string[] }>({ reason: '', tags: [] });
     const restore = useForm({});
@@ -677,9 +687,7 @@ function GraveyardControls({
                 type="button"
                 variant="outline"
                 disabled={restore.processing}
-                onClick={() =>
-                    restore.post(`/companies/${companyId}/restore`, { preserveScroll: true })
-                }
+                onClick={() => restore.post(`/companies/${companyId}/restore`, { preserveScroll: true })}
             >
                 Restore to C-tier
             </Button>
@@ -721,9 +729,7 @@ function GraveyardControls({
                                     onClick={() =>
                                         demote.setData(
                                             'tags',
-                                            active
-                                                ? demote.data.tags.filter((t) => t !== tag)
-                                                : [...demote.data.tags, tag],
+                                            active ? demote.data.tags.filter((t) => t !== tag) : [...demote.data.tags, tag],
                                         )
                                     }
                                 >

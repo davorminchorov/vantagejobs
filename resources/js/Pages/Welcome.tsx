@@ -46,15 +46,13 @@ export default function Welcome() {
 
                 <main className="flex-1">
                     <section className="mx-auto w-full max-w-5xl px-4 pt-20 sm:px-6 sm:pt-28">
-                        <p className="text-sm font-medium text-muted-foreground">
-                            Personal job-hunting platform
-                        </p>
+                        <p className="text-sm font-medium text-muted-foreground">Personal job-hunting platform</p>
                         <h1 className="mt-3 max-w-3xl text-4xl font-semibold tracking-tight text-balance sm:text-5xl">
                             A queryable, signal-aware memory of your relationship with the job market.
                         </h1>
                         <p className="mt-5 max-w-2xl text-lg text-pretty text-muted-foreground">
-                            Watches companies you care about. Remembers every role, note, and decision.
-                            Surfaces what changed since you last looked. Not a SaaS. Not for anyone else.
+                            Watches companies you care about. Remembers every role, note, and decision. Surfaces what changed since you last
+                            looked. Not a SaaS. Not for anyone else.
                         </p>
                         <div className="mt-8 flex flex-wrap items-center gap-x-4 gap-y-3">
                             {signedIn ? (
@@ -70,9 +68,7 @@ export default function Welcome() {
                                     </Link>
                                 </Button>
                             )}
-                            <span className="text-base text-muted-foreground sm:text-sm">
-                                Invite-only. No public registration.
-                            </span>
+                            <span className="text-base text-muted-foreground sm:text-sm">Invite-only. No public registration.</span>
                         </div>
                     </section>
 

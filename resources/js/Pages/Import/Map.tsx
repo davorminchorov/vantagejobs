@@ -61,8 +61,8 @@ export default function ImportMapPage({ headers, mapping, preview, row_count, or
                         <div className="flex flex-col gap-1">
                             <h2 className="text-base font-semibold text-balance">Column mapping</h2>
                             <p className="text-base text-pretty text-muted-foreground sm:text-sm">
-                                Required fields are marked with <span className="text-destructive">*</span>. We applied a
-                                best-guess match from your headers.
+                                Required fields are marked with <span className="text-destructive">*</span>. We applied a best-guess match
+                                from your headers.
                             </p>
                         </div>
                         <div className="grid gap-4 sm:grid-cols-2">

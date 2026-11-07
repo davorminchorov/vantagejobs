@@ -38,12 +38,14 @@ export default function StageNotesPanel({ roleId, notes, stages, activeStage, cl
     const [body, setBody] = useState('');
     const [busy, setBusy] = useState(false);
 
-    const grouped = stages.map(({ value: stage }) => ({
-        stage,
-        notes: notes
-            .filter((note) => note.stage === stage)
-            .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()),
-    })).filter((group) => group.notes.length > 0);
+    const grouped = stages
+        .map(({ value: stage }) => ({
+            stage,
+            notes: notes
+                .filter((note) => note.stage === stage)
+                .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()),
+        }))
+        .filter((group) => group.notes.length > 0);
 
     function submit() {
         const trimmed = body.trim();
@@ -84,10 +86,7 @@ export default function StageNotesPanel({ roleId, notes, stages, activeStage, cl
                                 {group.notes.map((note) => (
                                     <li key={note.id} className="flex flex-col gap-1 py-3">
                                         <p className="text-base whitespace-pre-wrap text-foreground sm:text-sm">{note.body}</p>
-                                        <RelativeDate
-                                            iso={note.created_at}
-                                            className="block text-xs tabular-nums text-muted-foreground"
-                                        />
+                                        <RelativeDate iso={note.created_at} className="block text-xs tabular-nums text-muted-foreground" />
                                     </li>
                                 ))}
                             </ul>
@@ -114,7 +113,10 @@ export default function StageNotesPanel({ roleId, notes, stages, activeStage, cl
                         }
                     }}
                     rows={3}
-                    className={cn('resize-y', 'w-full rounded-md border border-input bg-background px-3 py-2 text-base placeholder:text-muted-foreground focus-visible:outline-2 focus-visible:-outline-offset-1 focus-visible:outline-ring sm:text-sm')}
+                    className={cn(
+                        'resize-y',
+                        'w-full rounded-md border border-input bg-background px-3 py-2 text-base placeholder:text-muted-foreground focus-visible:outline-2 focus-visible:-outline-offset-1 focus-visible:outline-ring sm:text-sm',
+                    )}
                 />
                 <div className="flex items-center justify-end">
                     <Button type="button" onClick={submit} disabled={busy || body.trim() === ''}>

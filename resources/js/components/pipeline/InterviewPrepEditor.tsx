@@ -59,7 +59,10 @@ export default function InterviewPrepEditor({ roleId, interviewPrep, application
             <textarea
                 id="interview_prep"
                 name="interview_prep"
-                className={cn('min-h-64 font-mono leading-relaxed', 'w-full rounded-md border border-input bg-background px-3 py-2 text-base placeholder:text-muted-foreground focus-visible:outline-2 focus-visible:-outline-offset-1 focus-visible:outline-ring sm:text-sm')}
+                className={cn(
+                    'min-h-64 font-mono leading-relaxed',
+                    'w-full rounded-md border border-input bg-background px-3 py-2 text-base placeholder:text-muted-foreground focus-visible:outline-2 focus-visible:-outline-offset-1 focus-visible:outline-ring sm:text-sm',
+                )}
                 value={form.data.interview_prep}
                 onChange={(e) => form.setData('interview_prep', e.target.value)}
                 placeholder={'## Topics to review\n- System design\n- Behavioral stories\n\n## Questions to ask'}

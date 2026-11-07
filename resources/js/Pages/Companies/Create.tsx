@@ -44,14 +44,7 @@ export default function CreateCompanyPage({ options, initial, from_announcement 
                         . Add the website so the job board can be detected. Saving also records this round on the company.
                     </p>
                 ) : null}
-                <CompanyForm
-                    mode="create"
-                    initial={initial}
-                    options={options}
-                    action="/companies"
-                    method="post"
-                    cancelHref="/companies"
-                />
+                <CompanyForm mode="create" initial={initial} options={options} action="/companies" method="post" cancelHref="/companies" />
             </div>
         </AuthenticatedLayout>
     );

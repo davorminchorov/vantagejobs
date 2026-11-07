@@ -159,7 +159,10 @@ export function activeChips(filters: CompanyFilters): ActiveChip[] {
     if (filters.last_checked) {
         chips.push({
             key: 'last_checked',
-            label: filters.last_checked === 'older_than_7d' ? 'Stale' : `Checked: ${LAST_CHECKED_LABELS[filters.last_checked] ?? filters.last_checked}`,
+            label:
+                filters.last_checked === 'older_than_7d'
+                    ? 'Stale'
+                    : `Checked: ${LAST_CHECKED_LABELS[filters.last_checked] ?? filters.last_checked}`,
             patch: { last_checked: null },
         });
     }

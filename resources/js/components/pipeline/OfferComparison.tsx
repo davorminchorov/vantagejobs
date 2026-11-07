@@ -131,9 +131,7 @@ export default function OfferComparison({ endpoint }: OfferComparisonProps) {
                                     <TableCell className="text-right font-medium tabular-nums text-foreground">
                                         {formatUsd(row.computed_total_comp_usd)}
                                     </TableCell>
-                                    <TableCell className="tabular-nums text-muted-foreground">
-                                        {row.decision_deadline ?? 'n/a'}
-                                    </TableCell>
+                                    <TableCell className="tabular-nums text-muted-foreground">{row.decision_deadline ?? 'n/a'}</TableCell>
                                 </TableRow>
                             );
                         })}

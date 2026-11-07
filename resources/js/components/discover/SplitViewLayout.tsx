@@ -86,9 +86,7 @@ export function SplitViewLayout({
                 onSave={(field, value) => saveCorrection(listing, field, value)}
                 onSaveFixture={() => saveFixture(listing)}
                 onReparse={(force) => reparse(listing, force)}
-                onSelectSameCompany={() =>
-                    selectMany(selectedIds.includes(listing.id) ? others : [listing.id, ...others])
-                }
+                onSelectSameCompany={() => selectMany(selectedIds.includes(listing.id) ? others : [listing.id, ...others])}
             />
         );
     }
@@ -122,19 +120,14 @@ export function SplitViewLayout({
             </ul>
 
             {isDesktop ? (
-                <div
-                    ref={paneRef}
-                    className="sticky top-6 max-h-[calc(100dvh-3rem)] overflow-y-auto rounded-xl border border-border p-6"
-                >
+                <div ref={paneRef} className="sticky top-6 max-h-[calc(100dvh-3rem)] overflow-y-auto rounded-xl border border-border p-6">
                     {shown ? detailFor(shown) : null}
                 </div>
             ) : (
                 <Sheet open={sheetOpen && shown !== undefined} onOpenChange={setSheetOpen}>
                     <SheetContent side="right" className="w-full overflow-y-auto p-4 pt-14 sm:max-w-xl sm:p-6 sm:pt-14">
                         <SheetTitle className="sr-only">{shown?.parsed_role_title ?? 'Listing'}</SheetTitle>
-                        <SheetDescription className="sr-only">
-                            Details, actions and description for the selected listing.
-                        </SheetDescription>
+                        <SheetDescription className="sr-only">Details, actions and description for the selected listing.</SheetDescription>
                         {shown ? detailFor(shown) : null}
                     </SheetContent>
                 </Sheet>
@@ -190,9 +183,7 @@ function CompactRow({ listing, isFocused, isSelected, onToggleSelect, onOpen, re
                         {listing.parsed_role_title ?? '(role unknown)'}
                     </span>
                     {listing.posted_at !== null ? (
-                        <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
-                            {formatRelative(listing.posted_at)}
-                        </span>
+                        <span className="shrink-0 text-xs text-muted-foreground tabular-nums">{formatRelative(listing.posted_at)}</span>
                     ) : null}
                 </span>
                 <span className="mt-0.5 block truncate text-sm text-muted-foreground">{meta}</span>

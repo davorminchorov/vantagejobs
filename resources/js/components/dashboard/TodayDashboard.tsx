@@ -3,11 +3,7 @@ import { ArrowRight } from 'lucide-react';
 import type { ReactNode } from 'react';
 
 import DashboardEmptyState from '@/components/dashboard/DashboardEmptyState';
-import {
-    type DashboardProps,
-    pluralize,
-    tierVariant,
-} from '@/components/dashboard/types';
+import { type DashboardProps, pluralize, tierVariant } from '@/components/dashboard/types';
 import { Badge } from '@/components/ui/badge';
 import { RelativeDate } from '@/lib/dates';
 
@@ -108,11 +104,7 @@ export default function TodayDashboard({
             key: 'sources-healthy',
             href: '/discover/sources',
             tone: 'ok',
-            primary: (
-                <span className="text-muted-foreground">
-                    All {pluralize(source_health.total, 'source', 'sources')} healthy.
-                </span>
-            ),
+            primary: <span className="text-muted-foreground">All {pluralize(source_health.total, 'source', 'sources')} healthy.</span>,
             action: 'View sources',
         });
     }
@@ -122,8 +114,7 @@ export default function TodayDashboard({
             .slice(0, 5)
             .map((rule) => `${rule.display_name} (${rule.dismiss_count})`)
             .join(', ');
-        const extra =
-            active_auto_dismiss_rules.length > 5 ? ` and ${active_auto_dismiss_rules.length - 5} more` : '';
+        const extra = active_auto_dismiss_rules.length > 5 ? ` and ${active_auto_dismiss_rules.length - 5} more` : '';
 
         needs.push({
             key: 'auto-dismiss',
@@ -140,9 +131,7 @@ export default function TodayDashboard({
             <header>
                 <h1 className="text-2xl font-semibold tracking-tight text-balance">Today</h1>
                 {companies_count > 0 && (
-                    <p className="mt-2 text-base text-pretty text-muted-foreground sm:text-sm">
-                        {summaryParts.join(', ')}.
-                    </p>
+                    <p className="mt-2 text-base text-pretty text-muted-foreground sm:text-sm">{summaryParts.join(', ')}.</p>
                 )}
             </header>
 
@@ -155,9 +144,7 @@ export default function TodayDashboard({
                             Needs you
                         </h2>
                         {needs.every((item) => item.tone === 'ok') && (
-                            <p className="mt-4 text-base text-pretty text-muted-foreground sm:text-sm">
-                                Nothing needs you right now.
-                            </p>
+                            <p className="mt-4 text-base text-pretty text-muted-foreground sm:text-sm">Nothing needs you right now.</p>
                         )}
                         {needs.length > 0 && (
                             <ul role="list" className="mt-2 divide-y divide-border border-y border-border">
@@ -167,16 +154,11 @@ export default function TodayDashboard({
                                             href={item.href}
                                             className="flex items-center gap-3 px-2 py-3 text-base hover:bg-accent sm:text-sm"
                                         >
-                                            <span
-                                                className={`size-2 shrink-0 rounded-full ${dotTone[item.tone]}`}
-                                                aria-hidden="true"
-                                            />
+                                            <span className={`size-2 shrink-0 rounded-full ${dotTone[item.tone]}`} aria-hidden="true" />
                                             <span className="min-w-0 flex-1">
                                                 <span className="block truncate">{item.primary}</span>
                                                 {item.secondary && (
-                                                    <span className="block truncate text-muted-foreground">
-                                                        {item.secondary}
-                                                    </span>
+                                                    <span className="block truncate text-muted-foreground">{item.secondary}</span>
                                                 )}
                                             </span>
                                             <span className="flex shrink-0 items-center gap-1 text-primary">
@@ -200,14 +182,9 @@ export default function TodayDashboard({
                             </Link>
                         </div>
                         {activeStages.every((stage) => stage.count === 0) ? (
-                            <p className="mt-4 text-base text-pretty text-muted-foreground sm:text-sm">
-                                No active applications.
-                            </p>
+                            <p className="mt-4 text-base text-pretty text-muted-foreground sm:text-sm">No active applications.</p>
                         ) : (
-                            <ul
-                                role="list"
-                                className="mt-4 flex flex-wrap gap-x-8 gap-y-4"
-                            >
+                            <ul role="list" className="mt-4 flex flex-wrap gap-x-8 gap-y-4">
                                 {activeStages.map((stage) => (
                                     <li key={stage.status} className="min-w-0">
                                         <div className="text-2xl font-semibold tabular-nums">{stage.count}</div>
@@ -235,9 +212,7 @@ export default function TodayDashboard({
                                         className="flex items-center gap-3 px-2 py-3 text-base hover:bg-accent sm:text-sm"
                                     >
                                         <span className="min-w-0 flex-1 truncate font-medium">{company.name}</span>
-                                        <Badge variant={tierVariant[company.tier] ?? 'secondary'}>
-                                            Tier {company.tier}
-                                        </Badge>
+                                        <Badge variant={tierVariant[company.tier] ?? 'secondary'}>Tier {company.tier}</Badge>
                                         <span className="w-20 shrink-0 text-right tabular-nums text-muted-foreground">
                                             {pluralize(company.open_roles, 'role', 'roles')}
                                         </span>

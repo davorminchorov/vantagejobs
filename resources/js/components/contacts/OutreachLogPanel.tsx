@@ -120,15 +120,13 @@ export default function OutreachLogPanel({ contactId, entries, channels }: Outre
                             <li key={entry.id} className="flex flex-col gap-1 py-4 first:pt-0 last:pb-0">
                                 <div className="flex items-center justify-between gap-2">
                                     <Badge variant="default">{humanize(entry.channel)}</Badge>
-                                    <span className="text-xs tabular-nums text-muted-foreground">
-                                        {formatDateTime(entry.occurred_at)}
-                                    </span>
+                                    <span className="text-xs tabular-nums text-muted-foreground">{formatDateTime(entry.occurred_at)}</span>
                                 </div>
-                                {entry.subject ? (
-                                    <p className="text-base font-medium text-foreground sm:text-sm">{entry.subject}</p>
-                                ) : null}
+                                {entry.subject ? <p className="text-base font-medium text-foreground sm:text-sm">{entry.subject}</p> : null}
                                 {entry.body ? (
-                                    <p className="text-base whitespace-pre-line text-pretty text-muted-foreground sm:text-sm">{entry.body}</p>
+                                    <p className="text-base whitespace-pre-line text-pretty text-muted-foreground sm:text-sm">
+                                        {entry.body}
+                                    </p>
                                 ) : null}
                             </li>
                         ))}

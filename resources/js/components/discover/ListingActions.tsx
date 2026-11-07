@@ -42,29 +42,14 @@ export function ListingActions({ listing, isFocused, debug, onAction, onReparse,
             )}
         >
             {url && (
-                <Button
-                    size="sm"
-                    variant="outline"
-                    className="min-h-11 sm:min-h-0"
-                    asChild
-                >
-                    <a
-                        href={url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        onClick={(e) => e.stopPropagation()}
-                    >
+                <Button size="sm" variant="outline" className="min-h-11 sm:min-h-0" asChild>
+                    <a href={url} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}>
                         Open ↗
                     </a>
                 </Button>
             )}
             {hnCommentUrl && (
-                <Button
-                    size="sm"
-                    variant="outline"
-                    className="min-h-11 sm:min-h-0"
-                    asChild
-                >
+                <Button size="sm" variant="outline" className="min-h-11 sm:min-h-0" asChild>
                     <a
                         href={hnCommentUrl}
                         target="_blank"
@@ -77,16 +62,8 @@ export function ListingActions({ listing, isFocused, debug, onAction, onReparse,
                 </Button>
             )}
             {listing.pipeline_role_id != null ? (
-                <Button
-                    size="sm"
-                    variant="outline"
-                    className="min-h-11 sm:min-h-0"
-                    asChild
-                >
-                    <Link
-                        href={`/applications?role=${listing.pipeline_role_id}`}
-                        onClick={(e) => e.stopPropagation()}
-                    >
+                <Button size="sm" variant="outline" className="min-h-11 sm:min-h-0" asChild>
+                    <Link href={`/applications?role=${listing.pipeline_role_id}`} onClick={(e) => e.stopPropagation()}>
                         In applications
                     </Link>
                 </Button>
@@ -160,15 +137,9 @@ export function ListingActions({ listing, isFocused, debug, onAction, onReparse,
                     </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
-                    <DropdownMenuItem onSelect={() => onReparse(false)}>
-                        Re-parse (keep corrections)
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onSelect={() => onReparse(true)}>
-                        Re-parse (force, drop corrections)
-                    </DropdownMenuItem>
-                    {debug && (
-                        <DropdownMenuItem onSelect={onSaveFixture}>Save as fixture</DropdownMenuItem>
-                    )}
+                    <DropdownMenuItem onSelect={() => onReparse(false)}>Re-parse (keep corrections)</DropdownMenuItem>
+                    <DropdownMenuItem onSelect={() => onReparse(true)}>Re-parse (force, drop corrections)</DropdownMenuItem>
+                    {debug && <DropdownMenuItem onSelect={onSaveFixture}>Save as fixture</DropdownMenuItem>}
                     {debug && listing.parser_version != null && (
                         <div className="px-2 py-1.5 text-xs text-muted-foreground">
                             Parsed by v<span className="tabular-nums">{listing.parser_version}</span>

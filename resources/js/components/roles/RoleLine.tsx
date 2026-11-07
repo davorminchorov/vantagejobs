@@ -64,9 +64,7 @@ export function RoleLine({
                         </span>
                     </span>
                     <span className="hidden w-48 shrink-0 truncate text-sm text-muted-foreground sm:block">{where}</span>
-                    <span className="hidden w-32 shrink-0 truncate text-sm text-muted-foreground tabular-nums md:block">
-                        {pay ?? ''}
-                    </span>
+                    <span className="hidden w-32 shrink-0 truncate text-sm text-muted-foreground tabular-nums md:block">{pay ?? ''}</span>
                     {closed ? (
                         <Badge variant="outline" className="shrink-0">
                             Closed
@@ -111,14 +109,7 @@ export function RoleLine({
             </div>
 
             {expanded ? (
-                <RoleDetails
-                    id={detailsId}
-                    role={role}
-                    where={where}
-                    pay={pay}
-                    closed={closed}
-                    onAddToPipeline={onAddToPipeline}
-                />
+                <RoleDetails id={detailsId} role={role} where={where} pay={pay} closed={closed} onAddToPipeline={onAddToPipeline} />
             ) : null}
         </li>
     );
@@ -175,8 +166,7 @@ function RoleDetails({
                 <SectionLabel>Description</SectionLabel>
                 {!role.has_description ? (
                     <p className="max-w-prose text-base text-pretty text-muted-foreground sm:text-sm">
-                        {sourceLabel(role.source)} doesn&apos;t share the job description with its listings. Open the
-                        posting to read it.
+                        {sourceLabel(role.source)} doesn&apos;t share the job description with its listings. Open the posting to read it.
                     </p>
                 ) : description.status === 'loaded' ? (
                     description.text ? (

@@ -100,9 +100,7 @@ function ErrorRow({ entry, index }: { entry: ErrorEntry; index: number }) {
             <span className="text-muted-foreground font-mono text-sm tabular-nums">#{index + 1}</span>
             <div className="flex min-w-0 flex-1 flex-col gap-2">
                 <p className="text-base text-pretty sm:text-sm">{entry.message}</p>
-                {ctx !== null && (
-                    <pre className="bg-muted/50 overflow-x-auto rounded-lg p-4 font-mono text-sm">{ctxShown}</pre>
-                )}
+                {ctx !== null && <pre className="bg-muted/50 overflow-x-auto rounded-lg p-4 font-mono text-sm">{ctxShown}</pre>}
                 {ctxTruncated && (
                     <div>
                         <Button type="button" variant="link" size="sm" className="h-auto p-0" onClick={() => setOpen(!open)}>
@@ -137,10 +135,7 @@ export default function RunsShow({ run, errors, artifacts }: Props) {
                         title={`Run #${run.id}`}
                         actions={
                             <>
-                                <Badge
-                                    variant={statusVariant(run.status)}
-                                    className={run.status === 'running' ? RUNNING_CLASS : undefined}
-                                >
+                                <Badge variant={statusVariant(run.status)} className={run.status === 'running' ? RUNNING_CLASS : undefined}>
                                     {run.status}
                                 </Badge>
                                 <Badge variant="outline" className="font-mono">
@@ -197,7 +192,8 @@ export default function RunsShow({ run, errors, artifacts }: Props) {
                     </SectionLabel>
                     {artifacts.length === 0 ? (
                         <p className="text-muted-foreground text-base text-pretty sm:text-sm">
-                            No artifacts captured for this run. (Phase 1 ATS scrapes don&apos;t write artifacts, and aggregator runs that finished before step 7 won&apos;t have any.)
+                            No artifacts captured for this run. (Phase 1 ATS scrapes don&apos;t write artifacts, and aggregator runs that
+                            finished before step 7 won&apos;t have any.)
                         </p>
                     ) : (
                         <Table>

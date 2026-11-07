@@ -9,15 +9,7 @@ import OutreachLogPanel, { type OutreachLogEntry } from '@/components/contacts/O
 import { formatDateTime } from '@/lib/dates';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-    DialogTrigger,
-} from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 
 interface Contact {
     id: number;
@@ -44,7 +36,8 @@ export default function ContactShowPage({ contact, outreach, templates, channels
     const [editOpen, setEditOpen] = useState(false);
     const [deleteOpen, setDeleteOpen] = useState(false);
 
-    const companies = props.companies ?? (contact.company_id && contact.company_name ? [{ id: contact.company_id, name: contact.company_name }] : []);
+    const companies =
+        props.companies ?? (contact.company_id && contact.company_name ? [{ id: contact.company_id, name: contact.company_name }] : []);
 
     function destroy() {
         router.delete(`/contacts/${contact.id}`, { preserveScroll: true });

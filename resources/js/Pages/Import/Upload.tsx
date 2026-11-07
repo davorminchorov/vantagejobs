@@ -76,9 +76,7 @@ export default function ImportUploadPage() {
                                     onChange={(e) => form.setData('file', e.target.files?.[0] ?? null)}
                                 />
                             </label>
-                            {form.errors.file ? (
-                                <span className="text-sm text-destructive">{form.errors.file}</span>
-                            ) : null}
+                            {form.errors.file ? <span className="text-sm text-destructive">{form.errors.file}</span> : null}
                         </div>
                         <div>
                             <Button type="submit" disabled={form.processing || form.data.file === null}>
@@ -91,8 +89,7 @@ export default function ImportUploadPage() {
                 <section className="flex flex-col gap-3 border-t border-border pt-6">
                     <SectionLabel>Expected columns</SectionLabel>
                     <p className="text-base text-pretty text-muted-foreground sm:text-sm">
-                        We&apos;ll guess the mapping from your header names. Anything we can&apos;t guess, you&apos;ll set on the
-                        next step.
+                        We&apos;ll guess the mapping from your header names. Anything we can&apos;t guess, you&apos;ll set on the next step.
                     </p>
                     <ul role="list" className="flex list-disc flex-col gap-1 pl-5 text-base sm:text-sm">
                         <li>

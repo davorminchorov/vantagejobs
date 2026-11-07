@@ -52,12 +52,16 @@ export default function TwoFactorPage({ two_factor_enabled, two_factor_confirmed
     }
 
     function regenerateCodes(): void {
-        router.post('/user/two-factor-recovery-codes', {}, {
-            preserveScroll: true,
-            onSuccess: () => {
-                void loadRecoveryCodes();
+        router.post(
+            '/user/two-factor-recovery-codes',
+            {},
+            {
+                preserveScroll: true,
+                onSuccess: () => {
+                    void loadRecoveryCodes();
+                },
             },
-        });
+        );
     }
 
     function confirm(): void {
@@ -80,15 +84,9 @@ export default function TwoFactorPage({ two_factor_enabled, two_factor_confirmed
     return (
         <>
             <Head title="Two-factor authentication" />
-            <SettingsLayout
-                title="Two-factor authentication"
-                description="Protect your account with a TOTP authenticator app."
-            >
+            <SettingsLayout title="Two-factor authentication" description="Protect your account with a TOTP authenticator app.">
                 {!two_factor_enabled && (
-                    <SettingsSection
-                        title="Authenticator app"
-                        description="Two-factor authentication is not enabled."
-                    >
+                    <SettingsSection title="Authenticator app" description="Two-factor authentication is not enabled.">
                         <Button type="button" onClick={enable}>
                             Enable two-factor authentication
                         </Button>
@@ -96,10 +94,7 @@ export default function TwoFactorPage({ two_factor_enabled, two_factor_confirmed
                 )}
 
                 {two_factor_enabled && !two_factor_confirmed && (
-                    <SettingsSection
-                        title="Scan the QR code"
-                        description="Open your authenticator app and scan this code."
-                    >
+                    <SettingsSection title="Scan the QR code" description="Open your authenticator app and scan this code.">
                         <div className="flex flex-col gap-5">
                             {qrSvg && (
                                 <div
@@ -151,10 +146,7 @@ export default function TwoFactorPage({ two_factor_enabled, two_factor_confirmed
                             </div>
                         </SettingsSection>
 
-                        <SettingsSection
-                            title="Recovery codes"
-                            description="Store these somewhere safe. Each code can be used once."
-                        >
+                        <SettingsSection title="Recovery codes" description="Store these somewhere safe. Each code can be used once.">
                             <div className="flex flex-col gap-5">
                                 {recoveryCodes && recoveryCodes.length > 0 && (
                                     <ul

@@ -142,21 +142,10 @@ export default function CompanyForm({ mode, initial, options, action, method = '
                 <SectionLabel>Identity</SectionLabel>
 
                 <Field id="name" label="Name" error={form.errors.name} required>
-                    <Input
-                        id="name"
-                        name="name"
-                        value={form.data.name}
-                        onChange={(e) => form.setData('name', e.target.value)}
-                        autoFocus
-                    />
+                    <Input id="name" name="name" value={form.data.name} onChange={(e) => form.setData('name', e.target.value)} autoFocus />
                 </Field>
 
-                <Field
-                    id="website"
-                    label="Website"
-                    error={form.errors.website}
-                    hint="Used to derive the domain when none is given."
-                >
+                <Field id="website" label="Website" error={form.errors.website} hint="Used to derive the domain when none is given.">
                     <Input
                         id="website"
                         name="website"
@@ -210,10 +199,7 @@ export default function CompanyForm({ mode, initial, options, action, method = '
                             id="ats_type"
                             value={form.data.ats_type}
                             onChange={(v) => form.setData('ats_type', v)}
-                            options={[
-                                { value: '', label: 'None' },
-                                ...options.ats_types.map((a) => ({ value: a, label: humanize(a) })),
-                            ]}
+                            options={[{ value: '', label: 'None' }, ...options.ats_types.map((a) => ({ value: a, label: humanize(a) }))]}
                         />
                     </Field>
 
@@ -282,7 +268,12 @@ function Field({ id, label, error, hint, required, children }: FieldProps) {
         <div className="flex flex-col gap-1.5">
             <Label htmlFor={id}>
                 {label}
-                {required ? <span className="text-destructive" aria-hidden="true"> *</span> : null}
+                {required ? (
+                    <span className="text-destructive" aria-hidden="true">
+                        {' '}
+                        *
+                    </span>
+                ) : null}
             </Label>
             {children}
             {error ? (
@@ -303,12 +294,7 @@ interface SelectInputProps {
 
 function SelectInput({ id, value, onChange, options }: SelectInputProps) {
     return (
-        <NativeSelect
-            id={id}
-            name={id}
-            value={value}
-            onChange={(e) => onChange(e.target.value)}
-        >
+        <NativeSelect id={id} name={id} value={value} onChange={(e) => onChange(e.target.value)}>
             {options.map((option) => (
                 <option key={option.value} value={option.value}>
                     {option.label}

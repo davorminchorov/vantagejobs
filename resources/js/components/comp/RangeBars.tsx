@@ -91,11 +91,7 @@ export function RangeBars({ rows, activeKey, onSelect, unselectableKeys = [], em
                 <span />
                 <span className="relative h-4 text-xs text-muted-foreground tabular-nums">
                     {scale.ticks.map((tick) => (
-                        <span
-                            key={tick}
-                            className="absolute -translate-x-1/2"
-                            style={{ left: `${percentOf(tick, scale)}%` }}
-                        >
+                        <span key={tick} className="absolute -translate-x-1/2" style={{ left: `${percentOf(tick, scale)}%` }}>
                             {formatUsd(tick)}
                         </span>
                     ))}
@@ -128,11 +124,7 @@ function Track({
     return (
         <span className="relative block h-3" aria-hidden="true">
             {scale.ticks.map((tick) => (
-                <span
-                    key={tick}
-                    className="absolute inset-y-[-6px] w-px bg-border"
-                    style={{ left: `${percentOf(tick, scale)}%` }}
-                />
+                <span key={tick} className="absolute inset-y-[-6px] w-px bg-border" style={{ left: `${percentOf(tick, scale)}%` }} />
             ))}
             <span
                 className={cn(

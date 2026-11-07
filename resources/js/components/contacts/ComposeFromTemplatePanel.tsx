@@ -46,7 +46,10 @@ export default function ComposeFromTemplatePanel({ contactId, templates }: Compo
                     'Content-Type': 'application/json',
                     Accept: 'application/json',
                     'X-XSRF-TOKEN': decodeURIComponent(
-                        document.cookie.split('; ').find((c) => c.startsWith('XSRF-TOKEN='))?.split('=')[1] ?? '',
+                        document.cookie
+                            .split('; ')
+                            .find((c) => c.startsWith('XSRF-TOKEN='))
+                            ?.split('=')[1] ?? '',
                     ),
                 },
                 body: JSON.stringify({ template_id: templateId }),
@@ -119,13 +122,7 @@ export default function ComposeFromTemplatePanel({ contactId, templates }: Compo
                 <div className="flex flex-col gap-1.5">
                     <div className="flex items-center justify-between gap-2">
                         <Label htmlFor="compose-draft">Draft</Label>
-                        <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            onClick={copy}
-                            disabled={draft.trim() === ''}
-                        >
+                        <Button type="button" variant="ghost" size="sm" onClick={copy} disabled={draft.trim() === ''}>
                             {copied ? (
                                 <Check className="size-4 text-emerald-600 dark:text-emerald-400" aria-hidden="true" />
                             ) : (

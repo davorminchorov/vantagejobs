@@ -270,13 +270,7 @@ interface SelectInputProps {
 
 function SelectInput({ id, value, onChange, options }: SelectInputProps) {
     return (
-        <NativeSelect
-            id={id}
-            name={id}
-            value={value}
-            onChange={(e) => onChange(e.target.value)}
-            wrapperClassName="w-full"
-        >
+        <NativeSelect id={id} name={id} value={value} onChange={(e) => onChange(e.target.value)} wrapperClassName="w-full">
             {options.map((option) => (
                 <option key={option.value} value={option.value}>
                     {option.label}

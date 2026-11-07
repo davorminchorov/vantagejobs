@@ -15,13 +15,7 @@ import { cn } from '@/lib/utils';
  */
 function DataTableScroll({ className, children, ...props }: React.HTMLAttributes<HTMLDivElement>) {
     return (
-        <div
-            className={cn(
-                'w-full max-w-full overflow-x-auto [-webkit-overflow-scrolling:touch]',
-                className,
-            )}
-            {...props}
-        >
+        <div className={cn('w-full max-w-full overflow-x-auto [-webkit-overflow-scrolling:touch]', className)} {...props}>
             {children}
         </div>
     );

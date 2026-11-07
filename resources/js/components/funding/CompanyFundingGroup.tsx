@@ -43,9 +43,7 @@ export function CompanyFundingGroup({ group, onConfirm, onDismiss, onDismissAll 
                             </Badge>
                         ) : null}
                         {signalText ? (
-                            <span className="text-sm font-medium text-foreground tabular-nums">
-                                Headlines say {signalText}
-                            </span>
+                            <span className="text-sm font-medium text-foreground tabular-nums">Headlines say {signalText}</span>
                         ) : null}
                     </div>
                     <p className="text-sm text-muted-foreground">

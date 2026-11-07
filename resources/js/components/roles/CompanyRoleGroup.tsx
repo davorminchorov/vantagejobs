@@ -94,10 +94,7 @@ export function CompanyRoleGroup({
 
             {hidden > 0 ? (
                 <div className="border-t border-border px-3 py-2.5 text-sm sm:px-4">
-                    <Link
-                        href={showAllHref}
-                        className="font-medium text-primary hover:underline"
-                    >
+                    <Link href={showAllHref} className="font-medium text-primary hover:underline">
                         Show all {group.total_matching} roles at {company.name}
                     </Link>
                 </div>

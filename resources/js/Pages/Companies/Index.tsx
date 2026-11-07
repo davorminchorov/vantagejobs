@@ -20,12 +20,7 @@ import {
 import SaveViewButton from '@/components/saved-views/SaveViewButton';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { cn } from '@/lib/utils';
 
@@ -263,7 +258,11 @@ export default function CompaniesIndexPage({ companies, filters, options }: Prop
                                         )}
                                     >
                                         <TableCell>
-                                            <RowCheckbox company={company} checked={selectedIds.includes(company.id)} onToggle={toggleRow} />
+                                            <RowCheckbox
+                                                company={company}
+                                                checked={selectedIds.includes(company.id)}
+                                                onToggle={toggleRow}
+                                            />
                                         </TableCell>
                                         <TableCell>
                                             <CompanyName company={company} />
@@ -370,7 +369,9 @@ function CompanyName({ company }: { company: CompanyRow }) {
             <Link href={`/companies/${company.id}`} className="truncate font-medium text-foreground hover:underline">
                 {company.name}
             </Link>
-            {company.domain ? <span className="truncate text-sm text-muted-foreground sm:text-xs">{bareDomain(company.domain)}</span> : null}
+            {company.domain ? (
+                <span className="truncate text-sm text-muted-foreground sm:text-xs">{bareDomain(company.domain)}</span>
+            ) : null}
         </div>
     );
 }

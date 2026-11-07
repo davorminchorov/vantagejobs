@@ -32,11 +32,9 @@ export function monthYear(iso: string | null): string | null {
 
 /** "Series C · $50M · Mar 2026", or null when nothing is on file. */
 export function onFileLabel(funding: FundingOnFile): string | null {
-    const parts = [
-        funding.stage,
-        funding.amount_usd ? formatUsd(funding.amount_usd) : null,
-        monthYear(funding.raised_at),
-    ].filter((part): part is string => Boolean(part));
+    const parts = [funding.stage, funding.amount_usd ? formatUsd(funding.amount_usd) : null, monthYear(funding.raised_at)].filter(
+        (part): part is string => Boolean(part),
+    );
 
     return parts.length > 0 ? parts.join(' · ') : null;
 }

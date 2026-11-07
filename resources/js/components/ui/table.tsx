@@ -22,30 +22,14 @@ function TableBody({ className, ...props }: React.HTMLAttributes<HTMLTableSectio
     return <tbody className={cn('[&_tr:last-child]:border-0', className)} {...props} />;
 }
 
-function TableRow({
-    className,
-    ref,
-    ...props
-}: React.HTMLAttributes<HTMLTableRowElement> & { ref?: React.Ref<HTMLTableRowElement> }) {
-    return (
-        <tr
-            ref={ref}
-            className={cn(
-                'border-b data-[state=selected]:bg-muted',
-                className,
-            )}
-            {...props}
-        />
-    );
+function TableRow({ className, ref, ...props }: React.HTMLAttributes<HTMLTableRowElement> & { ref?: React.Ref<HTMLTableRowElement> }) {
+    return <tr ref={ref} className={cn('border-b data-[state=selected]:bg-muted', className)} {...props} />;
 }
 
 function TableHead({ className, ...props }: React.ThHTMLAttributes<HTMLTableCellElement>) {
     return (
         <th
-            className={cn(
-                'h-10 px-3 text-left align-middle text-sm font-medium whitespace-nowrap text-muted-foreground',
-                className,
-            )}
+            className={cn('h-10 px-3 text-left align-middle text-sm font-medium whitespace-nowrap text-muted-foreground', className)}
             {...props}
         />
     );

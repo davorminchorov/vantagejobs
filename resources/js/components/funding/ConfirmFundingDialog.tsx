@@ -2,15 +2,7 @@ import { router } from '@inertiajs/react';
 import { useEffect, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
-import {
-    Dialog,
-    DialogClose,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-} from '@/components/ui/dialog';
+import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
@@ -64,8 +56,7 @@ export function ConfirmFundingDialog({ target, onClose }: { target: ConfirmTarge
     const amount = Number(form.amount_usd);
     const amountHint = form.amount_usd !== '' && Number.isFinite(amount) && amount > 0 ? formatUsd(amount) : null;
     const foreignAmount = candidate.amount_label !== null && candidate.amount_usd === null ? candidate.amount_label : null;
-    const olderThanOnFile =
-        company.funding.raised_at !== null && form.raised_at !== '' && form.raised_at < company.funding.raised_at;
+    const olderThanOnFile = company.funding.raised_at !== null && form.raised_at !== '' && form.raised_at < company.funding.raised_at;
 
     const update = (field: keyof FormState) => (event: React.ChangeEvent<HTMLInputElement>) =>
         setForm((current) => ({ ...current, [field]: event.target.value }));
@@ -162,10 +153,10 @@ export function ConfirmFundingDialog({ target, onClose }: { target: ConfirmTarge
                         {form.raised_at === ''
                             ? "Without a date this only adds the round to the company's history; its funding fields stay as they are."
                             : olderThanOnFile
-                            ? `${company.name} already has a newer round on file (${onFile}). This adds the round to its history and leaves the company's funding fields as they are.`
-                            : onFile
-                              ? `Replaces the funding on file (${onFile}) with this round.`
-                              : "Sets the company's funding stage, amount and last-raised date."}
+                              ? `${company.name} already has a newer round on file (${onFile}). This adds the round to its history and leaves the company's funding fields as they are.`
+                              : onFile
+                                ? `Replaces the funding on file (${onFile}) with this round.`
+                                : "Sets the company's funding stage, amount and last-raised date."}
                     </p>
 
                     <DialogFooter>

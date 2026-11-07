@@ -70,8 +70,7 @@ export function ListingDetail({
                     ) : null}
                     {listing.auto_dismiss_reason ? (
                         <Badge variant="warning">
-                            {AUTO_DISMISS_REASON_LABELS[listing.auto_dismiss_reason] ??
-                                listing.auto_dismiss_reason.replace('_', ' ')}
+                            {AUTO_DISMISS_REASON_LABELS[listing.auto_dismiss_reason] ?? listing.auto_dismiss_reason.replace('_', ' ')}
                         </Badge>
                     ) : null}
                 </div>

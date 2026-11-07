@@ -72,11 +72,7 @@ export default function DataPage({ exports }: Props) {
                         <Button type="submit" disabled={processing}>
                             {processing ? 'Requesting…' : 'Request export'}
                         </Button>
-                        {recentlySuccessful && (
-                            <span className="text-sm text-muted-foreground">
-                                Queued. It will appear below shortly.
-                            </span>
-                        )}
+                        {recentlySuccessful && <span className="text-sm text-muted-foreground">Queued. It will appear below shortly.</span>}
                     </form>
                 </SettingsSection>
 
@@ -91,18 +87,11 @@ export default function DataPage({ exports }: Props) {
                                 const rows = totalRows(job.counts);
 
                                 return (
-                                    <li
-                                        key={job.id}
-                                        className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between"
-                                    >
+                                    <li key={job.id} className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
                                         <div className="flex min-w-0 flex-col gap-1">
                                             <div className="flex items-center gap-2">
-                                                <Badge variant={STATUS_VARIANT[job.status]}>
-                                                    {STATUS_LABEL[job.status]}
-                                                </Badge>
-                                                <span className="text-base font-medium sm:text-sm">
-                                                    Export #{job.id}
-                                                </span>
+                                                <Badge variant={STATUS_VARIANT[job.status]}>{STATUS_LABEL[job.status]}</Badge>
+                                                <span className="text-base font-medium sm:text-sm">Export #{job.id}</span>
                                             </div>
                                             <p className="text-sm text-muted-foreground">
                                                 Requested {formatDateTime(job.createdAt)}
