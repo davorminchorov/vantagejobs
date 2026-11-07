@@ -46,7 +46,7 @@ final readonly class UpdateController
         }
 
         return redirect()
-            ->route('calendar.index')
+            ->back(fallback: route('applications.index', ['view' => 'upcoming']))
             ->with('success', "Updated \"{$calendarEvent->title}\".");
     }
 }

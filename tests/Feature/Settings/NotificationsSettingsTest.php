@@ -46,6 +46,7 @@ final class NotificationsSettingsTest extends TestCase
                 ->where('settings.digest_skip_empty', (bool) config('notifications.digest_skip_empty'))
                 ->where('settings.notification_email', $this->user->email)
                 ->where('settings.weekly_summary_enabled', true)
+                ->where('settings.follow_up_threshold_days', 7)
             );
     }
 
@@ -57,6 +58,7 @@ final class NotificationsSettingsTest extends TestCase
             SettingKey::NOTIFICATION_EMAIL => 'alerts@vantagejobs.test',
             SettingKey::DIGEST_SKIP_EMPTY => false,
             SettingKey::WEEKLY_SUMMARY_ENABLED => false,
+            SettingKey::FOLLOW_UP_THRESHOLD_DAYS => 21,
         ]);
 
         $this->actingAs($this->user)
@@ -67,6 +69,7 @@ final class NotificationsSettingsTest extends TestCase
                 ->where('settings.notification_email', 'alerts@vantagejobs.test')
                 ->where('settings.digest_skip_empty', false)
                 ->where('settings.weekly_summary_enabled', false)
+                ->where('settings.follow_up_threshold_days', 21)
             );
     }
 
@@ -81,6 +84,7 @@ final class NotificationsSettingsTest extends TestCase
                 'digest_skip_empty' => false,
                 'notification_email' => 'alerts@vantagejobs.test',
                 'weekly_summary_enabled' => false,
+                'follow_up_threshold_days' => 12,
             ])
             ->assertRedirect('/settings/notifications')
             ->assertSessionHas('success');
@@ -93,6 +97,7 @@ final class NotificationsSettingsTest extends TestCase
         $this->assertFalse($repository->get(SettingKey::DIGEST_SKIP_EMPTY));
         $this->assertSame('alerts@vantagejobs.test', $repository->get(SettingKey::NOTIFICATION_EMAIL));
         $this->assertFalse($repository->get(SettingKey::WEEKLY_SUMMARY_ENABLED));
+        $this->assertSame(12, $repository->get(SettingKey::FOLLOW_UP_THRESHOLD_DAYS));
     }
 
     #[Test]
@@ -105,6 +110,7 @@ final class NotificationsSettingsTest extends TestCase
             'digest_skip_empty' => true,
             'notification_email' => 'alerts@vantagejobs.test',
             'weekly_summary_enabled' => true,
+            'follow_up_threshold_days' => 7,
         ];
 
         $this->actingAs($this->user)->post('/settings/notifications', $payload);
@@ -131,11 +137,41 @@ final class NotificationsSettingsTest extends TestCase
                 'digest_skip_empty' => false,
                 'notification_email' => 'not-an-email',
                 'weekly_summary_enabled' => false,
+                'follow_up_threshold_days' => 7,
             ])
             ->assertRedirect('/settings/notifications')
             ->assertSessionHasErrors(['digest_send_time', 'notification_email']);
 
         $this->assertSame(0, Setting::query()->count());
+    }
+
+    #[Test]
+    public function the_follow_up_threshold_must_be_an_integer_between_1_and_60(): void
+    {
+        $payload = [
+            'digest_send_time' => '08:15',
+            'dnd_start' => '23:00',
+            'dnd_end' => '06:30',
+            'digest_skip_empty' => false,
+            'notification_email' => 'alerts@vantagejobs.test',
+            'weekly_summary_enabled' => false,
+        ];
+
+        foreach ([0, 61, -3, 'abc', 2.5, null] as $invalid) {
+            $this->actingAs($this->user)
+                ->from('/settings/notifications')
+                ->post('/settings/notifications', [...$payload, 'follow_up_threshold_days' => $invalid])
+                ->assertSessionHasErrors('follow_up_threshold_days');
+        }
+
+        $this->assertSame(0, Setting::query()->count());
+
+        foreach ([1, 60] as $valid) {
+            $this->actingAs($this->user)
+                ->post('/settings/notifications', [...$payload, 'follow_up_threshold_days' => $valid])
+                ->assertSessionHasNoErrors();
+            $this->assertSame($valid, app(SettingsRepository::class)->get(SettingKey::FOLLOW_UP_THRESHOLD_DAYS));
+        }
     }
 
     #[Test]
@@ -148,6 +184,7 @@ final class NotificationsSettingsTest extends TestCase
             'digest_skip_empty' => false,
             'notification_email' => 'alerts@vantagejobs.test',
             'weekly_summary_enabled' => false,
+            'follow_up_threshold_days' => 7,
         ]);
 
         $otherTenant = Tenant::factory()->create(['slug' => 'other-tenant']);

@@ -32,7 +32,7 @@ interface OfferComparisonProps {
 
 function formatUsd(value: number | null): string {
     if (value === null) {
-        return '—';
+        return 'n/a';
     }
     return new Intl.NumberFormat('en-US', {
         style: 'currency',
@@ -121,18 +121,18 @@ export default function OfferComparison({ endpoint }: OfferComparisonProps) {
                                             {isBest && <Badge variant="success">Top comp</Badge>}
                                         </div>
                                     </TableCell>
-                                    <TableCell className="text-muted-foreground">{row.company_name ?? '—'}</TableCell>
+                                    <TableCell className="text-muted-foreground">{row.company_name ?? 'n/a'}</TableCell>
                                     <TableCell className="text-right tabular-nums">
-                                        {row.base !== null ? `${row.currency} ${row.base.toLocaleString()}` : '—'}
+                                        {row.base !== null ? `${row.currency} ${row.base.toLocaleString()}` : 'n/a'}
                                     </TableCell>
                                     <TableCell className="text-right tabular-nums">
-                                        {row.equity_shares !== null ? `${row.equity_shares.toLocaleString()} sh` : '—'}
+                                        {row.equity_shares !== null ? `${row.equity_shares.toLocaleString()} sh` : 'n/a'}
                                     </TableCell>
                                     <TableCell className="text-right font-medium tabular-nums text-foreground">
                                         {formatUsd(row.computed_total_comp_usd)}
                                     </TableCell>
                                     <TableCell className="tabular-nums text-muted-foreground">
-                                        {row.decision_deadline ?? '—'}
+                                        {row.decision_deadline ?? 'n/a'}
                                     </TableCell>
                                 </TableRow>
                             );

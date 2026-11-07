@@ -45,6 +45,17 @@ final class QuickTouchTest extends TestCase
     }
 
     #[Test]
+    public function redirects_back_to_the_page_it_was_called_from(): void
+    {
+        $contact = Contact::factory()->create();
+
+        $this->actingAs($this->user)
+            ->from('/applications?role=5')
+            ->post("/follow-ups/{$contact->id}/touch")
+            ->assertRedirect('/applications?role=5');
+    }
+
+    #[Test]
     public function logs_a_touch_and_advances_last_touch(): void
     {
         $contact = Contact::factory()
@@ -53,7 +64,7 @@ final class QuickTouchTest extends TestCase
 
         $this->actingAs($this->user)
             ->post("/follow-ups/{$contact->id}/touch")
-            ->assertRedirect('/follow-ups');
+            ->assertRedirect('/applications');
 
         $entry = OutreachLogEntry::query()->where('contact_id', $contact->id)->first();
         $this->assertNotNull($entry);
@@ -76,7 +87,7 @@ final class QuickTouchTest extends TestCase
                 'channel' => OutreachChannel::EMAIL->value,
                 'note' => 'Sent a check-in email.',
             ])
-            ->assertRedirect('/follow-ups');
+            ->assertRedirect('/applications');
 
         $entry = OutreachLogEntry::query()->where('contact_id', $contact->id)->first();
         $this->assertNotNull($entry);

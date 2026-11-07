@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Notifications;
 
 use App\Models\Company;
+use App\Pipeline\AttentionItem;
 use Illuminate\Database\Eloquent\Collection;
 
 /**
@@ -13,18 +14,20 @@ use Illuminate\Database\Eloquent\Collection;
  *
  * @param array<int, DailyDigestCompanyActivity> $companyActivity
  * @param Collection<int, Company>               $staleATierCompanies
+ * @param array<int, AttentionItem>              $attentionItems
  */
 final readonly class DailyDigest
 {
     /**
      * @param array<int, DailyDigestCompanyActivity> $companyActivity
      * @param Collection<int, Company>               $staleATierCompanies
+     * @param array<int, AttentionItem>              $attentionItems
      */
     public function __construct(
         public array $companyActivity,
         public int $discoverQueueCount,
         public Collection $staleATierCompanies,
-        public int $followUpQueueCount,
+        public array $attentionItems,
     ) {}
 
     /**
@@ -40,7 +43,7 @@ final readonly class DailyDigest
 
     /**
      * True when nothing in the window warrants a send: no new events, an empty
-     * discover queue, no stale A-tier targets, and no due follow-ups. The
+     * discover queue, no stale A-tier targets, and no applications needing attention. The
      * digest-skip-empty Setting gates the send on this.
      */
     public function isEmpty(): bool
@@ -48,6 +51,6 @@ final readonly class DailyDigest
         return $this->eventCount() === 0
             && $this->discoverQueueCount === 0
             && $this->staleATierCompanies->isEmpty()
-            && $this->followUpQueueCount === 0;
+            && $this->attentionItems === [];
     }
 }

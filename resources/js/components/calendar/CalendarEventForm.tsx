@@ -19,11 +19,19 @@ export interface CalendarEventFormValues {
     reminder_minutes: string;
 }
 
+export interface OwnerOption {
+    value: string;
+    label: string;
+}
+
 interface CalendarEventFormProps {
     mode: 'create' | 'edit';
     initial: Partial<CalendarEventFormValues>;
     types: string[];
-    ownerTypes: string[];
+    /** Applications (and any existing owner) the event can be attached to. Values look like "role:12". */
+    ownerOptions: OwnerOption[];
+    /** The owner is fixed (the form was opened from an application): shown as text, not editable. */
+    ownerLocked?: boolean;
     action: string;
     method?: 'post' | 'put';
     onCancel?: () => void;
@@ -61,13 +69,16 @@ export default function CalendarEventForm({
     mode,
     initial,
     types,
-    ownerTypes,
+    ownerOptions,
+    ownerLocked = false,
     action,
     method = 'post',
     onCancel,
     onSuccess,
 }: CalendarEventFormProps) {
     const form = useForm<CalendarEventFormValues>({ ...EMPTY, ...initial });
+
+    const ownerValue = form.data.owner_type !== '' ? `${form.data.owner_type}:${form.data.owner_id}` : '';
 
     function submit(e: React.FormEvent) {
         e.preventDefault();
@@ -135,40 +146,33 @@ export default function CalendarEventForm({
             <section className="flex flex-col gap-4">
                 <SectionLabel>Link</SectionLabel>
 
-                <div className="grid gap-4 sm:grid-cols-2">
+                {ownerLocked ? (
+                    <div className="flex flex-col gap-1.5">
+                        <span className="text-base font-medium sm:text-sm">Attached to</span>
+                        <span className="text-base sm:text-sm">{ownerOptions.find((o) => o.value === ownerValue)?.label}</span>
+                    </div>
+                ) : (
                     <Field
-                        id="owner_type"
+                        id="owner"
                         label="Attach to"
-                        error={form.errors.owner_type}
-                        hint="Optional. Leave blank for a standalone reminder."
+                        error={form.errors.owner_type ?? form.errors.owner_id}
+                        hint="Optional. Leave on Nothing for a standalone reminder."
                     >
                         <SelectInput
-                            id="owner_type"
-                            value={form.data.owner_type}
+                            id="owner"
+                            value={ownerValue}
                             onChange={(v) => {
-                                form.setData('owner_type', v);
-                                if (v === '') {
-                                    form.setData('owner_id', '');
-                                }
+                                const separator = v.indexOf(':');
+                                form.setData((data) => ({
+                                    ...data,
+                                    owner_type: separator === -1 ? '' : v.slice(0, separator),
+                                    owner_id: separator === -1 ? '' : v.slice(separator + 1),
+                                }));
                             }}
-                            options={[
-                                { value: '', label: 'Nothing' },
-                                ...ownerTypes.map((t) => ({ value: t, label: humanizeType(t) })),
-                            ]}
+                            options={[{ value: '', label: 'Nothing' }, ...ownerOptions]}
                         />
                     </Field>
-
-                    <Field id="owner_id" label="Owner ID" error={form.errors.owner_id} hint="ID of the linked record.">
-                        <Input
-                            id="owner_id"
-                            name="owner_id"
-                            type="number"
-                            value={form.data.owner_id}
-                            onChange={(e) => form.setData('owner_id', e.target.value)}
-                            disabled={form.data.owner_type === ''}
-                        />
-                    </Field>
-                </div>
+                )}
 
                 <Field id="url" label="URL" error={form.errors.url}>
                     <Input

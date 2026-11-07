@@ -30,6 +30,7 @@ final readonly class UpdateNotificationsController
             SettingKey::DIGEST_SKIP_EMPTY => $request->boolean('digest_skip_empty'),
             SettingKey::NOTIFICATION_EMAIL => $request->string('notification_email')->value(),
             SettingKey::WEEKLY_SUMMARY_ENABLED => $request->boolean('weekly_summary_enabled'),
+            SettingKey::FOLLOW_UP_THRESHOLD_DAYS => $request->integer('follow_up_threshold_days'),
         ]);
 
         return redirect()

@@ -54,8 +54,11 @@ final readonly class StoreController
             }
         });
 
-        return redirect()
-            ->route('contacts.show', $contactModel)
+        $redirect = $request->input('return_to') === 'applications'
+            ? redirect()->back(fallback: route('applications.index'))
+            : redirect()->route('contacts.show', $contactModel);
+
+        return $redirect
             ->with('success', 'Logged outreach to '.$contactModel->name.'.');
     }
 

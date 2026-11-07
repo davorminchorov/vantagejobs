@@ -18,8 +18,8 @@ final readonly class RemoveRoleController
         // Not in the pipeline — no-op, avoid writing a phantom status change.
         if ($role->pipeline_status === null) {
             return redirect()
-                ->route('companies.show', $role->company_id)
-                ->with('info', "{$role->title} is not in your pipeline.");
+                ->back(fallback: route('companies.show', $role->company_id))
+                ->with('info', "{$role->title} is not in your applications.");
         }
 
         DB::transaction(function () use ($role): void {
@@ -44,7 +44,7 @@ final readonly class RemoveRoleController
         });
 
         return redirect()
-            ->route('companies.show', $role->company_id)
-            ->with('success', "Removed {$role->title} from your pipeline.");
+            ->back(fallback: route('companies.show', $role->company_id))
+            ->with('success', "Removed {$role->title} from your applications.");
     }
 }

@@ -19,7 +19,7 @@ use Illuminate\Database\Eloquent\Collection;
 
 /**
  * Sends the Sunday-morning weekly rollup: 7-day counts of new roles, companies
- * added, applications sent, and follow-ups due; the week's top signals; and the
+ * added, applications sent, and applications needing attention; the week's top signals; and the
  * pipeline-stage trend versus the prior week.
  *
  * Gated to one WEEKLY_SUMMARY per tenant per (ISO) week via a notification_log
@@ -144,7 +144,7 @@ final class SendWeeklySummaryCommand extends Command
                 'companies_added' => $summary['companies_added'],
                 'applications_sent' => $summary['applications_sent'],
                 'offers_recorded' => $summary['offers_recorded'],
-                'follow_ups_due' => $summary['follow_ups_due'],
+                'needs_attention' => count($summary['needs_attention']),
                 'top_signals' => count($summary['top_signals']),
             ],
             'sent_at' => $now,

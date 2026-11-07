@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Calendar;
 
-use App\Calendar\UpcomingEventsQuery;
 use App\Enums\CalendarEventType;
 use App\Models\CalendarEvent;
 use App\Models\User;
@@ -99,32 +98,35 @@ final class CalendarTimezoneTest extends TestCase
         ]);
 
         $this->actingAs($this->user)
-            ->get('/calendar')
+            ->get('/applications?view=upcoming')
             ->assertOk()
             ->assertInertia(fn ($page) => $page
-                ->where('events.data.0.starts_at', '2026-06-10T13:30:00+00:00')
-                ->where('events.data.0.timezone', 'America/New_York'));
+                ->where('agenda.0.starts_at', '2026-06-10T13:30:00+00:00')
+                ->where('agenda.0.timezone', 'America/New_York'));
     }
 
     #[Test]
-    public function upcoming_events_query_returns_next_seven_days_ordered(): void
+    public function agenda_strip_returns_next_five_upcoming_events_ordered(): void
     {
-        $soon = CalendarEvent::factory()->create(['starts_at' => now()->addDay()]);
-        $later = CalendarEvent::factory()->create(['starts_at' => now()->addDays(5)]);
-        // Outside the 7-day horizon.
+        $soonest = CalendarEvent::factory()->create(['starts_at' => now()->addHour()]);
+        foreach (range(2, 5) as $days) {
+            CalendarEvent::factory()->create(['starts_at' => now()->addDays($days)]);
+        }
+        // Sixth upcoming event falls outside the strip of five.
         CalendarEvent::factory()->create(['starts_at' => now()->addDays(20)]);
         // Already past.
         CalendarEvent::factory()->create(['starts_at' => now()->subDay()]);
 
-        $results = app(UpcomingEventsQuery::class)->forNextDays(7);
-
-        $this->assertCount(2, $results);
-        $this->assertSame($soon->id, $results->first()?->id);
-        $this->assertSame($later->id, $results->last()?->id);
+        $this->actingAs($this->user)
+            ->get('/applications')
+            ->assertInertia(fn ($page) => $page
+                ->has('agenda', 5)
+                ->where('agenda.0.id', $soonest->id)
+                ->where('counts.upcoming', 6));
     }
 
     #[Test]
-    public function upcoming_events_query_is_tenant_scoped(): void
+    public function agenda_is_tenant_scoped(): void
     {
         CalendarEvent::factory()->create(['starts_at' => now()->addDay()]);
 
@@ -133,8 +135,10 @@ final class CalendarTimezoneTest extends TestCase
             CalendarEvent::factory()->create(['starts_at' => now()->addDay()]);
         });
 
-        $results = app(UpcomingEventsQuery::class)->forNextDays(7);
-
-        $this->assertCount(1, $results);
+        $this->actingAs($this->user)
+            ->get('/applications?view=upcoming')
+            ->assertInertia(fn ($page) => $page
+                ->has('agenda', 1)
+                ->where('counts.upcoming', 1));
     }
 }

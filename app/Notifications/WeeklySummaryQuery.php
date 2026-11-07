@@ -5,18 +5,19 @@ declare(strict_types=1);
 namespace App\Notifications;
 
 use App\Enums\EventType;
-use App\FollowUps\DueFollowUpsQuery;
 use App\Models\Company;
 use App\Models\Event;
 use App\Enums\PipelineStatus;
 use App\Models\Offer;
 use App\Models\Role;
+use App\Pipeline\ApplicationAttention;
+use App\Pipeline\AttentionItem;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Collection;
 
 /**
  * Computes the Sunday-morning weekly rollup for the active tenant: 7-day counts
- * of new roles, companies added, applications sent, and follow-ups due; the top
+ * of new roles, companies added, applications sent, and applications needing attention; the top
  * signals of the week ranked by EventType priority; and a pipeline-stage trend
  * comparing the current week to the prior week.
  *
@@ -49,7 +50,7 @@ final readonly class WeeklySummaryQuery
      */
     private const TOP_SIGNALS_LIMIT = 5;
 
-    public function __construct(private DueFollowUpsQuery $dueFollowUps) {}
+    public function __construct(private ApplicationAttention $attention) {}
 
     /**
      * Build the full summary payload for the week ending at $now.
@@ -61,7 +62,7 @@ final readonly class WeeklySummaryQuery
      *     companies_added: int,
      *     applications_sent: int,
      *     offers_recorded: int,
-     *     follow_ups_due: int,
+     *     needs_attention: array<int, array{role_id: int, title: string, company: ?string, reason: string, url: string}>,
      *     top_signals: array<int, array{type: string, label: string, title: string, company: ?string, occurred_at: string}>,
      *     pipeline_trend: array<int, array{status: string, label: string, current: int, prior: int, delta: int}>,
      *     has_activity: bool
@@ -76,7 +77,16 @@ final readonly class WeeklySummaryQuery
         $companiesAdded = $this->companiesAddedCount($windowStart, $now);
         $applicationsSent = $this->applicationsSentCount($windowStart, $now);
         $offersRecorded = $this->offersRecordedCount($windowStart, $now);
-        $followUpsDue = $this->dueFollowUps->count();
+        $needsAttention = $this->attention->needingAttention()
+            ->map(static fn (AttentionItem $item): array => [
+                'role_id' => $item->roleId,
+                'title' => $item->title,
+                'company' => $item->companyName,
+                'reason' => $item->describe(),
+                'url' => $item->url(),
+            ])
+            ->values()
+            ->all();
         $topSignals = $this->topSignals($windowStart, $now);
         $pipelineTrend = $this->pipelineTrend($windowStart, $now, $priorStart);
 
@@ -84,7 +94,7 @@ final readonly class WeeklySummaryQuery
             || $companiesAdded > 0
             || $applicationsSent > 0
             || $offersRecorded > 0
-            || $followUpsDue > 0
+            || $needsAttention !== []
             || $topSignals !== [];
 
         return [
@@ -94,7 +104,7 @@ final readonly class WeeklySummaryQuery
             'companies_added' => $companiesAdded,
             'applications_sent' => $applicationsSent,
             'offers_recorded' => $offersRecorded,
-            'follow_ups_due' => $followUpsDue,
+            'needs_attention' => $needsAttention,
             'top_signals' => $topSignals,
             'pipeline_trend' => $pipelineTrend,
             'has_activity' => $hasActivity,
@@ -205,7 +215,7 @@ final readonly class WeeklySummaryQuery
 
             $rows[] = [
                 'status' => $status->value,
-                'label' => $this->pipelineLabel($status),
+                'label' => $status->label(),
                 'current' => $currentCount,
                 'prior' => $priorCount,
                 'delta' => $currentCount - $priorCount,
@@ -243,19 +253,6 @@ final readonly class WeeklySummaryQuery
             EventType::BLOG_POST => 'Blog post',
             EventType::GHOST_DETECTED => 'Ghost detected',
             default => ucfirst(str_replace('_', ' ', $type)),
-        };
-    }
-
-    private function pipelineLabel(PipelineStatus $status): string
-    {
-        return match ($status) {
-            PipelineStatus::RESEARCHING => 'Researching',
-            PipelineStatus::APPLIED => 'Applied',
-            PipelineStatus::SCREEN => 'Screen',
-            PipelineStatus::ONSITE => 'Onsite',
-            PipelineStatus::OFFER => 'Offer',
-            PipelineStatus::REJECTED => 'Rejected',
-            PipelineStatus::WITHDRAWN => 'Withdrawn',
         };
     }
 }

@@ -6,33 +6,28 @@ namespace App\Http\Controllers;
 
 use App\Enums\AggregatorListingStatus;
 use App\Enums\PipelineStatus;
-use App\FollowUps\DueFollowUpsQuery;
 use App\Models\AggregatorListing;
 use App\Models\Company;
-use App\Models\Contact;
 use App\Models\Role;
+use App\Pipeline\ApplicationAttention;
+use App\Pipeline\AttentionItem;
 use App\Scrapers\Aggregator\ActiveAutoDismissRulesQuery;
 use App\Sources\SourceHealthQuery;
-use Carbon\CarbonImmutable;
 use Inertia\Inertia;
 use Inertia\Response;
 
 /**
- * Renders the action-first dashboard: source health, follow-ups due, a
- * pipeline stage tally, the count of new Discover listings, and a slim
- * watch-list table. The follow-up count/top-3 reuse DueFollowUpsQuery, the
- * same definition FollowUps\IndexController uses; the pipeline stage tally
- * duplicates Pipeline\IndexController's stage set (RESEARCHING through
- * WITHDRAWN) rather than sharing a query object, since that controller has
- * no extractable query class to reuse and returns a full board payload we
- * don't need here.
+ * Renders the action-first dashboard: source health, applications needing
+ * attention, a pipeline stage tally, the count of new Discover listings, and a
+ * slim watch-list table. The attention count and top rows come from
+ * ApplicationAttention, the same definition the Applications page uses.
  */
 final readonly class DashboardController
 {
     public function __construct(
         private ActiveAutoDismissRulesQuery $autoDismissRules,
         private SourceHealthQuery $sourceHealth,
-        private DueFollowUpsQuery $dueFollowUps,
+        private ApplicationAttention $attention,
     ) {}
 
     public function __invoke(): Response
@@ -59,7 +54,7 @@ final readonly class DashboardController
             'companies_count' => $companies->count(),
             'active_auto_dismiss_rules' => $this->autoDismissRules->active(),
             'source_health' => $this->sourceHealth->summary(),
-            'follow_ups_due' => $this->followUpsDue(),
+            'applications_attention' => $this->applicationsAttention(),
             'pipeline_summary' => $this->pipelineSummary(),
             'discover_new_count' => AggregatorListing::query()
                 ->where('status', AggregatorListingStatus::NEW->value)
@@ -70,27 +65,27 @@ final readonly class DashboardController
     /**
      * @return array{
      *     count: int,
-     *     top: list<array{contact_name: string, company_name: string|null, days_overdue: int|null}>
+     *     top: list<array{role_id: int, title: string, company_name: string|null, reason: string, reason_label: string, url: string}>
      * }
      */
-    private function followUpsDue(): array
+    private function applicationsAttention(): array
     {
-        $now = CarbonImmutable::now();
-
-        $top = $this->dueFollowUps->get(3)
-            ->map(static fn (Contact $contact): array => [
-                'contact_name' => $contact->name,
-                'company_name' => $contact->company?->name,
-                'days_overdue' => $contact->last_touch !== null
-                    ? (int) $contact->last_touch->startOfDay()->diffInDays($now->startOfDay())
-                    : null,
-            ])
-            ->values()
-            ->all();
+        $items = $this->attention->needingAttention();
 
         return [
-            'count' => $this->dueFollowUps->count(),
-            'top' => $top,
+            'count' => $items->count(),
+            'top' => $items
+                ->take(3)
+                ->map(static fn (AttentionItem $item): array => [
+                    'role_id' => $item->roleId,
+                    'title' => $item->title,
+                    'company_name' => $item->companyName,
+                    'reason' => $item->reason->value,
+                    'reason_label' => $item->describe(),
+                    'url' => route('applications.index', ['role' => $item->roleId], false),
+                ])
+                ->values()
+                ->all(),
         ];
     }
 
@@ -101,7 +96,7 @@ final readonly class DashboardController
      *
      * @return array{
      *     total_active: int,
-     *     stages: list<array{status: string, label: string, count: int}>
+     *     stages: list<array{status: string, label: string, terminal: bool, count: int}>
      * }
      */
     private function pipelineSummary(): array
@@ -112,18 +107,17 @@ final readonly class DashboardController
             ->groupBy('pipeline_status')
             ->pluck('role_count', 'pipeline_status');
 
-        $terminal = [PipelineStatus::REJECTED, PipelineStatus::WITHDRAWN];
-
         $stages = [];
         $totalActive = 0;
         foreach (PipelineStatus::cases() as $status) {
             $count = (int) ($counts[$status->value] ?? 0);
             $stages[] = [
                 'status' => $status->value,
-                'label' => self::pipelineStatusLabel($status),
+                'label' => $status->label(),
+                'terminal' => $status->isTerminal(),
                 'count' => $count,
             ];
-            if (! in_array($status, $terminal, true)) {
+            if (! $status->isTerminal()) {
                 $totalActive += $count;
             }
         }
@@ -132,22 +126,5 @@ final readonly class DashboardController
             'total_active' => $totalActive,
             'stages' => $stages,
         ];
-    }
-
-    /**
-     * Duplicates Pipeline\IndexController::label(); kept identical so the
-     * dashboard block and the board use the same wording.
-     */
-    private static function pipelineStatusLabel(PipelineStatus $status): string
-    {
-        return match ($status) {
-            PipelineStatus::RESEARCHING => 'Researching',
-            PipelineStatus::APPLIED => 'Applied',
-            PipelineStatus::SCREEN => 'Screen',
-            PipelineStatus::ONSITE => 'Onsite',
-            PipelineStatus::OFFER => 'Offer',
-            PipelineStatus::REJECTED => 'Rejected',
-            PipelineStatus::WITHDRAWN => 'Withdrawn',
-        };
     }
 }

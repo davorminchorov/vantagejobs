@@ -6,7 +6,6 @@ namespace App\Scrapers\Aggregator;
 
 use App\Enums\AggregatorListingStatus;
 use App\Enums\EventType;
-use App\Enums\WorkplaceType;
 use App\Models\AggregatorListing;
 use App\Models\AggregatorSource;
 use App\Models\Company;
@@ -66,6 +65,7 @@ final readonly class AggregatorListingPersister
         private MatchCompanyAction $matcher,
         private VolumeCapAction $volumeCap,
         private RoleHasher $hasher,
+        private RoleFromListing $roleFromListing,
     ) {}
 
     /**
@@ -225,7 +225,7 @@ final readonly class AggregatorListingPersister
             $listing->status = AggregatorListingStatus::LINKED;
             $listing->save();
 
-            $role = $this->createRoleFromListing($source, $match, $listing);
+            $role = $this->roleFromListing->create($source, $match, $listing);
 
             $title = 'Seen on aggregator: '.($this->asString($parsed->value('role_title')) ?? '(unknown role)');
             $body = (string) json_encode([
@@ -242,47 +242,6 @@ final readonly class AggregatorListingPersister
                 'occurred_at' => $listing->posted_at ?? CarbonImmutable::now(),
             ]);
         });
-    }
-
-    /**
-     * Builds a real Role row from an auto-linked listing's parsed fields,
-     * namespaced 'aggregator:{type}' so it's disjoint from every AtsType
-     * value and selectable via `source like 'aggregator:%'`. Skipped when
-     * parsed_role_title is null — a Role needs a title.
-     *
-     * Nothing else ever re-fetches this listing's source for this job, so
-     * two close paths exist for it: RoleDiffer::apply() supersedes it
-     * silently once the real ATS ingests the same title, and
-     * roles:close-stale-aggregator closes it if last_seen_at goes stale.
-     */
-    private function createRoleFromListing(AggregatorSource $source, Company $company, AggregatorListing $listing): ?Role
-    {
-        $title = $listing->parsed_role_title;
-        if ($title === null) {
-            return null;
-        }
-
-        $isRemote = $listing->parsed_remote_type === 'remote';
-        $hasComp = $listing->parsed_comp_min_usd !== null || $listing->parsed_comp_max_usd !== null;
-
-        return Role::query()->create([
-            'company_id' => $company->id,
-            'source' => 'aggregator:'.$source->type->value,
-            'external_id' => $listing->external_id,
-            'aggregator_listing_id' => $listing->id,
-            'title' => $title,
-            'url' => $listing->url,
-            'location' => $listing->location_bucket,
-            'is_remote' => $isRemote,
-            'is_open' => true,
-            'workplace_type' => $isRemote ? WorkplaceType::REMOTE->value : WorkplaceType::UNSPECIFIED->value,
-            'comp_min' => $listing->parsed_comp_min_usd,
-            'comp_max' => $listing->parsed_comp_max_usd,
-            'comp_currency' => $hasComp ? 'USD' : null,
-            'raw' => $listing->parsed,
-            'posted_at' => $listing->posted_at,
-            'last_seen_at' => CarbonImmutable::now(),
-        ]);
     }
 
     /**

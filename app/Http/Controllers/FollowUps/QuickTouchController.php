@@ -58,7 +58,7 @@ final readonly class QuickTouchController
         });
 
         return redirect()
-            ->route('follow-ups.index')
+            ->back(fallback: route('applications.index'))
             ->with('success', 'Logged a touch for '.$contactModel->name.'.');
     }
 

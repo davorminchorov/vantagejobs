@@ -35,6 +35,19 @@ final class RemoveRoleFromPipelineTest extends TestCase
     }
 
     #[Test]
+    public function removal_redirects_back_to_the_referring_page(): void
+    {
+        $role = Role::factory()->create(['pipeline_status' => PipelineStatus::APPLIED]);
+
+        $this->actingAs($this->user)
+            ->from("/applications?role={$role->id}")
+            ->delete("/pipeline/roles/{$role->id}/remove")
+            ->assertRedirect("/applications?role={$role->id}");
+
+        $this->assertNull($role->fresh()->pipeline_status);
+    }
+
+    #[Test]
     public function removes_a_role_from_the_pipeline_and_records_a_status_change_event(): void
     {
         $company = Company::factory()->create();

@@ -14,6 +14,7 @@ interface NotificationSettings {
     digest_skip_empty: boolean;
     notification_email: string;
     weekly_summary_enabled: boolean;
+    follow_up_threshold_days: number;
 }
 
 interface Props {
@@ -29,6 +30,7 @@ export default function NotificationsPage({ settings }: Props) {
             digest_skip_empty: settings.digest_skip_empty,
             notification_email: settings.notification_email,
             weekly_summary_enabled: settings.weekly_summary_enabled,
+            follow_up_threshold_days: settings.follow_up_threshold_days,
         });
 
     const submit: FormEventHandler = (event) => {
@@ -84,6 +86,33 @@ export default function NotificationsPage({ settings }: Props) {
                                     <p className="text-sm text-destructive">{errors.digest_send_time}</p>
                                 )}
                             </div>
+                        </div>
+                    </SettingsSection>
+
+                    <SettingsSection
+                        title="Follow-ups"
+                        description="When an applied or screening application counts as quiet."
+                    >
+                        <div className="flex flex-col gap-2">
+                            <Label htmlFor="follow_up_threshold_days">Follow up after (days without activity)</Label>
+                            <Input
+                                id="follow_up_threshold_days"
+                                name="follow_up_threshold_days"
+                                type="number"
+                                inputMode="numeric"
+                                min={1}
+                                max={60}
+                                step={1}
+                                value={data.follow_up_threshold_days}
+                                onChange={(event) => setData('follow_up_threshold_days', Number(event.target.value))}
+                                required
+                            />
+                            <p className="text-sm text-muted-foreground">
+                                Between 1 and 60. Applications past their next step date are flagged regardless.
+                            </p>
+                            {errors.follow_up_threshold_days && (
+                                <p className="text-sm text-destructive">{errors.follow_up_threshold_days}</p>
+                            )}
                         </div>
                     </SettingsSection>
 

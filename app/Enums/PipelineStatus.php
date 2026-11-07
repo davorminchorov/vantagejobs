@@ -13,4 +13,28 @@ enum PipelineStatus: string
     case OFFER = 'offer';
     case REJECTED = 'rejected';
     case WITHDRAWN = 'withdrawn';
+
+    public function label(): string
+    {
+        return match ($this) {
+            self::RESEARCHING => 'Researching',
+            self::APPLIED => 'Applied',
+            self::SCREEN => 'Screen',
+            self::ONSITE => 'Onsite',
+            self::OFFER => 'Offer',
+            self::REJECTED => 'Rejected',
+            self::WITHDRAWN => 'Withdrawn',
+        };
+    }
+
+    /**
+     * Closed applications: they never need attention and are not counted as active.
+     */
+    public function isTerminal(): bool
+    {
+        return match ($this) {
+            self::REJECTED, self::WITHDRAWN => true,
+            default => false,
+        };
+    }
 }

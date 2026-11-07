@@ -30,7 +30,7 @@ use Illuminate\Queue\SerializesModels;
  *     companies_added: int,
  *     applications_sent: int,
  *     offers_recorded: int,
- *     follow_ups_due: int,
+ *     needs_attention: array<int, array{role_id: int, title: string, company: ?string, reason: string, url: string}>,
  *     top_signals: array<int, array{type: string, label: string, title: string, company: ?string, occurred_at: string}>,
  *     pipeline_trend: array<int, array{status: string, label: string, current: int, prior: int, delta: int}>,
  *     has_activity: bool
@@ -68,7 +68,7 @@ final class WeeklySummaryMail extends Mailable implements ShouldQueue
                 'companiesAdded' => $this->summary['companies_added'],
                 'applicationsSent' => $this->summary['applications_sent'],
                 'offersRecorded' => $this->summary['offers_recorded'],
-                'followUpsDue' => $this->summary['follow_ups_due'],
+                'needsAttention' => $this->summary['needs_attention'],
                 'topSignals' => $this->summary['top_signals'],
                 'pipelineTrend' => $this->summary['pipeline_trend'],
             ],

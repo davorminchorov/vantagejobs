@@ -57,6 +57,35 @@ final class StoreOutreachTest extends TestCase
     }
 
     #[Test]
+    public function it_returns_to_applications_when_requested(): void
+    {
+        $contact = Contact::factory()->create();
+
+        $this->actingAs($this->user)
+            ->from('/applications?role=9')
+            ->post("/contacts/{$contact->id}/outreach", [
+                'channel' => OutreachChannel::EMAIL->value,
+                'return_to' => 'applications',
+            ])
+            ->assertRedirect('/applications?role=9');
+
+        $this->assertSame(1, OutreachLogEntry::query()->where('contact_id', $contact->id)->count());
+    }
+
+    #[Test]
+    public function it_rejects_an_unknown_return_to(): void
+    {
+        $contact = Contact::factory()->create();
+
+        $this->actingAs($this->user)
+            ->post("/contacts/{$contact->id}/outreach", [
+                'channel' => OutreachChannel::EMAIL->value,
+                'return_to' => 'elsewhere',
+            ])
+            ->assertSessionHasErrors('return_to');
+    }
+
+    #[Test]
     public function occurred_at_defaults_to_now_when_omitted(): void
     {
         $contact = Contact::factory()->create();

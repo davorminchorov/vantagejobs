@@ -14,14 +14,22 @@ Here's what happened between {{ $windowStartLabel }} and {{ $windowEndLabel }}.
 | Companies added | {{ $companiesAdded }} |
 | Applications sent | {{ $applicationsSent }} |
 | Offers recorded | {{ $offersRecorded }} |
-| Follow-ups due | {{ $followUpsDue }} |
+| Applications needing attention | {{ count($needsAttention) }} |
 @endcomponent
+
+@if (! empty($needsAttention))
+## Applications needing attention
+
+@foreach ($needsAttention as $item)
+- [{{ \App\Support\MarkdownText::escape($item['title']) }}@if (! empty($item['company'])), {{ \App\Support\MarkdownText::escape($item['company']) }}@endif]({{ $item['url'] }}): {{ \App\Support\MarkdownText::escape($item['reason']) }}
+@endforeach
+@endif
 
 @if (! empty($topSignals))
 ## Top signals of the week
 
 @foreach ($topSignals as $signal)
-- **{{ $signal['label'] }}**@if (! empty($signal['company'])) · {{ $signal['company'] }}@endif@if (! empty($signal['title'])) — {{ $signal['title'] }}@endif
+- **{{ \App\Support\MarkdownText::escape($signal['label']) }}**@if (! empty($signal['company'])) · {{ \App\Support\MarkdownText::escape($signal['company']) }}@endif @if (! empty($signal['title'])): {{ \App\Support\MarkdownText::escape($signal['title']) }}@endif
 
 @endforeach
 @endif
@@ -35,7 +43,7 @@ This week versus the week before.
 | Stage | This week | Last week | Change |
 |:------|----------:|----------:|:-------|
 @foreach ($pipelineTrend as $row)
-| {{ $row['label'] }} | {{ $row['current'] }} | {{ $row['prior'] }} | {{ $row['delta'] > 0 ? '+'.$row['delta'] : $row['delta'] }} |
+| {{ \App\Support\MarkdownText::escape($row['label']) }} | {{ $row['current'] }} | {{ $row['prior'] }} | {{ $row['delta'] > 0 ? '+'.$row['delta'] : $row['delta'] }} |
 @endforeach
 @endcomponent
 @endif

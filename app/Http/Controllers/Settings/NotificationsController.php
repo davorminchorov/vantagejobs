@@ -54,6 +54,10 @@ final readonly class NotificationsController
                     SettingKey::WEEKLY_SUMMARY_ENABLED,
                     true,
                 ),
+                'follow_up_threshold_days' => (int) $this->settings->get(
+                    SettingKey::FOLLOW_UP_THRESHOLD_DAYS,
+                    $this->config->get('pipeline.follow_up_threshold_days'),
+                ),
             ],
         ]);
     }

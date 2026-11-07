@@ -141,6 +141,21 @@ export default function DiscoverIndex({ listings, filters, counts, options }: Pr
     }
 
     function actOn(listing: Listing, verb: ListingAction) {
+        if (verb === 'pipeline') {
+            // The listing becomes LINKED server-side, so refetch rather than patch the prop.
+            router.post(
+                `/discover/${listing.id}/pipeline`,
+                {},
+                {
+                    preserveScroll: true,
+                    preserveState: true,
+                    only: ['listings', 'counts', 'flash'],
+                    reset: ['listings'],
+                },
+            );
+            return;
+        }
+
         const removedIndex = listings.data.findIndex((l) => l.id === listing.id);
         router.post(
             `/discover/${listing.id}/${verb}`,

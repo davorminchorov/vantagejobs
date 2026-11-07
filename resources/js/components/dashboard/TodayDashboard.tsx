@@ -5,9 +5,7 @@ import type { ReactNode } from 'react';
 import DashboardEmptyState from '@/components/dashboard/DashboardEmptyState';
 import {
     type DashboardProps,
-    overdueLabel,
     pluralize,
-    TERMINAL_STAGES,
     tierVariant,
 } from '@/components/dashboard/types';
 import { Badge } from '@/components/ui/badge';
@@ -34,45 +32,45 @@ export default function TodayDashboard({
     companies_count = 0,
     active_auto_dismiss_rules = [],
     source_health,
-    follow_ups_due,
+    applications_attention,
     pipeline_summary,
     discover_new_count = 0,
 }: DashboardProps) {
-    const activeStages = pipeline_summary.stages.filter((stage) => !TERMINAL_STAGES.has(stage.status));
+    const activeStages = pipeline_summary.stages.filter((stage) => !stage.terminal);
     const attentionSources = (source_health?.sources ?? []).filter((source) => source.status !== 'green');
 
     const summaryParts = [
-        `${pluralize(follow_ups_due.count, 'follow-up', 'follow-ups')} due`,
+        `${pluralize(applications_attention.count, 'application', 'applications')} needing attention`,
         `${pluralize(discover_new_count, 'new listing', 'new listings')}`,
         `${pluralize(pipeline_summary.total_active, 'active application', 'active applications')}`,
     ];
 
     const needs: NeedItem[] = [];
 
-    follow_ups_due.top.forEach((due, index) => {
+    applications_attention.top.forEach((row) => {
         needs.push({
-            key: `follow-up-${index}`,
-            href: '/follow-ups',
+            key: `application-${row.role_id}`,
+            href: row.url,
             tone: 'overdue',
             primary: (
                 <>
-                    <span className="font-medium text-foreground">{due.contact_name}</span>
-                    {due.company_name && <span className="text-muted-foreground"> at {due.company_name}</span>}
+                    <span className="font-medium text-foreground">{row.title}</span>
+                    {row.company_name && <span className="text-muted-foreground"> at {row.company_name}</span>}
                 </>
             ),
-            secondary: overdueLabel(due.days_overdue),
-            action: 'Follow up',
+            secondary: row.reason_label,
+            action: 'Open',
         });
     });
 
-    if (follow_ups_due.count > follow_ups_due.top.length) {
+    if (applications_attention.count > applications_attention.top.length) {
         needs.push({
-            key: 'follow-up-more',
-            href: '/follow-ups',
+            key: 'applications-more',
+            href: '/applications?view=attention',
             tone: 'overdue',
             primary: (
                 <span className="text-muted-foreground">
-                    {follow_ups_due.count - follow_ups_due.top.length} more follow-ups due.
+                    {applications_attention.count - applications_attention.top.length} more applications need attention.
                 </span>
             ),
             action: 'View all',
@@ -195,10 +193,10 @@ export default function TodayDashboard({
                     <section aria-labelledby="pipeline-heading">
                         <div className="flex items-baseline justify-between gap-3">
                             <h2 id="pipeline-heading" className="text-sm font-semibold text-foreground">
-                                Pipeline
+                                Applications
                             </h2>
-                            <Link href="/pipeline" className="text-sm text-primary hover:underline">
-                                Open pipeline
+                            <Link href="/applications" className="text-sm text-primary hover:underline">
+                                Open applications
                             </Link>
                         </div>
                         {activeStages.every((stage) => stage.count === 0) ? (
