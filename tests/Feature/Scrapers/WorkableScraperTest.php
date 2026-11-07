@@ -138,6 +138,21 @@ final class WorkableScraperTest extends TestCase
     }
 
     #[Test]
+    public function requests_details_and_keeps_the_description(): void
+    {
+        $mock = Saloon::fake([
+            WidgetAccountRequest::class => MockResponse::make(body: $this->fixture(), status: 200),
+        ]);
+
+        $result = $this->scraper->run($this->company);
+
+        $this->assertFalse($result->hasErrors());
+        $mock->assertSent(fn (WidgetAccountRequest $request): bool => $request->query()->get('details') === 'true');
+        $role = Role::query()->where('company_id', $this->company->id)->firstOrFail();
+        $this->assertNotEmpty($role->raw['description']);
+    }
+
+    #[Test]
     public function workplace_and_remote_mapping_uses_widget_fields(): void
     {
         Saloon::fake([

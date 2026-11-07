@@ -86,6 +86,42 @@ final class RoleDescriptionExtractorTest extends TestCase
     }
 
     #[Test]
+    public function ashby_uses_description_html(): void
+    {
+        $role = $this->role('ashby', ['descriptionHtml' => '<h1>About</h1><p style="min-height:1.5em">We make games.</p>']);
+
+        $this->assertTrue($this->extractor->hasDescription($role));
+        $this->assertSame("About\n\nWe make games.", $this->extractor->for($role));
+    }
+
+    #[Test]
+    public function ashby_falls_back_to_description_plain(): void
+    {
+        $role = $this->role('ashby', ['descriptionPlain' => "ABOUT\n\nWe make games."]);
+
+        $this->assertTrue($this->extractor->hasDescription($role));
+        $this->assertSame("ABOUT\n\nWe make games.", $this->extractor->for($role));
+    }
+
+    #[Test]
+    public function workable_uses_description_html(): void
+    {
+        $role = $this->role('workable', ['description' => '<p>We are&nbsp;seeking a <strong>hunter</strong>.</p>']);
+
+        $this->assertTrue($this->extractor->hasDescription($role));
+        $this->assertSame('We are seeking a hunter.', $this->extractor->for($role));
+    }
+
+    #[Test]
+    public function workable_without_description_has_none(): void
+    {
+        $role = $this->role('workable', ['title' => 'Driver']);
+
+        $this->assertFalse($this->extractor->hasDescription($role));
+        $this->assertNull($this->extractor->for($role));
+    }
+
+    #[Test]
     public function recruitee_joins_description_and_requirements(): void
     {
         $role = $this->role('recruitee', [
@@ -173,8 +209,8 @@ final class RoleDescriptionExtractorTest extends TestCase
     public static function sourcesWithoutDescriptions(): array
     {
         return array_combine(
-            ['workday', 'smartrecruiters', 'ashby', 'workable', 'rippling', 'bamboohr'],
-            array_map(static fn (string $s): array => [$s], ['workday', 'smartrecruiters', 'ashby', 'workable', 'rippling', 'bamboohr']),
+            ['workday', 'smartrecruiters', 'rippling', 'bamboohr'],
+            array_map(static fn (string $s): array => [$s], ['workday', 'smartrecruiters', 'rippling', 'bamboohr']),
         );
     }
 

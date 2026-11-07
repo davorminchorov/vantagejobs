@@ -10,6 +10,7 @@ use App\Enums\WorkplaceType;
 use App\Models\Company;
 use App\Models\Event;
 use App\Models\Role;
+use App\Roles\RoleDescriptionExtractor;
 use App\Scrapers\Personio\PersonioScraper;
 use App\Scrapers\Personio\Requests\JobsXmlRequest;
 use App\Scrapers\RoleDiffer;
@@ -110,6 +111,50 @@ XML;
 
         $fresh = $this->company->fresh();
         $this->assertNotNull($fresh->last_checked_at);
+    }
+
+    #[Test]
+    public function cdata_job_descriptions_are_kept_in_raw(): void
+    {
+        $xml = <<<'XML'
+<?xml version="1.0" encoding="UTF-8"?>
+<workzag-jobs>
+    <position>
+        <id>777</id>
+        <office>Berlin</office>
+        <name>AI Engineer</name>
+        <jobDescriptions>
+            <jobDescription>
+                <name>What we look for:</name>
+                <value><![CDATA[<ul><li>You build AI platforms.</li></ul>]]></value>
+            </jobDescription>
+            <jobDescription>
+                <name>What you can expect:</name>
+                <value><![CDATA[<p>A great team.</p>]]></value>
+            </jobDescription>
+        </jobDescriptions>
+        <createdAt>2026-05-01T10:00:00+02:00</createdAt>
+    </position>
+</workzag-jobs>
+XML;
+
+        Saloon::fake([
+            JobsXmlRequest::class => MockResponse::make(body: $xml, status: 200),
+        ]);
+
+        $result = $this->scraper->run($this->company);
+
+        $this->assertFalse($result->hasErrors());
+        $role = Role::query()->where('company_id', $this->company->id)->where('external_id', '777')->firstOrFail();
+        $sections = $role->raw['jobDescriptions']['jobDescription'];
+        $this->assertSame('What we look for:', $sections[0]['name']);
+        $this->assertStringContainsString('You build AI platforms.', $sections[0]['value']);
+        $this->assertStringContainsString('A great team.', $sections[1]['value']);
+
+        $text = app(RoleDescriptionExtractor::class)->for($role);
+        $this->assertNotNull($text);
+        $this->assertStringContainsString('What we look for:', $text);
+        $this->assertStringContainsString('You build AI platforms.', $text);
     }
 
     #[Test]
