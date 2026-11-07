@@ -89,6 +89,64 @@ final class DiscoverTest extends TestCase
     }
 
     #[Test]
+    public function listings_expose_description_as_plain_body_text(): void
+    {
+        AggregatorListing::factory()->create([
+            'source_id' => $this->remotive->id,
+            'external_id' => 'html-1',
+            'status' => AggregatorListingStatus::NEW,
+            'raw' => [
+                'id' => 1,
+                'description' => '<p>We build <strong>rockets</strong> &amp; more.</p><p>Apply now<br>today</p>',
+            ],
+        ]);
+
+        $response = $this->actingAs($this->user)->get('/discover');
+
+        $response->assertOk();
+        $data = $response->viewData('page')['props']['listings']['data'];
+        $this->assertSame("We build rockets & more.\nApply now\ntoday", $data[0]['body_text']);
+    }
+
+    #[Test]
+    public function body_text_decodes_double_escaped_entities(): void
+    {
+        AggregatorListing::factory()->create([
+            'source_id' => $this->remotive->id,
+            'external_id' => 'double-escaped',
+            'status' => AggregatorListingStatus::NEW,
+            'raw' => [
+                'id' => 3,
+                'description' => '<p>Aerospace &amp;amp; Defense.&amp;nbsp;Read more</p>',
+            ],
+        ]);
+
+        $response = $this->actingAs($this->user)->get('/discover');
+
+        $response->assertOk();
+        $data = $response->viewData('page')['props']['listings']['data'];
+        $this->assertSame('Aerospace & Defense. Read more', $data[0]['body_text']);
+    }
+
+    #[Test]
+    public function body_text_is_null_when_description_is_missing(): void
+    {
+        AggregatorListing::factory()->create([
+            'source_id' => $this->remotive->id,
+            'external_id' => 'empty-1',
+            'status' => AggregatorListingStatus::NEW,
+            'raw' => ['id' => 2],
+        ]);
+
+        $response = $this->actingAs($this->user)->get('/discover');
+
+        $response->assertOk();
+        $data = $response->viewData('page')['props']['listings']['data'];
+        $this->assertArrayHasKey('body_text', $data[0]);
+        $this->assertNull($data[0]['body_text']);
+    }
+
+    #[Test]
     public function filters_by_source_type(): void
     {
         AggregatorListing::factory()->create([
@@ -169,6 +227,61 @@ final class DiscoverTest extends TestCase
             ->all();
         sort($external);
         $this->assertSame(['match-company', 'match-role'], $external);
+    }
+
+    #[Test]
+    public function filters_by_seniority_and_region(): void
+    {
+        AggregatorListing::factory()->create([
+            'source_id' => $this->hackerNews->id,
+            'external_id' => 'senior-emea',
+            'status' => AggregatorListingStatus::NEW,
+            'parsed_seniority' => 'senior',
+            'location_bucket' => 'emea',
+        ]);
+        AggregatorListing::factory()->create([
+            'source_id' => $this->hackerNews->id,
+            'external_id' => 'senior-us',
+            'status' => AggregatorListingStatus::NEW,
+            'parsed_seniority' => 'senior',
+            'location_bucket' => 'us',
+        ]);
+        AggregatorListing::factory()->create([
+            'source_id' => $this->hackerNews->id,
+            'external_id' => 'junior-emea',
+            'status' => AggregatorListingStatus::NEW,
+            'parsed_seniority' => 'junior',
+            'location_bucket' => 'emea',
+        ]);
+
+        $response = $this->actingAs($this->user)->get('/discover?seniority=senior&region=emea');
+
+        $response->assertOk();
+        $props = $response->viewData('page')['props'];
+        $this->assertSame(['senior-emea'], collect($props['listings']['data'])->pluck('external_id')->all());
+        $this->assertSame('senior', $props['filters']['seniority']);
+        $this->assertSame('emea', $props['filters']['region']);
+        $this->assertSame(1, $props['counts']['new']);
+        $this->assertSame(['senior', 'junior'], $props['options']['seniorities']);
+        $this->assertSame('emea', $props['options']['regions'][2]['value']);
+    }
+
+    #[Test]
+    public function unknown_region_is_ignored(): void
+    {
+        AggregatorListing::factory()->create([
+            'source_id' => $this->hackerNews->id,
+            'external_id' => 'a',
+            'status' => AggregatorListingStatus::NEW,
+            'location_bucket' => 'us',
+        ]);
+
+        $response = $this->actingAs($this->user)->get('/discover?region=mars');
+
+        $response->assertOk();
+        $props = $response->viewData('page')['props'];
+        $this->assertNull($props['filters']['region']);
+        $this->assertCount(1, $props['listings']['data']);
     }
 
     #[Test]
