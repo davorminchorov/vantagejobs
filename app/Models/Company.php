@@ -35,6 +35,7 @@ use Illuminate\Database\Eloquent\Relations\MorphToMany;
     'ats_status',
     'ats_consecutive_404s',
     'ats_redetect_attempts',
+    'ats_consecutive_failures',
 ])]
 final class Company extends Model
 {
@@ -52,15 +53,18 @@ final class Company extends Model
             'is_active' => 'boolean',
             'ats_consecutive_404s' => 'integer',
             'ats_redetect_attempts' => 'integer',
+            'ats_consecutive_failures' => 'integer',
         ];
     }
 
     /**
      * Companies eligible for an automated ATS scrape: ats_type + ats_slug are
-     * both set, the company hasn't been graveyarded, and redetection hasn't
-     * already given up on it. `needs_redetection` companies stay in scope —
-     * the 404 counter and the redetect sweep both depend on scrapes still
-     * running against them.
+     * both set, the company hasn't been graveyarded, and its board isn't
+     * flagged as dead. `needs_redetection` companies are paused: their board
+     * has already answered 404/401/403/410 seven times in a row, so further
+     * polls only repeat the failure while signals:ats:redetect looks for a
+     * new board. A successful redetect flips them back to `ok`; three misses
+     * lock them at `redetect_failed` for manual review.
      *
      * @param  Builder<Company>  $query
      * @return Builder<Company>
@@ -71,7 +75,7 @@ final class Company extends Model
             ->whereNotNull('ats_type')
             ->whereNotNull('ats_slug')
             ->where('is_active', true)
-            ->where('ats_status', '!=', 'redetect_failed');
+            ->whereNotIn('ats_status', ['needs_redetection', 'redetect_failed']);
     }
 
     /**

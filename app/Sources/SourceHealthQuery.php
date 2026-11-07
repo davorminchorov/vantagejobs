@@ -27,7 +27,7 @@ use Illuminate\Support\Collection;
  *    but material drop (half the threshold) is YELLOW. This catches a source
  *    that still returns 200s but whose markup changed under us.
  *
- *  ATS companies (perAtsCompany(), mirroring Admin\Runs\IndexController::sourceHealth()):
+ *  ATS companies (perAtsCompany(), also rendered by Admin\Runs\IndexController::sourceHealth()):
  *  - A company's most recent ATS scrape in the last 24h ended in `error`
  *    (RED) or `partial` (YELLOW).
  *  - A company flagged by the ATS-switch detector: `ats_status` of
@@ -236,9 +236,7 @@ final readonly class SourceHealthQuery
 
     /**
      * Companies whose most recent ATS scrape in the last 24h ended in
-     * `error` (red) or `partial` (yellow). Mirrors
-     * Admin\Runs\IndexController::sourceHealth() lines 304-360, including the
-     * reason text, so both screens describe the same failure identically.
+     * `error` (red) or `partial` (yellow).
      *
      * @return list<array<string, mixed>>
      */
@@ -315,9 +313,7 @@ final readonly class SourceHealthQuery
 
     /**
      * Companies flagged by the ATS-switch detector (PRD §11.2): `ats_status`
-     * of `redetect_failed` (red) or `needs_redetection` (yellow). Mirrors
-     * Admin\Runs\IndexController::sourceHealth() lines 362-389, including the
-     * reason text.
+     * of `redetect_failed` (red) or `needs_redetection` (yellow).
      *
      * @return list<array<string, mixed>>
      */
@@ -338,7 +334,7 @@ final readonly class SourceHealthQuery
                         (int) $company->ats_redetect_attempts,
                     ),
                     'needs_redetection' => sprintf(
-                        '%d consecutive 404s — awaiting ATS redetection',
+                        '%d consecutive 404/401/403/410 responses, scraping paused while awaiting ATS redetection',
                         (int) $company->ats_consecutive_404s,
                     ),
                     default => 'ATS health alert',

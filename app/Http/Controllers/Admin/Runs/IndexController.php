@@ -9,6 +9,7 @@ use App\Enums\AtsType;
 use App\Models\AggregatorSource;
 use App\Models\Company;
 use App\Models\ScrapeRun;
+use App\Sources\SourceHealthQuery;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -29,6 +30,8 @@ use Inertia\Response;
  */
 final readonly class IndexController
 {
+    public function __construct(private SourceHealthQuery $healthQuery) {}
+
     public function __invoke(Request $request): Response
     {
         $filters = ScrapeRunListFilters::fromRequest($request);
@@ -306,90 +309,18 @@ final readonly class IndexController
             ];
         }
 
-        // Companies whose most recent ATS scrape in the last 24h failed.
-        $since = CarbonImmutable::now()->subDay();
-
-        $failedAts = ScrapeRun::query()
-            ->select(['company_id'])
-            ->selectRaw('MAX(started_at) AS latest_started_at')
-            ->where('source_kind', 'ats')
-            ->whereNotNull('company_id')
-            ->where('started_at', '>=', $since)
-            ->groupBy('company_id')
-            ->get();
-
-        if ($failedAts->isNotEmpty()) {
-            $companyIds = $failedAts->pluck('company_id')->all();
-            $latestRuns = ScrapeRun::query()
-                ->whereIn('company_id', $companyIds)
-                ->where('source_kind', 'ats')
-                ->where('started_at', '>=', $since)
-                ->orderByDesc('started_at')
-                ->get(['id', 'company_id', 'status', 'started_at', 'errors']);
-
-            $byCompany = [];
-            foreach ($latestRuns as $run) {
-                $cid = (int) $run->company_id;
-                if (! isset($byCompany[$cid])) {
-                    $byCompany[$cid] = $run;
-                }
-            }
-
-            $companies = Company::query()
-                ->whereIn('id', array_keys($byCompany))
-                ->get(['id', 'name'])
-                ->keyBy('id');
-
-            foreach ($byCompany as $companyId => $run) {
-                if (! in_array($run->status, ['error', 'partial'], true)) {
-                    continue;
-                }
-
-                $reason = sprintf('Last ATS run %s', (string) $run->status);
-                if (is_array($run->errors) && $run->errors !== []) {
-                    $first = $run->errors[0]['message'] ?? null;
-                    if (is_string($first) && $first !== '') {
-                        $reason .= ': '.$first;
-                    }
-                }
-
-                $health[] = [
-                    'kind' => 'ats',
-                    'value' => sprintf('ats:%d', $companyId),
-                    'label' => (string) ($companies->get($companyId)?->name ?? ('Company #'.$companyId)),
-                    'reason' => $reason,
-                    'last_run_at' => $run->started_at?->toIso8601String(),
-                    'consecutive_failures' => 0,
-                ];
-            }
-        }
-
-        // Companies flagged by the ATS-switch detector (PRD §11.2).
-        $atsHealthCompanies = Company::query()
-            ->whereIn('ats_status', ['needs_redetection', 'redetect_failed'])
-            ->get(['id', 'name', 'ats_status', 'ats_consecutive_404s', 'ats_redetect_attempts', 'last_checked_at']);
-
-        foreach ($atsHealthCompanies as $company) {
-            $status = (string) $company->ats_status;
-            $reason = match ($status) {
-                'redetect_failed' => sprintf(
-                    'ATS redetection failed after %d attempts — manual review required',
-                    (int) $company->ats_redetect_attempts,
-                ),
-                'needs_redetection' => sprintf(
-                    '%d consecutive 404s — awaiting ATS redetection',
-                    (int) $company->ats_consecutive_404s,
-                ),
-                default => 'ATS health alert',
-            };
-
+        // ATS companies: one row per company, merged by company_id. A company
+        // can both have a failed last run and be flagged for redetection;
+        // emitting both as separate rows gave them the same React key
+        // (`ats-ats:<id>`), and polling then left stale duplicate chips.
+        foreach ($this->healthQuery->perAtsCompany() as $row) {
             $health[] = [
                 'kind' => 'ats',
-                'value' => sprintf('ats:%d', (int) $company->id),
-                'label' => (string) $company->name,
-                'reason' => $reason,
-                'last_run_at' => $company->last_checked_at?->toIso8601String(),
-                'consecutive_failures' => (int) $company->ats_consecutive_404s,
+                'value' => (string) $row['value'],
+                'label' => (string) $row['name'],
+                'reason' => implode(' · ', $row['reasons']),
+                'last_run_at' => $row['last_run_at'],
+                'consecutive_failures' => (int) $row['consecutive_failures'],
             ];
         }
 

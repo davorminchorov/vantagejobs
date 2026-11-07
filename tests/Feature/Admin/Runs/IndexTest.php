@@ -196,6 +196,38 @@ final class IndexTest extends TestCase
     }
 
     #[Test]
+    public function source_health_strip_lists_a_flagged_company_with_a_failed_last_run_once(): void
+    {
+        $company = Company::factory()->create([
+            'name' => 'Mixpanel',
+            'ats_type' => 'lever',
+            'ats_slug' => 'mixpanel',
+            'ats_status' => 'needs_redetection',
+            'ats_consecutive_404s' => 10,
+        ]);
+        ScrapeRun::factory()->create([
+            'company_id' => $company->id,
+            'source_kind' => 'ats',
+            'source' => 'lever',
+            'status' => 'partial',
+            'started_at' => CarbonImmutable::now()->subHour(),
+            'errors' => [['message' => 'Lever postings returned HTTP 404 for site [mixpanel].', 'context' => ['http_status' => 404]]],
+        ]);
+
+        $response = $this->actingAs($this->user)->get('/admin/runs');
+
+        $response->assertOk();
+        $health = $response->viewData('page')['props']['health'];
+        $rows = array_values(array_filter($health, static fn (array $row): bool => $row['value'] === "ats:{$company->id}"));
+
+        $this->assertCount(1, $rows, 'Each company must appear once so React keys stay unique.');
+        $this->assertSame('Mixpanel', $rows[0]['label']);
+        $this->assertStringContainsString('HTTP 404', $rows[0]['reason']);
+        $this->assertStringContainsString('awaiting ATS redetection', $rows[0]['reason']);
+        $this->assertSame(10, $rows[0]['consecutive_failures']);
+    }
+
+    #[Test]
     public function it_exposes_trigger_options_and_active_run_count(): void
     {
         Company::factory()->create(['ats_type' => 'greenhouse', 'ats_slug' => 'gh-a']);

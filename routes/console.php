@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Models\Company;
 use App\Tenancy\Tenant;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
@@ -21,16 +22,55 @@ Artisan::command('inspire', function () {
 |     (catches late-arriving postings to the monthly thread).
 |   - Remotive / Himalayas / We Work Remotely / RemoteOK: once daily.
 |
-| All runs invoke the per-source aggregator:run command per active tenant.
-| For now there's exactly one tenant (single-user platform); when that
-| changes, swap this for a tenant-aware scheduler.
+| All runs invoke the per-source aggregator:run command once per tenant
+| that has at least one enabled aggregator source ($aggregatorTenantSlugs).
 |
 | Bookmarks lifecycle:
 |   - bookmarks:warn-expiring runs daily at 06:00 UTC (T-3 warning).
 |   - bookmarks:expire runs daily at 06:05 UTC (hard delete after expiry).
 */
 
-$tenantSlug = static fn (): ?string => Tenant::query()->orderBy('id')->value('slug');
+/*
+| Company-scoped jobs (ATS scraping, ATS redetection, company signals) run
+| once per tenant that owns at least one company. Picking a single tenant
+| (e.g. the lowest id) silently targets the wrong one as soon as a second
+| tenant exists: an empty tenant gets every run and the real one gets none.
+|
+| Global scopes are dropped on purpose: closures in one schedule:run share a
+| process, so TenantContext can still hold whichever tenant the previous
+| Artisan::call set, and BelongsToTenantScope would hide the others.
+*/
+$companyTenantSlugs = static function (): array {
+    $tenantIds = Company::query()
+        ->withoutGlobalScopes()
+        ->distinct()
+        ->pluck('tenant_id');
+
+    return Tenant::query()
+        ->whereIn('id', $tenantIds)
+        ->orderBy('id')
+        ->pluck('slug')
+        ->filter(static fn (mixed $slug): bool => is_string($slug) && $slug !== '')
+        ->values()
+        ->all();
+};
+
+// Tenants are resolved per-run: every tenant that has at least one
+// enabled aggregator source gets a run. That way the schedule keeps
+// working as new tenants spin up without code changes (and doesn't
+// silently target the wrong tenant when tenant_id ordering shifts).
+$aggregatorTenantSlugs = static function (): array {
+    return Tenant::query()
+        ->whereExists(static function ($q): void {
+            $q->select('id')
+                ->from('aggregator_sources')
+                ->whereColumn('aggregator_sources.tenant_id', 'tenants.id')
+                ->where('aggregator_sources.enabled', true);
+        })
+        ->orderBy('id')
+        ->pluck('slug')
+        ->all();
+};
 
 /*
 |--------------------------------------------------------------------------
@@ -49,28 +89,22 @@ $tenantSlug = static fn (): ?string => Tenant::query()->orderBy('id')->value('sl
 | tier's window is checked promptly; ScrapeAllCommand itself skips companies
 | that aren't due yet, so most ticks queue nothing for most companies.
 */
-Schedule::call(static function () use ($tenantSlug): void {
-    $slug = $tenantSlug();
-    if (! is_string($slug) || $slug === '') {
-        return;
+Schedule::call(static function () use ($companyTenantSlugs): void {
+    foreach ($companyTenantSlugs() as $slug) {
+        Artisan::call('scrape:all', ['--tenant' => $slug, '--queue' => true]);
     }
-    Artisan::call('scrape:all', ['--tenant' => $slug, '--queue' => true]);
 })->name('scrape:all')->hourly()->withoutOverlapping();
 
-Schedule::call(static function () use ($tenantSlug): void {
-    $slug = $tenantSlug();
-    if (! is_string($slug) || $slug === '') {
-        return;
+Schedule::call(static function () use ($aggregatorTenantSlugs): void {
+    foreach ($aggregatorTenantSlugs() as $slug) {
+        Artisan::call('aggregator:run', ['source' => 'hackernews', '--tenant' => $slug]);
     }
-    Artisan::call('aggregator:run', ['source' => 'hackernews', '--tenant' => $slug]);
 })->name('aggregator:hackernews:3rd')->monthlyOn(3, '07:00');
 
-Schedule::call(static function () use ($tenantSlug): void {
-    $slug = $tenantSlug();
-    if (! is_string($slug) || $slug === '') {
-        return;
+Schedule::call(static function () use ($aggregatorTenantSlugs): void {
+    foreach ($aggregatorTenantSlugs() as $slug) {
+        Artisan::call('aggregator:run', ['source' => 'hackernews', '--tenant' => $slug]);
     }
-    Artisan::call('aggregator:run', ['source' => 'hackernews', '--tenant' => $slug]);
 })->name('aggregator:hackernews:5th')->monthlyOn(5, '07:00');
 
 // Phase 2 + deferred-optional aggregators (SOURCES.md §2, §3) and the
@@ -79,23 +113,6 @@ Schedule::call(static function () use ($tenantSlug): void {
 // / rate-limit caps live in config/scrapers.php → 'aggregators'. Each
 // entry must also have an enabled AggregatorSource row for the target
 // tenant — without it aggregator:run is a no-op for that type.
-//
-// Tenants are resolved per-run: every tenant that has at least one
-// enabled aggregator source gets a run. That way the schedule keeps
-// working as new tenants spin up without code changes (and doesn't
-// silently target the wrong tenant when tenant_id ordering shifts).
-$aggregatorTenantSlugs = static function (): array {
-    return Tenant::query()
-        ->whereExists(static function ($q): void {
-            $q->select('id')
-                ->from('aggregator_sources')
-                ->whereColumn('aggregator_sources.tenant_id', 'tenants.id')
-                ->where('aggregator_sources.enabled', true);
-        })
-        ->orderBy('id')
-        ->pluck('slug')
-        ->all();
-};
 
 // Every other aggregator type (remotive, himalayas, weworkremotely, remoteok,
 // fourdayweek, workingnomads, adzuna, larajobs, jobicy, arbeitnow, python_org,
@@ -129,107 +146,88 @@ Schedule::command('scrape-runs:prune')->dailyAt('03:15');
 
 // Snapshot the day's company state at 04:00 UTC. Other signal jobs
 // (github, blog, layoffs, quality) update the same rows in place later.
-Schedule::call(static function () use ($tenantSlug): void {
-    $slug = $tenantSlug();
-    if (! is_string($slug) || $slug === '') {
-        return;
+Schedule::call(static function () use ($companyTenantSlugs): void {
+    foreach ($companyTenantSlugs() as $slug) {
+        Artisan::call('signals:snapshot:daily', ['--tenant' => $slug]);
     }
-    Artisan::call('signals:snapshot:daily', ['--tenant' => $slug]);
 })->name('signals:snapshot:daily')->dailyAt('04:00');
 
 // Layoffs cross-reference (Phase 4 §6.3.2). Reads a locally-staged
 // Kaggle export — Kaggle auto-download is a follow-up.
-Schedule::call(static function () use ($tenantSlug): void {
-    $slug = $tenantSlug();
-    if (! is_string($slug) || $slug === '') {
-        return;
+Schedule::call(static function () use ($companyTenantSlugs): void {
+    foreach ($companyTenantSlugs() as $slug) {
+        Artisan::call('signals:layoffs:sync', [
+            '--tenant' => $slug,
+            '--source' => 'local',
+            '--path' => storage_path('app/signals/layoffs.csv'),
+        ]);
     }
-    Artisan::call('signals:layoffs:sync', [
-        '--tenant' => $slug,
-        '--source' => 'local',
-        '--path' => storage_path('app/signals/layoffs.csv'),
-    ]);
 })->name('signals:layoffs:sync')->dailyAt('04:15');
 
 // TrueUp layoffs fallback (SOURCES.md §4.2). Runs weekly — same cadence
 // as layoffs.fyi but offset by a day so a TrueUp blow-up doesn't take
 // the layoffs.fyi pass with it.
-Schedule::call(static function () use ($tenantSlug): void {
-    $slug = $tenantSlug();
-    if (! is_string($slug) || $slug === '') {
-        return;
+Schedule::call(static function () use ($companyTenantSlugs): void {
+    foreach ($companyTenantSlugs() as $slug) {
+        Artisan::call('signals:layoffs:trueup', ['--tenant' => $slug]);
     }
-    Artisan::call('signals:layoffs:trueup', ['--tenant' => $slug]);
 })->name('signals:layoffs:trueup')->weeklyOn(2, '04:20');
 
 // GitHub org activity (Phase 4 §6.3.3). Weekly to respect the 5000
 // req/h auth budget once the watchlist grows.
-Schedule::call(static function () use ($tenantSlug): void {
-    $slug = $tenantSlug();
-    if (! is_string($slug) || $slug === '') {
-        return;
+Schedule::call(static function () use ($companyTenantSlugs): void {
+    foreach ($companyTenantSlugs() as $slug) {
+        Artisan::call('signals:github:poll', ['--tenant' => $slug]);
     }
-    Artisan::call('signals:github:poll', ['--tenant' => $slug]);
 })->name('signals:github:poll')->weeklyOn(1, '04:30');
 
 // yc-oss YC mirror sync. Cheap (static JSON), weekly.
-Schedule::call(static function () use ($tenantSlug): void {
-    $slug = $tenantSlug();
-    if (! is_string($slug) || $slug === '') {
-        return;
+Schedule::call(static function () use ($companyTenantSlugs): void {
+    foreach ($companyTenantSlugs() as $slug) {
+        Artisan::call('signals:funding:yc-oss', ['--tenant' => $slug]);
     }
-    Artisan::call('signals:funding:yc-oss', ['--tenant' => $slug]);
 })->name('signals:funding:yc-oss')->weeklyOn(1, '04:45');
 
 // Engineering-blog RSS poll (Phase 4 §6.3.4). After the snapshot job
 // so blog cadence can fold into the quality score later in the day.
-Schedule::call(static function () use ($tenantSlug): void {
-    $slug = $tenantSlug();
-    if (! is_string($slug) || $slug === '') {
-        return;
+Schedule::call(static function () use ($companyTenantSlugs): void {
+    foreach ($companyTenantSlugs() as $slug) {
+        Artisan::call('signals:blog:poll', ['--tenant' => $slug]);
     }
-    Artisan::call('signals:blog:poll', ['--tenant' => $slug]);
 })->name('signals:blog:poll')->dailyAt('05:00');
 
 // Google News funding scan (Phase 4 §6.3.5). Review-queue pattern — a
 // human gates every hit, so weekly is enough.
-Schedule::call(static function () use ($tenantSlug): void {
-    $slug = $tenantSlug();
-    if (! is_string($slug) || $slug === '') {
-        return;
+Schedule::call(static function () use ($companyTenantSlugs): void {
+    foreach ($companyTenantSlugs() as $slug) {
+        Artisan::call('signals:funding:news', ['--tenant' => $slug]);
     }
-    Artisan::call('signals:funding:news', ['--tenant' => $slug]);
 })->name('signals:funding:news')->weeklyOn(1, '05:15');
 
 // Ghost-job scan (Phase 4 §6.3.6) and quality-score recompute
 // (Phase 4 §6.3.9). Ordered last in the daily band so all signal
 // inputs are fresh.
-Schedule::call(static function () use ($tenantSlug): void {
-    $slug = $tenantSlug();
-    if (! is_string($slug) || $slug === '') {
-        return;
+Schedule::call(static function () use ($companyTenantSlugs): void {
+    foreach ($companyTenantSlugs() as $slug) {
+        Artisan::call('signals:ghost:scan', ['--tenant' => $slug]);
     }
-    Artisan::call('signals:ghost:scan', ['--tenant' => $slug]);
 })->name('signals:ghost:scan')->dailyAt('05:30');
 
-Schedule::call(static function () use ($tenantSlug): void {
-    $slug = $tenantSlug();
-    if (! is_string($slug) || $slug === '') {
-        return;
+Schedule::call(static function () use ($companyTenantSlugs): void {
+    foreach ($companyTenantSlugs() as $slug) {
+        Artisan::call('signals:quality:recompute', ['--tenant' => $slug]);
     }
-    Artisan::call('signals:quality:recompute', ['--tenant' => $slug]);
 })->name('signals:quality:recompute')->dailyAt('05:45');
 
 // ATS-switch detection (Phase 4 §11.2): the orchestrator already
-// flags companies as needs_redetection after 7 consecutive 404s.
-// This sweep picks them up hourly so a broken slug self-heals
-// without manual intervention.
-Schedule::call(static function () use ($tenantSlug): void {
-    $slug = $tenantSlug();
-    if (! is_string($slug) || $slug === '') {
-        return;
+// flags companies as needs_redetection after 7 consecutive dead-board
+// responses (404/401/403/410) and pauses their scrapes. This sweep picks
+// them up hourly so a broken slug self-heals without manual intervention;
+// three misses lock the company at redetect_failed.
+Schedule::call(static function () use ($companyTenantSlugs): void {
+    foreach ($companyTenantSlugs() as $slug) {
+        Artisan::call('signals:ats:redetect', ['--tenant' => $slug]);
     }
-    Artisan::call('signals:ats:redetect', ['--tenant' => $slug]);
 })->name('signals:ats:redetect')->hourly();
 
 /*

@@ -14,10 +14,13 @@ use App\Scrapers\ScraperRegistry;
 use App\Scrapers\ScraperRunResult;
 use App\Tenancy\Tenant;
 use App\Tenancy\TenantContext;
+use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Http;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
+use RuntimeException;
 use Tests\TestCase;
 
 final class AtsRedetectTest extends TestCase
@@ -302,6 +305,199 @@ final class AtsRedetectTest extends TestCase
         $this->assertSame('acme-new', $reloaded->ats_slug);
         $this->assertSame('api.eu.lever.co', $reloaded->ats_host);
         $this->assertSame('ok', $reloaded->ats_status);
+    }
+
+    #[Test]
+    #[DataProvider('deadBoardStatuses')]
+    public function dead_board_statuses_count_toward_redetection(int $status): void
+    {
+        $this->registry->register($this->statusScraper(AtsType::SMARTRECRUITERS, $status));
+
+        $company = Company::factory()->create([
+            'ats_type' => 'smartrecruiters',
+            'ats_slug' => 'acme',
+            'ats_status' => 'ok',
+            'ats_consecutive_404s' => 6,
+            'ats_consecutive_failures' => 0,
+        ]);
+
+        $this->orchestrator->runForCompany($company);
+
+        $reloaded = $company->fresh();
+        $this->assertSame(7, $reloaded->ats_consecutive_404s);
+        $this->assertSame('needs_redetection', $reloaded->ats_status);
+        $this->assertSame(0, $reloaded->ats_consecutive_failures, 'Dead-board runs must not back the company off.');
+    }
+
+    /**
+     * @return array<string, array{int}>
+     */
+    public static function deadBoardStatuses(): array
+    {
+        return [
+            '401 unauthorized' => [401],
+            '403 forbidden' => [403],
+            '404 not found' => [404],
+            '410 gone' => [410],
+        ];
+    }
+
+    #[Test]
+    public function transient_failures_increment_the_backoff_counter_not_the_redetect_counter(): void
+    {
+        $this->registry->register($this->statusScraper(AtsType::GREENHOUSE, 503));
+
+        $company = Company::factory()->create([
+            'ats_type' => 'greenhouse',
+            'ats_slug' => 'acme',
+            'ats_status' => 'ok',
+            'ats_consecutive_404s' => 2,
+            'ats_consecutive_failures' => 1,
+        ]);
+
+        $this->orchestrator->runForCompany($company);
+
+        $reloaded = $company->fresh();
+        $this->assertSame(2, $reloaded->ats_consecutive_failures);
+        $this->assertSame(2, $reloaded->ats_consecutive_404s);
+        $this->assertSame('ok', $reloaded->ats_status);
+    }
+
+    #[Test]
+    public function a_thrown_scraper_exception_increments_the_backoff_counter(): void
+    {
+        $company = Company::factory()->create([
+            'ats_type' => 'greenhouse',
+            'ats_slug' => 'acme',
+            'ats_consecutive_failures' => 0,
+        ]);
+
+        $this->registry->register(new class implements AtsScraperInterface
+        {
+            public function name(): AtsType
+            {
+                return AtsType::GREENHOUSE;
+            }
+
+            public function run(Company $company): ScraperRunResult
+            {
+                throw new RuntimeException('connection timed out');
+            }
+        });
+
+        $this->orchestrator->runForCompany($company);
+
+        $this->assertSame(1, $company->fresh()->ats_consecutive_failures);
+    }
+
+    #[Test]
+    public function the_mass_close_guard_counts_as_a_failure_for_backoff(): void
+    {
+        $this->registry->register($this->fakeScraper(AtsType::PERSONIO, new ScraperRunResult(
+            fetched: 0,
+            newCount: 0,
+            closedCount: 0,
+            errors: [['message' => 'Personio feed returned zero postings but open roles exist; refusing to close them.']],
+        )));
+
+        $company = Company::factory()->create([
+            'ats_type' => 'personio',
+            'ats_slug' => 'acme',
+            'ats_consecutive_failures' => 0,
+        ]);
+
+        $this->orchestrator->runForCompany($company);
+
+        $this->assertSame(1, $company->fresh()->ats_consecutive_failures);
+    }
+
+    #[Test]
+    public function a_partial_run_that_still_fetched_postings_is_not_a_failure(): void
+    {
+        $this->registry->register($this->fakeScraper(AtsType::WORKDAY, new ScraperRunResult(
+            fetched: 12,
+            newCount: 0,
+            closedCount: 0,
+            errors: [['message' => 'Page 3 timed out.']],
+        )));
+
+        $company = Company::factory()->create([
+            'ats_type' => 'workday',
+            'ats_slug' => 'acme/careers',
+            'ats_consecutive_failures' => 2,
+        ]);
+
+        $this->orchestrator->runForCompany($company);
+
+        $this->assertSame(2, $company->fresh()->ats_consecutive_failures);
+    }
+
+    #[Test]
+    public function a_successful_scrape_resets_the_backoff_counter(): void
+    {
+        $this->registry->register($this->fakeScraper(
+            AtsType::LEVER,
+            new ScraperRunResult(fetched: 3, newCount: 0, closedCount: 0),
+        ));
+
+        $company = Company::factory()->create([
+            'ats_type' => 'lever',
+            'ats_slug' => 'acme',
+            'ats_status' => 'ok',
+            'ats_consecutive_404s' => 0,
+            'ats_consecutive_failures' => 5,
+        ]);
+
+        $this->orchestrator->runForCompany($company);
+
+        $this->assertSame(0, $company->fresh()->ats_consecutive_failures);
+    }
+
+    #[Test]
+    public function scheduled_redetect_sweep_reaches_flagged_companies_outside_the_lowest_id_tenant(): void
+    {
+        Http::fake(['*' => Http::response('', 404)]);
+
+        // setUp() created 'primary' first; the flagged company lives in a
+        // second tenant, which the old lowest-id resolver never visited.
+        $owner = Tenant::factory()->create(['slug' => 'default']);
+        $company = Company::factory()->create([
+            'tenant_id' => $owner->id,
+            'ats_type' => 'lever',
+            'ats_slug' => 'mixpanel',
+            'careers_url' => 'https://mixpanel.example.com/careers',
+            'ats_status' => 'needs_redetection',
+            'ats_consecutive_404s' => 10,
+            'ats_redetect_attempts' => 0,
+        ]);
+
+        /** @var Schedule $schedule */
+        $schedule = $this->app->make(Schedule::class);
+        $event = collect($schedule->events())->first(
+            static fn ($event): bool => $event->description === 'signals:ats:redetect',
+        );
+        $this->assertNotNull($event);
+
+        $event->run($this->app);
+
+        $reloaded = Company::query()->withoutGlobalScopes()->findOrFail($company->id);
+        $this->assertSame(1, $reloaded->ats_redetect_attempts);
+    }
+
+    private function statusScraper(AtsType $type, int $status): AtsScraperInterface
+    {
+        return $this->fakeScraper(
+            $type,
+            new ScraperRunResult(
+                fetched: 0,
+                newCount: 0,
+                closedCount: 0,
+                errors: [[
+                    'message' => "HTTP {$status}",
+                    'context' => ['http_status' => $status],
+                ]],
+            ),
+        );
     }
 
     private function fourOhFourScraper(AtsType $type): AtsScraperInterface

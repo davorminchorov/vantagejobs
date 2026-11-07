@@ -320,6 +320,155 @@ final class ScrapeCommandsTest extends TestCase
         Queue::assertPushed(RunCompanyScrapeJob::class, 1);
     }
 
+    #[Test]
+    public function scheduled_scrape_all_targets_the_tenant_that_owns_the_companies_not_the_lowest_id(): void
+    {
+        Queue::fake();
+
+        // setUp() created an empty 'primary' tenant first (lowest id); the
+        // companies live in a second tenant, as in the local dev database.
+        $owner = Tenant::factory()->create(['slug' => 'default']);
+        $company = Company::factory()->create([
+            'tenant_id' => $owner->id,
+            'ats_type' => 'greenhouse',
+            'ats_slug' => 'gh-owned',
+            'tier' => 'A',
+        ]);
+
+        // Leave the stale 'primary' context in place: the resolver must not
+        // depend on whatever TenantContext an earlier closure left behind.
+        $this->runScheduledEvent('scrape:all');
+
+        Queue::assertPushed(RunCompanyScrapeJob::class, 1);
+        Queue::assertPushed(
+            RunCompanyScrapeJob::class,
+            static fn (RunCompanyScrapeJob $job): bool => $job->tenantId === $owner->id && $job->companyId === $company->id,
+        );
+    }
+
+    #[Test]
+    public function scheduled_scrape_all_runs_once_per_tenant_that_owns_companies(): void
+    {
+        Queue::fake();
+
+        Company::factory()->create(['ats_type' => 'greenhouse', 'ats_slug' => 'gh-primary', 'tier' => 'A']);
+        $second = Tenant::factory()->create(['slug' => 'second']);
+        Company::factory()->create([
+            'tenant_id' => $second->id,
+            'ats_type' => 'lever',
+            'ats_slug' => 'lv-second',
+            'tier' => 'A',
+        ]);
+
+        $this->runScheduledEvent('scrape:all');
+
+        Queue::assertPushed(RunCompanyScrapeJob::class, 2);
+        Queue::assertPushed(RunCompanyScrapeJob::class, fn (RunCompanyScrapeJob $job): bool => $job->tenantId === $this->tenant->id);
+        Queue::assertPushed(RunCompanyScrapeJob::class, static fn (RunCompanyScrapeJob $job): bool => $job->tenantId === $second->id);
+    }
+
+    #[Test]
+    public function scrape_all_skips_companies_awaiting_redetection(): void
+    {
+        Queue::fake();
+
+        Company::factory()->create([
+            'ats_type' => 'greenhouse',
+            'ats_slug' => 'gh-flagged',
+            'tier' => 'A',
+            'ats_status' => 'needs_redetection',
+            'ats_consecutive_404s' => 7,
+        ]);
+        Company::factory()->create([
+            'ats_type' => 'greenhouse',
+            'ats_slug' => 'gh-dead',
+            'tier' => 'A',
+            'ats_status' => 'redetect_failed',
+        ]);
+
+        app(TenantContext::class)->setCurrent(null);
+
+        $this->artisan('scrape:all', ['--tenant' => 'primary', '--queue' => true, '--all' => true])->assertExitCode(0);
+
+        Queue::assertNotPushed(RunCompanyScrapeJob::class);
+    }
+
+    #[Test]
+    public function scrape_all_queue_backs_off_a_company_with_consecutive_failures(): void
+    {
+        Queue::fake();
+
+        // A-tier (2h) with two consecutive failures: 2h * 2^2 = 8h interval.
+        $company = Company::factory()->create([
+            'ats_type' => 'greenhouse',
+            'ats_slug' => 'gh-flaky',
+            'tier' => 'A',
+            'ats_consecutive_failures' => 2,
+        ]);
+        $run = ScrapeRun::factory()->create([
+            'company_id' => $company->id,
+            'source' => 'greenhouse',
+            'source_kind' => 'ats',
+            'status' => 'error',
+            'started_at' => now()->subHours(5),
+        ]);
+
+        app(TenantContext::class)->setCurrent(null);
+
+        $this->artisan('scrape:all', ['--tenant' => 'primary', '--queue' => true])->assertExitCode(0);
+        Queue::assertNotPushed(RunCompanyScrapeJob::class);
+
+        $run->forceFill(['started_at' => now()->subHours(9)])->save();
+
+        $this->artisan('scrape:all', ['--tenant' => 'primary', '--queue' => true])->assertExitCode(0);
+        Queue::assertPushed(RunCompanyScrapeJob::class, 1);
+    }
+
+    #[Test]
+    public function scrape_all_queue_caps_the_backoff_at_seven_days(): void
+    {
+        Queue::fake();
+
+        // C-tier (24h) with 8 failures would be 24h * 256 uncapped.
+        $company = Company::factory()->create([
+            'ats_type' => 'greenhouse',
+            'ats_slug' => 'gh-down',
+            'tier' => 'C',
+            'ats_consecutive_failures' => 8,
+        ]);
+        $run = ScrapeRun::factory()->create([
+            'company_id' => $company->id,
+            'source' => 'greenhouse',
+            'source_kind' => 'ats',
+            'status' => 'error',
+            'started_at' => now()->subDays(6),
+        ]);
+
+        app(TenantContext::class)->setCurrent(null);
+
+        $this->artisan('scrape:all', ['--tenant' => 'primary', '--queue' => true])->assertExitCode(0);
+        Queue::assertNotPushed(RunCompanyScrapeJob::class);
+
+        $run->forceFill(['started_at' => now()->subDays(7)->subMinute()])->save();
+
+        $this->artisan('scrape:all', ['--tenant' => 'primary', '--queue' => true])->assertExitCode(0);
+        Queue::assertPushed(RunCompanyScrapeJob::class, 1);
+    }
+
+    private function runScheduledEvent(string $description): void
+    {
+        /** @var Schedule $schedule */
+        $schedule = $this->app->make(Schedule::class);
+
+        $event = collect($schedule->events())->first(
+            static fn ($event): bool => $event->description === $description,
+        );
+
+        $this->assertNotNull($event, "{$description} should be scheduled.");
+
+        $event->run($this->app);
+    }
+
     private function fakeScraper(AtsType $type, ScraperRunResult $result): void
     {
         /** @var ScraperRegistry $registry */

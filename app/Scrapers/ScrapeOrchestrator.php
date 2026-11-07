@@ -32,6 +32,13 @@ final class ScrapeOrchestrator
      */
     public const ATS_REDETECT_404_THRESHOLD = 7;
 
+    /**
+     * HTTP statuses that mean the board itself is gone (deleted, moved, made
+     * private) rather than temporarily failing. Retrying won't help, so they
+     * feed the redetect pipeline instead of the backoff counter.
+     */
+    public const DEAD_BOARD_HTTP_STATUSES = [401, 403, 404, 410];
+
     public function runForCompany(Company $company): ScrapeRun
     {
         $atsType = $this->resolveAtsType($company);
@@ -124,22 +131,27 @@ final class ScrapeOrchestrator
     }
 
     /**
-     * Bookkeeping for the ATS-switch detector (PRD §11.2).
+     * Bookkeeping for the ATS-switch detector (PRD §11.2) and the scrape:all
+     * failure backoff.
      *
-     * Increment `ats_consecutive_404s` when the underlying transport reported
-     * a 404 (recorded in run errors as context.http_status). Reset to zero on
-     * any non-error outcome (completed / not_modified). Once the counter
-     * crosses the threshold, flip `ats_status` to 'needs_redetection' so the
-     * `signals:ats:redetect` command picks the company up.
+     * Dead-board responses (HTTP 404/401/403/410, recorded in run errors as
+     * context.http_status) increment `ats_consecutive_404s`; once that
+     * crosses the threshold, `ats_status` flips to 'needs_redetection' so the
+     * `signals:ats:redetect` command picks the company up. The column keeps
+     * its historical name but counts all four statuses.
      *
-     * Only touches the columns it owns — never overwrites a 'redetect_failed'
-     * status with 'ok' on a single fluke success.
+     * Every other failed run (5xx, timeouts, 429, malformed payloads, the
+     * mass-close guard) increments `ats_consecutive_failures` instead, which
+     * scrape:all uses to back the company off exponentially. A partial run
+     * that still fetched postings is not a failure for backoff purposes.
+     *
+     * Both counters reset to zero on any non-error outcome (completed /
+     * not_modified). Never overwrites a 'redetect_failed' status with 'ok'
+     * on a single fluke success.
      */
     private function recordAtsHealth(Company $company, ScrapeRun $run): void
     {
-        $is404 = $this->runHadFourOhFour($run);
-
-        if ($is404) {
+        if ($this->runHadDeadBoardStatus($run)) {
             $company->ats_consecutive_404s = (int) $company->ats_consecutive_404s + 1;
 
             if (
@@ -155,19 +167,31 @@ final class ScrapeOrchestrator
         }
 
         if (in_array($run->status, ['completed', 'not_modified'], true)) {
-            if ($company->ats_consecutive_404s === 0 && $company->ats_status === 'ok') {
+            if (
+                $company->ats_consecutive_404s === 0
+                && $company->ats_consecutive_failures === 0
+                && $company->ats_status === 'ok'
+            ) {
                 return;
             }
 
             $company->ats_consecutive_404s = 0;
+            $company->ats_consecutive_failures = 0;
             if ($company->ats_status === 'needs_redetection') {
                 $company->ats_status = 'ok';
             }
             $company->save();
+
+            return;
+        }
+
+        if ($run->status === 'error' || ($run->status === 'partial' && (int) $run->fetched === 0)) {
+            $company->ats_consecutive_failures = (int) $company->ats_consecutive_failures + 1;
+            $company->save();
         }
     }
 
-    private function runHadFourOhFour(ScrapeRun $run): bool
+    private function runHadDeadBoardStatus(ScrapeRun $run): bool
     {
         if (! is_array($run->errors)) {
             return false;
@@ -178,7 +202,7 @@ final class ScrapeOrchestrator
                 continue;
             }
             $status = $error['context']['http_status'] ?? null;
-            if (is_int($status) && $status === 404) {
+            if (is_int($status) && in_array($status, self::DEAD_BOARD_HTTP_STATUSES, true)) {
                 return true;
             }
         }

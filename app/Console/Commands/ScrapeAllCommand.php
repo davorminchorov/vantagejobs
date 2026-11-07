@@ -31,6 +31,12 @@ final class ScrapeAllCommand extends Command
         'C' => 24,
     ];
 
+    /**
+     * Upper bound for the backed-off interval, so a company stuck on
+     * transient failures is still retried at least weekly.
+     */
+    private const int MAX_BACKOFF_HOURS = 168;
+
     protected $signature = 'scrape:all
         {--tenant= : Tenant slug}
         {--source= : Restrict to a single ATS type (e.g. greenhouse, lever, ashby, workable, smartrecruiters, personio, recruitee, teamtailor)}
@@ -126,6 +132,13 @@ final class ScrapeAllCommand extends Command
      * records every attempt regardless of outcome, so it is the only column
      * that can drive due-ness safely. A company with no runs yet is always due.
      *
+     * Companies with consecutive non-dead-board failures (5xx, timeouts, 429,
+     * malformed payloads, the mass-close guard) back off exponentially: the
+     * tier interval doubles per failure, capped at MAX_BACKOFF_HOURS, and
+     * resets on the first successful run. Dead-board responses (404/401/403/
+     * 410) don't count here; they keep the normal cadence so the redetect
+     * pipeline picks them up quickly.
+     *
      * @param  Collection<int, Company>  $companies
      * @return Collection<int, Company>
      */
@@ -150,10 +163,21 @@ final class ScrapeAllCommand extends Command
                 return true;
             }
 
-            $hours = self::TIER_INTERVAL_HOURS[$company->tier] ?? self::TIER_INTERVAL_HOURS['C'];
-
-            return CarbonImmutable::parse($lastStartedAt)->addHours($hours)->lessThanOrEqualTo($now);
+            return CarbonImmutable::parse($lastStartedAt)
+                ->addHours($this->intervalHours($company))
+                ->lessThanOrEqualTo($now);
         })->values();
+    }
+
+    private function intervalHours(Company $company): int
+    {
+        $hours = self::TIER_INTERVAL_HOURS[$company->tier] ?? self::TIER_INTERVAL_HOURS['C'];
+
+        // Clamp the exponent so 2 ** $failures can't overflow; anything past
+        // 2^8 is already well beyond MAX_BACKOFF_HOURS for every tier.
+        $failures = min(8, max(0, (int) $company->ats_consecutive_failures));
+
+        return min(self::MAX_BACKOFF_HOURS, $hours * (2 ** $failures));
     }
 
     private function resolveTenant(): ?Tenant
