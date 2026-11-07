@@ -1,0 +1,19 @@
+{
+    "comment_id": "40000016",
+    "author": "acme_hiring",
+    "created_at": "2026-11-02T16:05:00Z",
+    "text": "Acme Robotics | Senior Backend Engineer | REMOTE (US, EU) | $160k-$200k | Go, Postgres | <a href=\"https:&#x2F;&#x2F;acme.example&#x2F;jobs&#x2F;backend\" rel=\"nofollow\">https:&#x2F;&#x2F;acme.example&#x2F;jobs&#x2F;backend</a><p>Hi HN, I&#x27;m the CTO. We build warehouse robots | our fleet software is mostly Go, with some Rust at the edge.<p>Email jobs@acme.example with &quot;HN&quot; in the subject.",
+    "expected": {
+        "company_name": "Acme Robotics",
+        "role_title": "Senior Backend Engineer",
+        "seniority": "senior",
+        "remote.type": "remote",
+        "compensation.min_usd": 160000,
+        "compensation.max_usd": 200000,
+        "stack_tags_include": [
+            "go",
+            "postgres"
+        ],
+        "apply_method": "https://acme.example/jobs/backend"
+    }
+}

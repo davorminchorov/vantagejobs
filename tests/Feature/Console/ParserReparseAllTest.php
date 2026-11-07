@@ -307,4 +307,44 @@ final class ParserReparseAllTest extends TestCase
         $this->assertSame(0, $exit);
         $this->assertSame(2, $listing->fresh()->parser_version);
     }
+
+    #[Test]
+    public function reparse_repairs_a_hackernews_url_that_swallowed_the_description(): void
+    {
+        $raw = [
+            'id' => 50000001,
+            'author' => 'someuser',
+            'text' => 'Acme Corp | Backend Engineer | REMOTE | <a href="https:&#x2F;&#x2F;acme.example&#x2F;jobs&#x2F;backend-engineer-2026" rel="nofollow">https:&#x2F;&#x2F;acme.example&#x2F;jobs&#x2F;backend-engi...</a><p>'.str_repeat('We build things. ', 10),
+            'created_at' => '2026-11-02T16:00:00Z',
+        ];
+
+        // Shape the pre-fix context builder stored: link text glued onto
+        // the description because the bare <p> was dropped.
+        $listing = AggregatorListing::factory()->create([
+            'source_id' => $this->hackernews->id,
+            'raw' => $raw,
+            'url' => 'https://acme.example/jobs/backend-engi...We build things. We build things.',
+            'parser_version' => 1,
+        ]);
+
+        $exit = Artisan::call('parser:reparse', ['--tenant' => 'primary', '--source' => 'hackernews']);
+        $this->assertSame(0, $exit);
+
+        $this->assertSame('https://acme.example/jobs/backend-engineer-2026', $listing->fresh()->url);
+    }
+
+    #[Test]
+    public function reparse_keeps_the_stored_url_when_the_rebuilt_context_has_none(): void
+    {
+        $listing = AggregatorListing::factory()->create([
+            'source_id' => $this->hackernews->id,
+            'raw' => $this->hackernewsRaw('Backend Engineer'),
+            'url' => 'https://news.ycombinator.com/item?id=123',
+            'parser_version' => 1,
+        ]);
+
+        Artisan::call('parser:reparse', ['--tenant' => 'primary', '--source' => 'hackernews']);
+
+        $this->assertSame('https://news.ycombinator.com/item?id=123', $listing->fresh()->url);
+    }
 }

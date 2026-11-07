@@ -55,6 +55,14 @@ final readonly class ReparseAction
         $context = $this->contextFactory->buildFor($listing);
         $parsed = $this->pipeline->parse($context);
 
+        // `url` is derived from the stored raw payload at ingest (same
+        // context->url the persister writes), so a context-builder fix must
+        // be able to repair it too. Corrections never touch this column.
+        // Keep the stored value when the rebuilt context has none.
+        if (is_string($context->url) && $context->url !== '') {
+            $listing->url = $context->url;
+        }
+
         $this->writeParsedToListing($listing, $parsed);
         $this->recomputeMatchingKeys($listing);
         $listing->save();

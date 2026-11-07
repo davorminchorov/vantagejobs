@@ -50,9 +50,10 @@ enum AggregatorSourceType: string
     }
 
     /**
-     * Default polling cadence per SOURCES.md guidance. HackerNews's monthly
-     * thread is run on the 3rd + 5th of each month via the scheduler; the
-     * cadence value here is the inter-run floor between manual triggers.
+     * Default polling cadence per SOURCES.md guidance. HackerNews re-reads
+     * the latest monthly "Who is Hiring" thread daily: postings keep arriving
+     * all month (9-32% land after the 5th), and already-stored comments are
+     * skipped, so each run only adds what is new.
      *
      * Daily group: sources with documented rate limits, server-side caches,
      * or ToS that make more frequent polling pointless or hostile (Remotive
@@ -63,7 +64,7 @@ enum AggregatorSourceType: string
     public function defaultCadenceMinutes(): int
     {
         return match ($this) {
-            self::HACKERNEWS => 60 * 24 * 30,
+            self::HACKERNEWS,
             self::REMOTIVE,
             self::HIMALAYAS,
             self::WEWORKREMOTELY,

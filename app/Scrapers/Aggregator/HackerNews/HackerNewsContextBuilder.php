@@ -84,11 +84,21 @@ final class HackerNewsContextBuilder
         // body and into our separator detection.
         $decoded = html_entity_decode($html, ENT_QUOTES | ENT_HTML5, 'UTF-8');
 
+        // HN only auto-links bare URLs, and it shortens long ones in the link
+        // text ("https://jobs.lever.co/acme/9234d6e2-...-9192d34d88...") while
+        // the full URL stays in href. Replace every link with its href so the
+        // apply URL survives intact.
+        $decoded = (string) preg_replace('/<a\s[^>]*href\s*=\s*"([^"]*)"[^>]*>.*?<\/a\s*>/is', '$1', $decoded);
+
         // Convert block-level breaks to newlines so a multi-paragraph posting
-        // doesn't get mashed into one line.
+        // doesn't get mashed into one line. HN separates paragraphs with a
+        // bare opening <p> and never closes it, so the opening tag is the
+        // paragraph break; without this the whole posting becomes the
+        // "first line" and the last header token swallows the description.
+        // The pattern must not match <pre>.
         $decoded = (string) preg_replace('/<\s*br\s*\/?\s*>/i', "\n", $decoded);
         $decoded = (string) preg_replace('/<\s*\/\s*p\s*>/i', "\n", $decoded);
-        $decoded = (string) preg_replace('/<\s*p[^>]*>/i', '', $decoded);
+        $decoded = (string) preg_replace('/<\s*p(?:\s[^>]*)?>/i', "\n\n", $decoded);
 
         $stripped = strip_tags($decoded);
         $stripped = (string) preg_replace('/[ \t]+/', ' ', $stripped);
@@ -146,7 +156,9 @@ final class HackerNewsContextBuilder
             $token = $tokens[$i];
 
             if ($this->looksLikeUrl($token)) {
-                $structured['apply_url'] = $token;
+                // Keep only the URL: posters write "Full-time – https://..."
+                // or "https://... apply online" in the same header slot.
+                $structured['apply_url'] = $this->firstUrl($token) ?? $token;
 
                 continue;
             }
@@ -232,12 +244,47 @@ final class HackerNewsContextBuilder
         return $out;
     }
 
-    private function firstUrl(string $body): ?string
+    private function firstUrl(string $text): ?string
     {
-        if (preg_match('/https?:\/\/[^\s<>"\']+/i', $body, $m) === 1) {
-            return $m[0];
+        if (preg_match('/https?:\/\/[^\s<>"\']+/i', $text, $m) === 1) {
+            return $this->trimTrailingPunctuation($m[0]);
         }
 
         return null;
+    }
+
+    /**
+     * Drop sentence punctuation that the URL regex swallows: "careers.",
+     * "(https://acme.example)", markdown "[acme](https://acme.example)".
+     * A closing ")" or "]" is kept when the URL itself opened one, so paths
+     * like ".../Foo_(bar)" survive.
+     */
+    private function trimTrailingPunctuation(string $url): string
+    {
+        while ($url !== '') {
+            $last = substr($url, -1);
+
+            if (in_array($last, ['.', ',', ';', ':', '!', '?', "'", '"'], true)) {
+                $url = substr($url, 0, -1);
+
+                continue;
+            }
+
+            if ($last === ')' && substr_count($url, ')') > substr_count($url, '(')) {
+                $url = substr($url, 0, -1);
+
+                continue;
+            }
+
+            if ($last === ']' && substr_count($url, ']') > substr_count($url, '[')) {
+                $url = substr($url, 0, -1);
+
+                continue;
+            }
+
+            break;
+        }
+
+        return $url;
     }
 }

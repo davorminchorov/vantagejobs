@@ -47,14 +47,15 @@ final class HackerNewsScraperTest extends TestCase
     #[Test]
     public function happy_path_fetches_thread_and_persists_listings(): void
     {
-        $this->fakeAlgolia($this->buildThread($this->loadFixtureChildren()));
+        $children = $this->loadFixtureChildren();
+        $this->fakeAlgolia($this->buildThread($children));
 
         $result = $this->scraper->run($this->source);
 
         $this->assertFalse($result->hasErrors());
-        $this->assertSame(15, $result->fetched);
-        $this->assertSame(15, $result->newCount);
-        $this->assertSame(15, AggregatorListing::query()->count());
+        $this->assertSame(count($children), $result->fetched);
+        $this->assertSame(count($children), $result->newCount);
+        $this->assertSame(count($children), AggregatorListing::query()->count());
     }
 
     #[Test]
@@ -83,18 +84,48 @@ final class HackerNewsScraperTest extends TestCase
     #[Test]
     public function rerunning_against_identical_thread_is_idempotent(): void
     {
-        $thread = $this->buildThread($this->loadFixtureChildren());
+        $children = $this->loadFixtureChildren();
+        $thread = $this->buildThread($children);
         $this->fakeAlgolia($thread);
 
         $first = $this->scraper->run($this->source);
-        $this->assertSame(15, $first->newCount);
+        $this->assertSame(count($children), $first->newCount);
 
         $this->fakeAlgolia($thread);
         $second = $this->scraper->run($this->source);
 
-        $this->assertSame(15, $second->fetched);
+        $this->assertSame(count($children), $second->fetched);
         $this->assertSame(0, $second->newCount);
-        $this->assertSame(15, AggregatorListing::query()->count());
+        $this->assertSame(count($children), AggregatorListing::query()->count());
+    }
+
+    #[Test]
+    public function persists_the_full_apply_url_for_real_shaped_multi_paragraph_comments(): void
+    {
+        $this->fakeAlgolia($this->buildThread($this->loadFixtureChildren()));
+
+        $this->scraper->run($this->source);
+
+        // Bare <p> paragraph separators must not glue the description onto
+        // the URL, and HN's shortened link text ("...d88...") must not
+        // replace the full href.
+        $acme = AggregatorListing::query()->where('external_id', '40000016')->firstOrFail();
+        $this->assertSame('https://acme.example/jobs/backend', $acme->url);
+
+        $globex = AggregatorListing::query()->where('external_id', '40000017')->firstOrFail();
+        $this->assertSame('https://jobs.lever.co/globex/9234d6e2-f306-48d9-9cd6-9192d34d889c', $globex->url);
+
+        // Extra text around the URL in the header slot, and punctuation the
+        // URL regex swallows, must not end up in the stored URL.
+        $expectedUrls = [
+            '40000018' => 'https://acmedata.example/',
+            '40000019' => 'https://initech.example/careers',
+            '40000020' => 'https://hooli.example/jobs',
+            '40000021' => 'https://umbrella.example/jobs/research_(bio)',
+        ];
+        foreach ($expectedUrls as $externalId => $url) {
+            $this->assertSame($url, AggregatorListing::query()->where('external_id', $externalId)->firstOrFail()->url, "external_id {$externalId}");
+        }
     }
 
     #[Test]

@@ -88,17 +88,35 @@ final class AggregatorDispatchDueTest extends TestCase
     }
 
     #[Test]
-    public function excludes_hackernews_regardless_of_next_run_at(): void
+    public function dispatches_hackernews_like_any_other_due_source(): void
     {
         Queue::fake();
 
-        AggregatorSource::factory()->ofType(AggregatorSourceType::HACKERNEWS)->create([
+        $source = AggregatorSource::factory()->ofType(AggregatorSourceType::HACKERNEWS)->create([
             'next_run_at' => null,
         ]);
 
         Artisan::call('aggregator:dispatch-due');
 
-        Queue::assertNothingPushed();
+        Queue::assertPushed(
+            RunAggregatorScrapeJob::class,
+            static fn (RunAggregatorScrapeJob $job): bool => $job->sourceId === (int) $source->id,
+        );
+    }
+
+    #[Test]
+    public function hackernews_defaults_to_a_daily_cadence(): void
+    {
+        $this->assertSame(60 * 24, AggregatorSourceType::HACKERNEWS->defaultCadenceMinutes());
+    }
+
+    #[Test]
+    public function hackernews_has_no_dedicated_monthly_cron_entries(): void
+    {
+        $descriptions = collect($this->app->make(Schedule::class)->events())->pluck('description');
+
+        $this->assertNotContains('aggregator:hackernews:3rd', $descriptions);
+        $this->assertNotContains('aggregator:hackernews:5th', $descriptions);
     }
 
     #[Test]

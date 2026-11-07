@@ -1,0 +1,10 @@
+{
+    "comment_id": "40000021",
+    "author": "umbrella",
+    "created_at": "2026-11-03T11:00:00Z",
+    "text": "Umbrella | Research Engineer (Bio) | Onsite | <a href=\"https:&#x2F;&#x2F;umbrella.example&#x2F;jobs&#x2F;research_(bio)\" rel=\"nofollow\">https:&#x2F;&#x2F;umbrella.example&#x2F;jobs&#x2F;research_(bio)</a><p>Lab work in Raccoon City, wet-lab experience required.",
+    "expected": {
+        "company_name": "Umbrella",
+        "apply_method": "https://umbrella.example/jobs/research_(bio)"
+    }
+}

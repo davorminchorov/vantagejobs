@@ -1,0 +1,13 @@
+{
+    "comment_id": "40000017",
+    "author": "globex_talent",
+    "created_at": "2026-11-03T09:12:00Z",
+    "text": "Globex | Staff Data Engineer | Remote (EU) | <a href=\"https:&#x2F;&#x2F;jobs.lever.co&#x2F;globex&#x2F;9234d6e2-f306-48d9-9cd6-9192d34d889c\" rel=\"nofollow\">https:&#x2F;&#x2F;jobs.lever.co&#x2F;globex&#x2F;9234d6e2-f306-48d9-9cd6-9192d34d88...</a><p>We run the data platform behind Globex&#x27;s logistics network: Python, Spark and dbt on Postgres.<p>Visa sponsorship is not available for this role.",
+    "expected": {
+        "company_name": "Globex",
+        "role_title": "Staff Data Engineer",
+        "seniority": "staff",
+        "remote.type": "remote",
+        "apply_method": "https://jobs.lever.co/globex/9234d6e2-f306-48d9-9cd6-9192d34d889c"
+    }
+}

@@ -25,10 +25,9 @@ use Illuminate\Database\Eloquent\Collection;
  * inline) reuses RunAggregatorScrapeJob's ShouldBeUnique lock, so a run
  * triggered from /admin/runs can't race a scheduled run of the same source.
  *
- * HACKERNEWS is excluded: its "Who is Hiring" thread only makes sense on the
- * 3rd/5th of each month, which routes/console.php still schedules directly.
- * Its 30-day cadence_minutes floor exists only to stop a stray double-trigger
- * within that special-cased schedule, not to drive this sweep.
+ * HackerNews goes through this sweep like every other source: a daily run
+ * re-reads the latest monthly thread and only inserts comments it hasn't
+ * stored yet.
  *
  * Scheduled every 15 minutes, tenant-agnostic (sweeps every tenant with at
  * least one enabled aggregator source). Emits a single JSON line on stdout.
@@ -70,7 +69,6 @@ final class AggregatorDispatchDueCommand extends Command
     {
         $ids = AggregatorSource::query()
             ->where('enabled', true)
-            ->where('type', '!=', AggregatorSourceType::HACKERNEWS->value)
             ->where(function ($query) use ($now): void {
                 $query->whereNull('next_run_at')->orWhere('next_run_at', '<=', $now);
             })

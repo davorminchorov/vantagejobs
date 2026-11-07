@@ -17,13 +17,10 @@ Artisan::command('inspire', function () {
 | Scheduled aggregator runs
 |--------------------------------------------------------------------------
 |
-| Per SOURCES.md cadences:
-|   - HackerNews "Who is Hiring": monthly on the 3rd and again on the 5th
-|     (catches late-arriving postings to the monthly thread).
-|   - Remotive / Himalayas / We Work Remotely / RemoteOK: once daily.
-|
-| All runs invoke the per-source aggregator:run command once per tenant
-| that has at least one enabled aggregator source ($aggregatorTenantSlugs).
+| Every aggregator source, HackerNews included, is driven by
+| AggregatorSource.next_run_at through aggregator:dispatch-due below.
+| HackerNews runs daily: each run re-reads the latest monthly "Who is
+| Hiring" thread and only stores comments it hasn't seen yet.
 |
 | Bookmarks lifecycle:
 |   - bookmarks:warn-expiring runs daily at 06:00 UTC (T-3 warning).
@@ -95,18 +92,6 @@ Schedule::call(static function () use ($companyTenantSlugs): void {
     }
 })->name('scrape:all')->hourly()->withoutOverlapping();
 
-Schedule::call(static function () use ($aggregatorTenantSlugs): void {
-    foreach ($aggregatorTenantSlugs() as $slug) {
-        Artisan::call('aggregator:run', ['source' => 'hackernews', '--tenant' => $slug]);
-    }
-})->name('aggregator:hackernews:3rd')->monthlyOn(3, '07:00');
-
-Schedule::call(static function () use ($aggregatorTenantSlugs): void {
-    foreach ($aggregatorTenantSlugs() as $slug) {
-        Artisan::call('aggregator:run', ['source' => 'hackernews', '--tenant' => $slug]);
-    }
-})->name('aggregator:hackernews:5th')->monthlyOn(5, '07:00');
-
 // Phase 2 + deferred-optional aggregators (SOURCES.md §2, §3) and the
 // later tier 1 (Jobicy / Arbeitnow) + tier 2 (Python.org / Django /
 // Elixir Jobs / HexHire) additions. All poll once daily; per-source ToS
@@ -114,16 +99,15 @@ Schedule::call(static function () use ($aggregatorTenantSlugs): void {
 // entry must also have an enabled AggregatorSource row for the target
 // tenant — without it aggregator:run is a no-op for that type.
 
-// Every other aggregator type (remotive, himalayas, weworkremotely, remoteok,
-// fourdayweek, workingnomads, adzuna, larajobs, jobicy, arbeitnow, python_org,
-// django_news, elixir_jobs, hexhire) is driven by AggregatorSource.next_run_at
+// Every aggregator type (hackernews, remotive, himalayas, weworkremotely,
+// remoteok, fourdayweek, workingnomads, adzuna, larajobs, jobicy, arbeitnow,
+// python_org, django_news, elixir_jobs, hexhire) is driven by AggregatorSource.next_run_at
 // rather than a hardcoded per-source cron entry: this sweep dispatches
 // RunAggregatorScrapeJob (ShouldBeUnique-guarded) for every enabled source
 // whose next_run_at has elapsed. AggregatorOrchestrator already advances
 // next_run_at by cadence_minutes on every run; seeded cadence_minutes comes
 // from AggregatorSourceType::defaultCadenceMinutes() (6h for permissive
-// feeds, daily for rate-limited/cached/ToS-bound ones). HackerNews keeps its
-// explicit monthly entries above — see AggregatorDispatchDueCommand.
+// feeds, daily for rate-limited/cached/ToS-bound ones and HackerNews).
 Schedule::command('aggregator:dispatch-due')->everyFifteenMinutes()->withoutOverlapping();
 
 Schedule::command('bookmarks:warn-expiring')->dailyAt('06:00');
