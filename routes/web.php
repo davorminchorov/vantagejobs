@@ -60,6 +60,7 @@ use App\Http\Controllers\Import\UploadCsvController;
 use App\Http\Controllers\Import\UploadFormController;
 use App\Http\Controllers\Insights\CompInsightsController;
 use App\Http\Controllers\Insights\ConfirmFundingCandidateController;
+use App\Http\Controllers\Insights\DismissCompanyFundingCandidatesController;
 use App\Http\Controllers\Insights\DismissFundingCandidateController;
 use App\Http\Controllers\Insights\FundingCandidatesController;
 use App\Http\Controllers\Insights\HiringInsightsController;
@@ -136,6 +137,9 @@ Route::middleware(['auth'])->group(function (): void {
     Route::post('/insights/funding-candidates/{candidate}/dismiss', DismissFundingCandidateController::class)
         ->whereNumber('candidate')
         ->name('insights.funding-candidates.dismiss');
+    Route::post('/insights/funding-candidates/companies/{company}/dismiss', DismissCompanyFundingCandidatesController::class)
+        ->whereNumber('company')
+        ->name('insights.funding-candidates.dismiss-company');
 
     Route::get('/import', UploadFormController::class)->name('import.upload');
     Route::post('/import', UploadCsvController::class)->name('import.upload.store');

@@ -4,16 +4,16 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Companies;
 
-use App\Enums\EventType;
 use App\Http\Requests\Companies\AddFundingRequest;
 use App\Models\Company;
-use App\Models\Event;
+use App\Signals\Funding\FundingRoundRecorder;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Support\Facades\DB;
 
 final readonly class AddFundingController
 {
+    public function __construct(private FundingRoundRecorder $recorder) {}
+
     public function __invoke(AddFundingRequest $request, Company $company): RedirectResponse
     {
         /** @var array<string, mixed> $data */
@@ -29,42 +29,15 @@ final readonly class AddFundingController
         $url = $this->asString($data['url'] ?? null);
         $notes = $this->asString($data['notes'] ?? null);
 
-        DB::transaction(function () use ($company, $stage, $amount, $raisedAt, $url, $notes): void {
-            // Only overwrite Company-level scalars when the new round is at
-            // least as recent as the stored one. Stale historical entries
-            // shouldn't downgrade the company's "most recent" view.
-            $shouldUpdate = $raisedAt !== null && (
-                $company->funding_last_raised_at === null
-                || $raisedAt->greaterThanOrEqualTo($company->funding_last_raised_at)
-            );
-            if ($shouldUpdate) {
-                $company->fill([
-                    'funding_stage' => $stage ?? $company->funding_stage,
-                    'funding_last_raised_at' => $raisedAt,
-                    'funding_last_amount_usd' => $amount ?? $company->funding_last_amount_usd,
-                ])->save();
-            }
-
-            $title = $stage !== null
-                ? "Funding round: {$stage}".($amount !== null ? ' — '.self::humanAmount($amount) : '')
-                : ($amount !== null ? 'Funding round — '.self::humanAmount($amount) : 'Funding round');
-
-            Event::query()->create([
-                'company_id' => $company->id,
-                'role_id' => null,
-                'type' => EventType::FUNDING->value,
-                'title' => $title,
-                'body' => (string) json_encode(array_filter([
-                    'stage' => $stage,
-                    'amount_usd' => $amount,
-                    'raised_at' => $raisedAt?->toIso8601String(),
-                    'url' => $url,
-                    'notes' => $notes,
-                    'source' => 'manual',
-                ], static fn ($v) => $v !== null && $v !== '')),
-                'occurred_at' => $raisedAt ?? CarbonImmutable::now(),
-            ]);
-        });
+        $this->recorder->record(
+            company: $company,
+            stage: $stage,
+            amountUsd: $amount,
+            raisedAt: $raisedAt,
+            url: $url,
+            notes: $notes,
+            context: ['source' => 'manual'],
+        );
 
         return redirect()
             ->route('companies.show', $company)
@@ -79,20 +52,5 @@ final readonly class AddFundingController
         $trimmed = trim($value);
 
         return $trimmed === '' ? null : $trimmed;
-    }
-
-    private static function humanAmount(int $usd): string
-    {
-        if ($usd >= 1_000_000_000) {
-            return '$'.number_format($usd / 1_000_000_000, 1).'B';
-        }
-        if ($usd >= 1_000_000) {
-            return '$'.number_format($usd / 1_000_000, 1).'M';
-        }
-        if ($usd >= 1_000) {
-            return '$'.number_format($usd / 1_000).'k';
-        }
-
-        return '$'.number_format($usd);
     }
 }

@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Signals\Funding;
 
-use App\Models\FundingCandidate;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Http;
@@ -19,8 +18,8 @@ use Throwable;
  *
  * Endpoint: https://news.google.com/rss/search?q={query}&hl=en-US&gl=US&ceid=US:en
  *
- * Off-topic articles are dropped: an item is only emitted if its title
- * matches at least one preset funding keyword (case-insensitive).
+ * Off-topic articles are dropped by FundingHeadlineFilter (funding keyword,
+ * company named in the headline, no directory sites, recent only).
  *
  * Output shape per item:
  *   [
@@ -38,6 +37,10 @@ final class GoogleNewsClient
     private const USER_AGENT = 'VantageJobs-FundingPoller/1.0 (+https://vantagejobs.local)';
 
     private const ENDPOINT = 'https://news.google.com/rss/search';
+
+    public function __construct(
+        private readonly FundingHeadlineFilter $filter = new FundingHeadlineFilter,
+    ) {}
 
     /**
      * @return list<array{external_id: string, title: string, url: string, published_at: CarbonImmutable|null, matched: list<string>}>
@@ -72,13 +75,13 @@ final class GoogleNewsClient
             return [];
         }
 
-        return $this->parse($url, $body);
+        return $this->parse($url, $body, $companyName);
     }
 
     /**
      * @return list<array{external_id: string, title: string, url: string, published_at: CarbonImmutable|null, matched: list<string>}>
      */
-    private function parse(string $url, string $body): array
+    private function parse(string $url, string $body, string $companyName): array
     {
         $previous = libxml_use_internal_errors(true);
         try {
@@ -108,40 +111,24 @@ final class GoogleNewsClient
                 continue;
             }
 
-            $matched = $this->matchKeywords($title);
-            if ($matched === []) {
-                // Off-topic: title doesn't mention any preset funding term.
+            $publishedAt = $this->parseDate(trim((string) ($item->pubDate ?? '')));
+            $sourceHost = parse_url(trim((string) ($item->source['url'] ?? '')), PHP_URL_HOST);
+            $sourceName = trim((string) ($item->source ?? ''));
+
+            if (! $this->filter->accepts($title, $companyName, $publishedAt, is_string($sourceHost) ? $sourceHost : null, $sourceName)) {
                 continue;
             }
-
-            $publishedAt = $this->parseDate(trim((string) ($item->pubDate ?? '')));
 
             $items[] = [
                 'external_id' => $externalId,
                 'title' => $title,
                 'url' => $link !== '' ? $link : $externalId,
                 'published_at' => $publishedAt,
-                'matched' => $matched,
+                'matched' => $this->filter->matchedKeywords($title),
             ];
         }
 
         return $items;
-    }
-
-    /**
-     * @return list<string>
-     */
-    private function matchKeywords(string $title): array
-    {
-        $haystack = mb_strtolower($title);
-        $matched = [];
-        foreach (FundingCandidate::PRESET_KEYWORDS as $keyword) {
-            if (str_contains($haystack, mb_strtolower($keyword))) {
-                $matched[] = $keyword;
-            }
-        }
-
-        return $matched;
     }
 
     private function parseDate(string $raw): ?CarbonImmutable
