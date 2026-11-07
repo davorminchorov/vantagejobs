@@ -190,6 +190,23 @@ final class DailyDigestTest extends TestCase
     }
 
     #[Test]
+    public function scraped_titles_cannot_inject_links_into_the_mail(): void
+    {
+        $company = Company::factory()->create(['name' => 'Acme [x](https://evil.example)']);
+        Role::factory()->create([
+            'company_id' => $company->id,
+            'title' => 'Engineer](https://evil.example) [click',
+            'pipeline_status' => 'onsite',
+            'next_action_date' => now()->subDays(3)->toDateString(),
+        ]);
+
+        $mail = new DailyDigestMail($this->query()->build(CarbonImmutable::now()), 'UTC');
+
+        $mail->assertDontSeeInHtml('href="https://evil.example"', false);
+        $mail->assertSeeInHtml('Engineer](https://evil.example) [click', false);
+    }
+
+    #[Test]
     public function reports_empty_when_nothing_is_pending(): void
     {
         $now = CarbonImmutable::now();

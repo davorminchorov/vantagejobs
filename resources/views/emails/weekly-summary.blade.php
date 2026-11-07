@@ -21,7 +21,7 @@ Here's what happened between {{ $windowStartLabel }} and {{ $windowEndLabel }}.
 ## Applications needing attention
 
 @foreach ($needsAttention as $item)
-- [{{ $item['title'] }}@if (! empty($item['company'])), {{ $item['company'] }}@endif]({{ $item['url'] }}): {{ $item['reason'] }}
+- [{{ \App\Support\MarkdownText::escape($item['title']) }}@if (! empty($item['company'])), {{ \App\Support\MarkdownText::escape($item['company']) }}@endif]({{ $item['url'] }}): {{ \App\Support\MarkdownText::escape($item['reason']) }}
 @endforeach
 @endif
 
@@ -29,7 +29,7 @@ Here's what happened between {{ $windowStartLabel }} and {{ $windowEndLabel }}.
 ## Top signals of the week
 
 @foreach ($topSignals as $signal)
-- **{{ $signal['label'] }}**@if (! empty($signal['company'])) · {{ $signal['company'] }}@endif @if (! empty($signal['title'])): {{ $signal['title'] }}@endif
+- **{{ \App\Support\MarkdownText::escape($signal['label']) }}**@if (! empty($signal['company'])) · {{ \App\Support\MarkdownText::escape($signal['company']) }}@endif @if (! empty($signal['title'])): {{ \App\Support\MarkdownText::escape($signal['title']) }}@endif
 
 @endforeach
 @endif
@@ -43,7 +43,7 @@ This week versus the week before.
 | Stage | This week | Last week | Change |
 |:------|----------:|----------:|:-------|
 @foreach ($pipelineTrend as $row)
-| {{ $row['label'] }} | {{ $row['current'] }} | {{ $row['prior'] }} | {{ $row['delta'] > 0 ? '+'.$row['delta'] : $row['delta'] }} |
+| {{ \App\Support\MarkdownText::escape($row['label']) }} | {{ $row['current'] }} | {{ $row['prior'] }} | {{ $row['delta'] > 0 ? '+'.$row['delta'] : $row['delta'] }} |
 @endforeach
 @endcomponent
 @endif

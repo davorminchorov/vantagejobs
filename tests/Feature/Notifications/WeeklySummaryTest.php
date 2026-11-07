@@ -107,6 +107,29 @@ final class WeeklySummaryTest extends TestCase
     }
 
     #[Test]
+    public function scraped_titles_cannot_inject_links_into_the_mail(): void
+    {
+        Mail::fake();
+
+        $company = Company::factory()->create(['name' => 'Acme']);
+        Role::factory()->create([
+            'company_id' => $company->id,
+            'title' => 'Engineer](https://evil.example) [click',
+            'pipeline_status' => 'applied',
+            'applied_at' => now()->subDays(15),
+        ]);
+
+        Artisan::call('notifications:send-weekly-summary', ['--tenant' => 'primary']);
+
+        Mail::assertQueued(WeeklySummaryMail::class, function (WeeklySummaryMail $mail): bool {
+            $mail->assertDontSeeInHtml('href="https://evil.example"', false);
+            $mail->assertSeeInHtml('Engineer](https://evil.example) [click', false);
+
+            return true;
+        });
+    }
+
+    #[Test]
     public function ranks_top_signals_by_event_type_priority(): void
     {
         Mail::fake();
