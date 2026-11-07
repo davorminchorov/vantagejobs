@@ -71,6 +71,10 @@ final class FundingHeadlineParserTest extends TestCase
                 'Tighten lands seed funding',
                 ['stage' => 'Seed', 'amount_usd' => null],
             ],
+            'non-us dollars' => [
+                'First Table raises $12 million NZD to fuel expansion across the UK and Ireland',
+                ['publisher' => null, 'amount_usd' => null, 'amount_label' => 'NZD 12M'],
+            ],
             'no money' => [
                 'Plaid Achieves New Funding Round - Financial IT',
                 ['stage' => null, 'amount_usd' => null, 'amount_label' => null],

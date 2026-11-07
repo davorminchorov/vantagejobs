@@ -188,6 +188,14 @@ Schedule::call(static function () use ($companyTenantSlugs): void {
     }
 })->name('signals:funding:news')->weeklyOn(1, '05:15');
 
+// Startup funding news feeds for Insights > Recently funded. Feeds only
+// hold their latest items, so read them daily.
+Schedule::call(static function () use ($companyTenantSlugs): void {
+    foreach ($companyTenantSlugs() as $slug) {
+        Artisan::call('signals:funding:feed', ['--tenant' => $slug]);
+    }
+})->name('signals:funding:feed')->dailyAt('05:30');
+
 // Ghost-job scan (Phase 4 §6.3.6) and quality-score recompute
 // (Phase 4 §6.3.9). Ordered last in the daily band so all signal
 // inputs are fresh.

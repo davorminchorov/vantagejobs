@@ -27,6 +27,8 @@ final class StoreCompanyRequest extends FormRequest
             'ats_host' => ['nullable', 'string', 'max:255'],
             'tier' => ['nullable', Rule::in(['A', 'B', 'C', 'graveyard'])],
             'status' => ['nullable', Rule::in(['researching', 'watching', 'applied', 'in_process', 'rejected', 'offer', 'passed'])],
+            // Set when the company is tracked from Insights > Recently funded.
+            'funding_announcement_id' => ['nullable', 'integer'],
         ];
     }
 }

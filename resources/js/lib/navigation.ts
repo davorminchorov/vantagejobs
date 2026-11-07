@@ -30,6 +30,7 @@ export const INSIGHTS_ITEMS: ReadonlyArray<NavLinkItem> = [
     { name: 'Hiring trends', href: '/insights/hiring' },
     { name: 'Compensation', href: '/insights/comp' },
     { name: 'Funding candidates', href: '/insights/funding-candidates' },
+    { name: 'Recently funded', href: '/insights/recently-funded' },
 ];
 
 export const SETTINGS_ITEM: NavLinkItem = { name: 'Settings', href: '/settings/profile' };

@@ -11,10 +11,11 @@ const INSIGHTS_TABS: ReadonlyArray<InsightsTab> = [
     { name: 'Hiring trends', href: '/insights/hiring' },
     { name: 'Compensation', href: '/insights/comp' },
     { name: 'Funding candidates', href: '/insights/funding-candidates' },
+    { name: 'Recently funded', href: '/insights/recently-funded' },
 ];
 
 /**
- * Tab row linking the three Insights pages, with the current page underlined.
+ * Tab row linking the Insights pages, with the current page underlined.
  * Scrolls horizontally on narrow screens instead of overflowing the page.
  */
 export default function InsightsNav() {
