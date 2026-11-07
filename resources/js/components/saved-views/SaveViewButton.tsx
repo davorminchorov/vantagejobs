@@ -13,6 +13,7 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
 interface SaveViewButtonProps {
     readonly entity: 'companies' | 'roles' | 'discover';
@@ -50,20 +51,19 @@ export default function SaveViewButton({ entity, filters, disabled = false }: Sa
             <Button variant="outline" disabled={disabled} onClick={() => setOpen(true)} type="button">
                 Save view
             </Button>
-            <DialogContent className="rounded-2xl">
+            <DialogContent>
                 <DialogHeader>
                     <DialogTitle>Save current filters as view</DialogTitle>
                     <DialogDescription>
                         Give this set of filters a name. It will appear under Views in the sidebar.
                     </DialogDescription>
                 </DialogHeader>
-                <form onSubmit={handleSubmit} className="space-y-4">
-                    <div className="space-y-1.5">
-                        <label className="font-mono text-xs font-medium uppercase tracking-wide text-muted-foreground" htmlFor="saved-view-name">
-                            Name
-                        </label>
+                <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+                    <div className="flex flex-col gap-1.5">
+                        <Label htmlFor="saved-view-name">Name</Label>
                         <Input
                             id="saved-view-name"
+                            name="name"
                             value={name}
                             onChange={(e) => setName(e.target.value)}
                             placeholder="e.g. Hiring A-tier"

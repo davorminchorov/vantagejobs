@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { SectionLabel } from '@/components/ui/section-label';
-import { cn } from '@/lib/utils';
+import { NativeSelect } from '@/components/ui/native-select';
 
 export interface ContactFormValues {
     name: string;
@@ -58,25 +58,26 @@ export default function ContactForm({ mode, initial, companies, action, method =
     }
 
     return (
-        <form onSubmit={submit} className="space-y-6">
-            <section className="space-y-4">
+        <form onSubmit={submit} className="flex flex-col gap-6">
+            <section className="flex flex-col gap-4">
                 <SectionLabel>Identity</SectionLabel>
 
                 <Field id="name" label="Name" error={form.errors.name} required>
-                    <Input id="name" value={form.data.name} onChange={(e) => form.setData('name', e.target.value)} autoFocus />
+                    <Input id="name" name="name" value={form.data.name} onChange={(e) => form.setData('name', e.target.value)} autoFocus />
                 </Field>
 
                 <div className="grid gap-4 sm:grid-cols-2">
                     <Field id="role_title" label="Role title" error={form.errors.role_title}>
                         <Input
                             id="role_title"
+                            name="role_title"
                             value={form.data.role_title}
                             onChange={(e) => form.setData('role_title', e.target.value)}
                             placeholder="Engineering Manager"
                         />
                     </Field>
 
-                    <Field id="company_id" label="Company" error={form.errors.company_id} hint="Optional — leave blank for an unaffiliated contact.">
+                    <Field id="company_id" label="Company" error={form.errors.company_id} hint="Optional. Leave blank for an unaffiliated contact.">
                         <SelectInput
                             id="company_id"
                             value={form.data.company_id}
@@ -87,13 +88,14 @@ export default function ContactForm({ mode, initial, companies, action, method =
                 </div>
             </section>
 
-            <section className="space-y-4">
+            <section className="flex flex-col gap-4">
                 <SectionLabel>Reach</SectionLabel>
 
                 <div className="grid gap-4 sm:grid-cols-2">
                     <Field id="email" label="Email" error={form.errors.email}>
                         <Input
                             id="email"
+                            name="email"
                             type="email"
                             value={form.data.email}
                             onChange={(e) => form.setData('email', e.target.value)}
@@ -104,6 +106,7 @@ export default function ContactForm({ mode, initial, companies, action, method =
                     <Field id="linkedin_url" label="LinkedIn" error={form.errors.linkedin_url}>
                         <Input
                             id="linkedin_url"
+                            name="linkedin_url"
                             type="url"
                             value={form.data.linkedin_url}
                             onChange={(e) => form.setData('linkedin_url', e.target.value)}
@@ -113,25 +116,23 @@ export default function ContactForm({ mode, initial, companies, action, method =
                 </div>
             </section>
 
-            <section className="space-y-4">
+            <section className="flex flex-col gap-4">
                 <SectionLabel>Notes</SectionLabel>
 
                 <Field id="notes" label="Notes" error={form.errors.notes}>
                     <textarea
                         id="notes"
+                        name="notes"
                         value={form.data.notes}
                         onChange={(e) => form.setData('notes', e.target.value)}
                         rows={4}
-                        className={cn(
-                            'rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm',
-                            'focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-2',
-                        )}
+                        className="w-full rounded-md border border-input bg-background px-3 py-2 text-base placeholder:text-muted-foreground focus-visible:outline-2 focus-visible:-outline-offset-1 focus-visible:outline-ring sm:text-sm"
                         placeholder="How you met, context, anything worth remembering."
                     />
                 </Field>
             </section>
 
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-3">
                 <Button type="submit" disabled={form.processing}>
                     {form.processing ? 'Saving…' : mode === 'create' ? 'Add contact' : 'Save changes'}
                 </Button>
@@ -162,7 +163,7 @@ function Field({ id, label, error, hint, required, children }: FieldProps) {
                 {required ? <span className="text-destructive"> *</span> : null}
             </Label>
             {children}
-            {error ? <span className="text-sm text-destructive">{error}</span> : hint ? <span className="text-sm text-muted-foreground">{hint}</span> : null}
+            {error ? <span className="text-base text-destructive sm:text-sm">{error}</span> : hint ? <span className="text-xs text-muted-foreground">{hint}</span> : null}
         </div>
     );
 }
@@ -176,20 +177,17 @@ interface SelectInputProps {
 
 function SelectInput({ id, value, onChange, options }: SelectInputProps) {
     return (
-        <select
+        <NativeSelect
             id={id}
+            name={id}
             value={value}
             onChange={(e) => onChange(e.target.value)}
-            className={cn(
-                'h-9 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm',
-                'focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-2',
-            )}
         >
             {options.map((option) => (
                 <option key={option.value} value={option.value}>
                     {option.label}
                 </option>
             ))}
-        </select>
+        </NativeSelect>
     );
 }

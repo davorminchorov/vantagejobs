@@ -25,18 +25,20 @@ interface Props {
     compact?: boolean;
 }
 
+const AXIS_TICK = { fill: 'var(--muted-foreground)', fontSize: 12 };
+
 export default function HiringTrendChart({ data, showListings = true, height = 240, compact = false }: Props) {
     if (data.length === 0) {
         if (compact) {
             return (
-                <p className="text-sm text-muted-foreground">
+                <p className="text-base text-pretty text-muted-foreground sm:text-sm">
                     No snapshots yet. Charts populate after the first daily run.
                 </p>
             );
         }
         return (
             <div
-                className="flex items-center justify-center rounded-2xl border border-dashed border-border bg-card text-sm text-muted-foreground"
+                className="flex items-center justify-center rounded-xl border border-dashed border-border text-base text-muted-foreground sm:text-sm"
                 style={{ height }}
             >
                 No snapshots yet. Charts populate after the first daily run.
@@ -47,26 +49,35 @@ export default function HiringTrendChart({ data, showListings = true, height = 2
     return (
         <ResponsiveContainer width="100%" height={height}>
             <LineChart data={data} margin={{ top: 8, right: 12, left: 0, bottom: 4 }}>
-                <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                <CartesianGrid vertical={false} stroke="var(--border)" />
                 <XAxis
                     dataKey="date"
                     tickFormatter={(d: string) => d.slice(5)}
-                    fontSize={11}
-                    stroke="currentColor"
-                    className="font-mono tabular-nums text-muted-foreground"
+                    tick={AXIS_TICK}
+                    tickLine={false}
+                    axisLine={{ stroke: 'var(--border)' }}
                 />
                 <YAxis
-                    fontSize={11}
                     allowDecimals={false}
-                    stroke="currentColor"
-                    className="font-mono tabular-nums text-muted-foreground"
+                    tick={AXIS_TICK}
+                    tickLine={false}
+                    axisLine={false}
+                    width={36}
                 />
                 <Tooltip
-                    contentStyle={{ fontSize: 12 }}
-                    wrapperClassName="rounded-md border border-border bg-card text-card-foreground tabular-nums shadow-sm"
+                    contentStyle={{
+                        fontSize: 12,
+                        fontVariantNumeric: 'tabular-nums',
+                        background: 'var(--card)',
+                        color: 'var(--card-foreground)',
+                        border: '1px solid var(--border)',
+                        borderRadius: 8,
+                        boxShadow: 'none',
+                    }}
+                    cursor={{ stroke: 'var(--border)' }}
                     labelFormatter={(label) => formatDate(String(label))}
                 />
-                <Legend wrapperStyle={{ fontSize: 12 }} />
+                <Legend wrapperStyle={{ fontSize: 12, color: 'var(--muted-foreground)' }} />
                 <Line
                     type="monotone"
                     dataKey="open_role_count"

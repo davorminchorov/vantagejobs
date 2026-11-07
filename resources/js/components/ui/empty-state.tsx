@@ -11,7 +11,7 @@ function EmptyState({ className, children, action, ...props }: EmptyStateProps) 
     return (
         <div
             className={cn(
-                'flex flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-border bg-card px-6 py-10 text-center text-sm text-muted-foreground',
+                'flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-border px-6 py-10 text-center text-base text-pretty text-muted-foreground sm:text-sm',
                 className,
             )}
             {...props}

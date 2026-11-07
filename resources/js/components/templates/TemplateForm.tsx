@@ -3,7 +3,7 @@ import { useForm } from '@inertiajs/react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { cn } from '@/lib/utils';
+import { NativeSelect } from '@/components/ui/native-select';
 
 export interface TemplateFormValues {
     name: string;
@@ -55,11 +55,12 @@ export default function TemplateForm({ mode, initial, categories, action, method
     }
 
     return (
-        <form onSubmit={submit} className="space-y-5">
+        <form onSubmit={submit} className="flex flex-col gap-5">
             <div className="grid gap-4 sm:grid-cols-2">
                 <Field id="name" label="Name" error={form.errors.name} required>
                     <Input
                         id="name"
+                        name="name"
                         value={form.data.name}
                         onChange={(e) => form.setData('name', e.target.value)}
                         placeholder="Cold intro to hiring manager"
@@ -68,21 +69,18 @@ export default function TemplateForm({ mode, initial, categories, action, method
                 </Field>
 
                 <Field id="category" label="Category" error={form.errors.category} required>
-                    <select
+                    <NativeSelect
                         id="category"
+                        name="category"
                         value={form.data.category}
                         onChange={(e) => form.setData('category', e.target.value)}
-                        className={cn(
-                            'h-9 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm',
-                            'focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-2',
-                        )}
                     >
                         {categories.map((category) => (
                             <option key={category} value={category}>
                                 {humanizeCategory(category)}
                             </option>
                         ))}
-                    </select>
+                    </NativeSelect>
                 </Field>
             </div>
 
@@ -95,18 +93,16 @@ export default function TemplateForm({ mode, initial, categories, action, method
             >
                 <textarea
                     id="body"
+                    name="body"
                     value={form.data.body}
                     onChange={(e) => form.setData('body', e.target.value)}
                     rows={10}
                     placeholder={'Hi {{contact_first_name}},\n\n…'}
-                    className={cn(
-                        'min-h-40 w-full rounded-md border border-input bg-background px-3 py-2 font-mono text-sm shadow-sm',
-                        'focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-2',
-                    )}
+                    className="min-h-40 w-full rounded-md border border-input bg-background px-3 py-2 font-mono text-base placeholder:text-muted-foreground focus-visible:outline-2 focus-visible:-outline-offset-1 focus-visible:outline-ring sm:text-sm"
                 />
             </Field>
 
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-3">
                 <Button type="submit" disabled={form.processing}>
                     {form.processing ? 'Saving…' : mode === 'create' ? 'Create template' : 'Save changes'}
                 </Button>
@@ -136,9 +132,9 @@ function Field({ id, label, error, hint, required, children }: FieldProps) {
             </Label>
             {children}
             {error ? (
-                <span className="text-sm text-destructive">{error}</span>
+                <span className="text-base text-destructive sm:text-sm">{error}</span>
             ) : hint ? (
-                <span className="text-sm text-muted-foreground">{hint}</span>
+                <span className="text-xs text-muted-foreground">{hint}</span>
             ) : null}
         </div>
     );

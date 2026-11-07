@@ -12,15 +12,15 @@ export default function Welcome() {
         <>
             <Head title="VantageJobs" />
             <div className="bg-background text-foreground flex min-h-svh flex-col">
-                <header className="border-b">
+                <header className="border-b border-border">
                     <div className="mx-auto flex h-16 w-full max-w-5xl items-center justify-between px-4 sm:px-6">
                         <Link
                             href="/"
-                            className="rounded-md px-1 py-1 text-base font-semibold tracking-tight focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                            className="rounded-md text-base font-semibold tracking-tight focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
                         >
                             VantageJobs
                         </Link>
-                        <nav aria-label="Primary" className="flex items-center gap-3 text-sm">
+                        <nav aria-label="Primary" className="flex items-center gap-4 text-base sm:text-sm">
                             <a
                                 href="https://github.com"
                                 target="_blank"
@@ -30,13 +30,13 @@ export default function Welcome() {
                                 Source
                             </a>
                             {signedIn ? (
-                                <Button asChild size="sm">
+                                <Button asChild size="sm" variant="outline">
                                     <Link href="/dashboard">
-                                        Dashboard <ArrowRight className="ml-1 size-3.5" aria-hidden="true" />
+                                        Dashboard <ArrowRight aria-hidden="true" />
                                     </Link>
                                 </Button>
                             ) : (
-                                <Button asChild size="sm">
+                                <Button asChild size="sm" variant="outline">
                                     <Link href="/login">Sign in</Link>
                                 </Button>
                             )}
@@ -46,38 +46,38 @@ export default function Welcome() {
 
                 <main className="flex-1">
                     <section className="mx-auto w-full max-w-5xl px-4 pt-20 sm:px-6 sm:pt-28">
-                        <p className="font-mono text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                        <p className="text-sm font-medium text-muted-foreground">
                             Personal job-hunting platform
                         </p>
-                        <h1 className="mt-3 max-w-3xl bg-gradient-to-r from-teal-600 to-emerald-500 bg-clip-text text-4xl font-semibold tracking-tight text-transparent sm:text-5xl">
+                        <h1 className="mt-3 max-w-3xl text-4xl font-semibold tracking-tight text-balance sm:text-5xl">
                             A queryable, signal-aware memory of your relationship with the job market.
                         </h1>
-                        <p className="mt-5 max-w-2xl text-base text-muted-foreground sm:text-lg">
+                        <p className="mt-5 max-w-2xl text-lg text-pretty text-muted-foreground">
                             Watches companies you care about. Remembers every role, note, and decision.
                             Surfaces what changed since you last looked. Not a SaaS. Not for anyone else.
                         </p>
-                        <div className="mt-8 flex items-center gap-3">
+                        <div className="mt-8 flex flex-wrap items-center gap-x-4 gap-y-3">
                             {signedIn ? (
                                 <Button asChild>
                                     <Link href="/dashboard">
-                                        Open dashboard <ArrowRight className="ml-1.5 size-4" aria-hidden="true" />
+                                        Open dashboard <ArrowRight aria-hidden="true" />
                                     </Link>
                                 </Button>
                             ) : (
                                 <Button asChild>
                                     <Link href="/login">
-                                        Sign in <ArrowRight className="ml-1.5 size-4" aria-hidden="true" />
+                                        Sign in <ArrowRight aria-hidden="true" />
                                     </Link>
                                 </Button>
                             )}
-                            <span className="text-sm text-muted-foreground">
+                            <span className="text-base text-muted-foreground sm:text-sm">
                                 Invite-only. No public registration.
                             </span>
                         </div>
                     </section>
 
                     <section className="mx-auto w-full max-w-5xl px-4 pb-20 pt-24 sm:px-6">
-                        <div className="grid gap-6 border-t pt-12 sm:grid-cols-3">
+                        <dl className="grid gap-8 border-t border-border pt-12 sm:grid-cols-3">
                             <Capability
                                 label="Watch"
                                 copy="ATS scrapers for Greenhouse, Lever, and Ashby. Conditional GETs, diff and dedup, every change captured as an event."
@@ -90,11 +90,11 @@ export default function Welcome() {
                                 label="Find"
                                 copy="Postgres full-text search behind Cmd/Ctrl-K. Prefix-matched, ranked, sub-100 ms."
                             />
-                        </div>
+                        </dl>
                     </section>
                 </main>
 
-                <footer className="border-t">
+                <footer className="border-t border-border">
                     <div className="mx-auto flex h-12 w-full max-w-5xl items-center justify-between px-4 text-xs text-muted-foreground sm:px-6">
                         <span>
                             Phase <span className="font-mono tabular-nums">1</span> shipped ·{' '}
@@ -112,11 +112,9 @@ export default function Welcome() {
 
 function Capability({ label, copy }: { label: string; copy: string }) {
     return (
-        <div className="space-y-2 rounded-2xl border border-border bg-card p-5 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md">
-            <span className="font-mono text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-                {label}
-            </span>
-            <p className="text-sm text-card-foreground/90">{copy}</p>
+        <div className="flex flex-col gap-1.5">
+            <dt className="text-base font-medium text-foreground sm:text-sm">{label}</dt>
+            <dd className="text-base text-pretty text-muted-foreground sm:text-sm">{copy}</dd>
         </div>
     );
 }

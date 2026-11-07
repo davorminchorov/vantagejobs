@@ -3,6 +3,7 @@ import { useForm } from '@inertiajs/react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { NativeSelect } from '@/components/ui/native-select';
 import { cn } from '@/lib/utils';
 
 export interface ApplicationMetadata {
@@ -73,11 +74,12 @@ export default function ApplicationMetadataForm({
     }
 
     return (
-        <form onSubmit={submit} className="space-y-5">
+        <form onSubmit={submit} className="flex flex-col gap-5">
             <div className="grid gap-4 sm:grid-cols-2">
                 <Field id="applied_at" label="Applied on" error={form.errors.applied_at}>
                     <Input
                         id="applied_at"
+                        name="applied_at"
                         type="date"
                         value={form.data.applied_at}
                         onChange={(e) => form.setData('applied_at', e.target.value)}
@@ -114,6 +116,7 @@ export default function ApplicationMetadataForm({
                 <Field id="next_action_date" label="Next action date" error={form.errors.next_action_date}>
                     <Input
                         id="next_action_date"
+                        name="next_action_date"
                         type="date"
                         value={form.data.next_action_date}
                         onChange={(e) => form.setData('next_action_date', e.target.value)}
@@ -124,6 +127,7 @@ export default function ApplicationMetadataForm({
             <Field id="next_action" label="Next action" error={form.errors.next_action}>
                 <Input
                     id="next_action"
+                    name="next_action"
                     value={form.data.next_action}
                     onChange={(e) => form.setData('next_action', e.target.value)}
                     placeholder="e.g. Follow up with recruiter"
@@ -133,7 +137,8 @@ export default function ApplicationMetadataForm({
             <Field id="general_notes" label="General notes" error={form.errors.general_notes}>
                 <textarea
                     id="general_notes"
-                    className="min-h-28 w-full rounded-md border border-input bg-background p-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    name="general_notes"
+                    className={cn('min-h-28', 'w-full rounded-md border border-input bg-background px-3 py-2 text-base placeholder:text-muted-foreground focus-visible:outline-2 focus-visible:-outline-offset-1 focus-visible:outline-ring sm:text-sm')}
                     value={form.data.general_notes}
                     onChange={(e) => form.setData('general_notes', e.target.value)}
                     placeholder="Free-form notes about this application."
@@ -145,7 +150,7 @@ export default function ApplicationMetadataForm({
                     {form.processing ? 'Saving…' : 'Save application details'}
                 </Button>
                 {form.recentlySuccessful ? (
-                    <span className="text-sm text-teal-700">Saved.</span>
+                    <span className="text-base text-muted-foreground sm:text-sm">Saved.</span>
                 ) : null}
             </div>
         </form>
@@ -164,7 +169,7 @@ function Field({ id, label, error, children }: FieldProps) {
         <div className="flex flex-col gap-1.5">
             <Label htmlFor={id}>{label}</Label>
             {children}
-            {error ? <span className="text-sm text-destructive">{error}</span> : null}
+            {error ? <span className="text-base text-destructive sm:text-sm">{error}</span> : null}
         </div>
     );
 }
@@ -178,20 +183,18 @@ interface SelectInputProps {
 
 function SelectInput({ id, value, onChange, options }: SelectInputProps) {
     return (
-        <select
+        <NativeSelect
             id={id}
+            name={id}
             value={value}
             onChange={(e) => onChange(e.target.value)}
-            className={cn(
-                'h-9 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm',
-                'focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-2',
-            )}
+            wrapperClassName="w-full"
         >
             {options.map((option) => (
                 <option key={option.value} value={option.value}>
                     {option.label}
                 </option>
             ))}
-        </select>
+        </NativeSelect>
     );
 }

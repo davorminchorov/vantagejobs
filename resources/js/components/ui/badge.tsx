@@ -9,19 +9,22 @@ interface BadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
 }
 
 const VARIANT_CLASSES: Record<BadgeVariant, string> = {
-    default: 'bg-primary text-primary-foreground border-transparent',
-    secondary: 'bg-secondary text-secondary-foreground border-transparent',
-    outline: 'border-border text-foreground',
-    success: 'bg-emerald-100 text-emerald-700 border-transparent dark:bg-emerald-900/40 dark:text-emerald-200',
-    warning: 'bg-amber-100 text-amber-700 border-transparent dark:bg-amber-900/40 dark:text-amber-200',
-    destructive: 'bg-destructive text-destructive-foreground border-transparent',
+    default: 'bg-accent text-accent-foreground inset-ring-primary/20',
+    secondary: 'bg-muted text-muted-foreground inset-ring-foreground/10',
+    outline: 'text-foreground inset-ring-border',
+    success:
+        'bg-emerald-50 text-emerald-700 inset-ring-emerald-600/20 dark:bg-emerald-400/10 dark:text-emerald-300 dark:inset-ring-emerald-400/20',
+    warning:
+        'bg-amber-50 text-amber-800 inset-ring-amber-600/20 dark:bg-amber-400/10 dark:text-amber-300 dark:inset-ring-amber-400/20',
+    destructive:
+        'bg-rose-50 text-rose-700 inset-ring-rose-600/20 dark:bg-rose-400/10 dark:text-rose-300 dark:inset-ring-rose-400/20',
 };
 
 function Badge({ className, variant = 'default', ...props }: BadgeProps) {
     return (
         <span
             className={cn(
-                'inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium',
+                'inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-sm font-medium whitespace-nowrap inset-ring sm:text-xs',
                 VARIANT_CLASSES[variant],
                 className,
             )}

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { cn } from '@/lib/utils';
 
 export interface OfferComparisonRow {
@@ -76,78 +76,70 @@ export default function OfferComparison({ endpoint }: OfferComparisonProps) {
     }, [endpoint]);
 
     return (
-        <Card>
-            <CardHeader>
-                <CardTitle className="text-lg">Offer comparison</CardTitle>
-                <CardDescription>All active offers ranked by computed USD total comp.</CardDescription>
-            </CardHeader>
-            <CardContent>
-                {loading && (
-                    <div className="space-y-2">
-                        {[0, 1, 2].map((i) => (
-                            <div key={i} className="h-12 animate-pulse rounded-md bg-muted" />
-                        ))}
-                    </div>
-                )}
+        <section className="flex flex-col gap-4">
+            <div className="flex flex-col gap-1">
+                <h2 className="text-base font-semibold text-balance">Offer comparison</h2>
+                <p className="text-base text-pretty text-muted-foreground sm:text-sm">
+                    All active offers ranked by computed USD total comp.
+                </p>
+            </div>
 
-                {!loading && error && <p className="text-sm text-destructive">{error}</p>}
+            {loading && (
+                <div className="flex flex-col gap-2">
+                    {[0, 1, 2].map((i) => (
+                        <div key={i} className="h-12 animate-pulse rounded-md bg-muted" />
+                    ))}
+                </div>
+            )}
 
-                {!loading && !error && payload && payload.count === 0 && (
-                    <p className="text-sm text-muted-foreground">No roles are currently at the offer stage.</p>
-                )}
+            {!loading && error && <p className="text-base text-destructive sm:text-sm">{error}</p>}
 
-                {!loading && !error && payload && payload.count > 0 && (
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-sm">
-                            <thead>
-                                <tr className="border-b text-left text-xs uppercase tracking-wide text-muted-foreground">
-                                    <th className="py-2 pr-4 font-medium">Role</th>
-                                    <th className="py-2 pr-4 font-medium">Company</th>
-                                    <th className="py-2 pr-4 text-right font-medium">Base</th>
-                                    <th className="py-2 pr-4 text-right font-medium">Equity</th>
-                                    <th className="py-2 pr-4 text-right font-medium">Total (USD)</th>
-                                    <th className="py-2 font-medium">Deadline</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {payload.offers.map((row) => {
-                                    const isBest = row.offer_id === payload.best_offer_id;
-                                    return (
-                                        <tr
-                                            key={row.offer_id}
-                                            className={cn('border-b last:border-0', isBest && 'bg-primary/5')}
-                                        >
-                                            <td className="py-2 pr-4 font-medium text-foreground">
-                                                <div className="flex items-center gap-2">
-                                                    {row.role_title ?? `Role #${row.role_id}`}
-                                                    {isBest && <Badge variant="success">Top comp</Badge>}
-                                                </div>
-                                            </td>
-                                            <td className="py-2 pr-4 text-muted-foreground">
-                                                {row.company_name ?? '—'}
-                                            </td>
-                                            <td className="py-2 pr-4 text-right tabular-nums">
-                                                {row.base !== null ? `${row.currency} ${row.base.toLocaleString()}` : '—'}
-                                            </td>
-                                            <td className="py-2 pr-4 text-right tabular-nums">
-                                                {row.equity_shares !== null
-                                                    ? `${row.equity_shares.toLocaleString()} sh`
-                                                    : '—'}
-                                            </td>
-                                            <td className="py-2 pr-4 text-right font-semibold tabular-nums text-foreground">
-                                                {formatUsd(row.computed_total_comp_usd)}
-                                            </td>
-                                            <td className="py-2 text-muted-foreground">
-                                                {row.decision_deadline ?? '—'}
-                                            </td>
-                                        </tr>
-                                    );
-                                })}
-                            </tbody>
-                        </table>
-                    </div>
-                )}
-            </CardContent>
-        </Card>
+            {!loading && !error && payload && payload.count === 0 && (
+                <p className="text-base text-muted-foreground sm:text-sm">No roles are currently at the offer stage.</p>
+            )}
+
+            {!loading && !error && payload && payload.count > 0 && (
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead>Role</TableHead>
+                            <TableHead>Company</TableHead>
+                            <TableHead className="text-right">Base</TableHead>
+                            <TableHead className="text-right">Equity</TableHead>
+                            <TableHead className="text-right">Total (USD)</TableHead>
+                            <TableHead>Deadline</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {payload.offers.map((row) => {
+                            const isBest = row.offer_id === payload.best_offer_id;
+                            return (
+                                <TableRow key={row.offer_id} className={cn(isBest && 'bg-muted/50')}>
+                                    <TableCell className="font-medium text-foreground">
+                                        <div className="flex items-center gap-2">
+                                            {row.role_title ?? `Role #${row.role_id}`}
+                                            {isBest && <Badge variant="success">Top comp</Badge>}
+                                        </div>
+                                    </TableCell>
+                                    <TableCell className="text-muted-foreground">{row.company_name ?? '—'}</TableCell>
+                                    <TableCell className="text-right tabular-nums">
+                                        {row.base !== null ? `${row.currency} ${row.base.toLocaleString()}` : '—'}
+                                    </TableCell>
+                                    <TableCell className="text-right tabular-nums">
+                                        {row.equity_shares !== null ? `${row.equity_shares.toLocaleString()} sh` : '—'}
+                                    </TableCell>
+                                    <TableCell className="text-right font-medium tabular-nums text-foreground">
+                                        {formatUsd(row.computed_total_comp_usd)}
+                                    </TableCell>
+                                    <TableCell className="tabular-nums text-muted-foreground">
+                                        {row.decision_deadline ?? '—'}
+                                    </TableCell>
+                                </TableRow>
+                            );
+                        })}
+                    </TableBody>
+                </Table>
+            )}
+        </section>
     );
 }

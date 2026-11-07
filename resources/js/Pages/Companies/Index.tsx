@@ -8,10 +8,11 @@ import BulkActionBar from '@/components/bulk/BulkActionBar';
 import SaveViewButton from '@/components/saved-views/SaveViewButton';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import PageHeader from '@/components/PageHeader';
 import { Input } from '@/components/ui/input';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { NativeSelect } from '@/components/ui/native-select';
 import { RelativeDate } from '@/lib/dates';
 import { cn } from '@/lib/utils';
 
@@ -267,41 +268,42 @@ export default function CompaniesIndexPage({ companies, filters, options }: Prop
     return (
         <AuthenticatedLayout>
             <Head title="Companies" />
-            <div className="space-y-6">
-                <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-                    <div>
-                        <h1 className="text-2xl font-semibold tracking-tight">Companies</h1>
-                        <p className="text-sm text-muted-foreground">
-                            {companies.total === 0
-                                ? 'No companies match the current filters.'
-                                : `${companies.total} ${companies.total === 1 ? 'company' : 'companies'} on the watch list.`}
-                        </p>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-2">
-                        <SaveViewButton
-                            entity="companies"
-                            filters={local as unknown as Record<string, FormDataConvertible>}
-                            disabled={!hasAnyFilter}
-                        />
-                        <Button asChild variant="outline">
-                            <Link href="/import">Bulk import</Link>
-                        </Button>
-                        <Button asChild>
-                            <Link href="/companies/create">Add company</Link>
-                        </Button>
-                    </div>
-                </header>
+            <div className="flex flex-col gap-6">
+                <PageHeader
+                    title="Companies"
+                    subtitle={
+                        companies.total === 0
+                            ? 'No companies match the current filters.'
+                            : `${companies.total} ${companies.total === 1 ? 'company' : 'companies'} on the watch list.`
+                    }
+                    actions={
+                        <>
+                            <SaveViewButton
+                                entity="companies"
+                                filters={local as unknown as Record<string, FormDataConvertible>}
+                                disabled={!hasAnyFilter}
+                            />
+                            <Button asChild variant="outline">
+                                <Link href="/import">Bulk import</Link>
+                            </Button>
+                            <Button asChild>
+                                <Link href="/companies/create">Add company</Link>
+                            </Button>
+                        </>
+                    }
+                />
 
-                <div className="flex flex-wrap items-center gap-2" aria-label="Quick filters">
+                <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Quick filters">
                     {QUICK_CHIPS.map((chip) => {
                         const active = chipMatches(local, chip);
                         return (
                             <Button
                                 key={chip.key}
                                 size="sm"
-                                variant={active ? 'default' : 'outline'}
+                                variant="outline"
+                                aria-pressed={active}
                                 onClick={() => applyChip(chip)}
-                                className="rounded-full"
+                                className={cn(active && 'bg-muted')}
                             >
                                 {chip.label}
                             </Button>
@@ -309,58 +311,50 @@ export default function CompaniesIndexPage({ companies, filters, options }: Prop
                     })}
                 </div>
 
-                <div className="grid gap-6 md:grid-cols-[18rem_1fr]">
-                    <aside className="hidden min-w-0 md:block">{filterPanel}</aside>
+                <div className="grid gap-8 lg:grid-cols-[16rem_1fr]">
+                    <aside className="hidden min-w-0 lg:block">{filterPanel}</aside>
 
-                    <div className="min-w-0 space-y-3">
+                    <div className="flex min-w-0 flex-col gap-4">
                         <div className="flex items-center justify-between gap-2">
-                            <div className="md:hidden">
+                            <div className="lg:hidden">
                                 <Sheet>
                                     <SheetTrigger asChild>
                                         <Button variant="outline" size="sm">
-                                            Filters{hasAnyFilter ? ' •' : ''}
+                                            Filters{hasAnyFilter ? ' (active)' : ''}
                                         </Button>
                                     </SheetTrigger>
                                     <SheetContent side="left" className="w-80 overflow-y-auto">
                                         <SheetHeader>
                                             <SheetTitle>Filters</SheetTitle>
                                         </SheetHeader>
-                                        <div className="mt-4">{filterPanel}</div>
+                                        <div className="mt-4 px-1">{filterPanel}</div>
                                     </SheetContent>
                                 </Sheet>
                             </div>
-                            <label className="ml-auto flex items-center gap-2 text-sm text-muted-foreground">
-                                <span className="font-mono text-xs font-medium uppercase tracking-wide">Sort by</span>
-                                <select
-                                    value={local.sort}
-                                    onChange={(e) => patchFilters({ sort: e.target.value })}
-                                    className={cn(
-                                        'h-9 rounded-md border border-input bg-background px-3 py-1 text-sm text-foreground shadow-sm',
-                                        'focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-2',
-                                    )}
-                                >
+                            <label className="ml-auto flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                                Sort by
+                                <NativeSelect name="sort" value={local.sort} onChange={(e) => patchFilters({ sort: e.target.value })}>
                                     {options.sorts.map((sort) => (
                                         <option key={sort} value={sort}>
                                             {SORT_LABELS[sort] ?? sort}
                                         </option>
                                     ))}
-                                </select>
+                                </NativeSelect>
                             </label>
                         </div>
 
-                        <Card className="rounded-2xl border-border">
-                            <CardContent className="p-0">
-                                {companies.data.length === 0 ? (
-                                    <div className="px-6 py-12 text-center text-sm text-muted-foreground">
-                                        No matching companies. Try clearing some filters.
-                                    </div>
-                                ) : (
-                                    <Table>
+                        {companies.data.length === 0 ? (
+                            <div className="py-12 text-center text-base text-pretty text-muted-foreground sm:text-sm">
+                                No matching companies. Try clearing some filters.
+                            </div>
+                        ) : (
+                            <Table>
                                         <TableHeader>
                                             <TableRow>
                                                 <TableHead className="w-10">
                                                     <input
                                                         type="checkbox"
+                                                        name="select_all"
                                                         className="size-4 rounded border-input"
                                                         aria-label="Select all companies on this page"
                                                         checked={allOnPageSelected}
@@ -394,6 +388,7 @@ export default function CompaniesIndexPage({ companies, filters, options }: Prop
                                                     <TableCell>
                                                         <input
                                                             type="checkbox"
+                                                            name="selected_ids[]"
                                                             className="size-4 rounded border-input"
                                                             aria-label={`Select ${company.name}`}
                                                             checked={selectedIds.includes(company.id)}
@@ -404,7 +399,7 @@ export default function CompaniesIndexPage({ companies, filters, options }: Prop
                                                         <div className="flex flex-col">
                                                             <Link
                                                                 href={`/companies/${company.id}`}
-                                                                className="font-medium hover:underline"
+                                                                className="font-medium text-foreground hover:underline"
                                                             >
                                                                 {company.name}
                                                             </Link>
@@ -423,12 +418,12 @@ export default function CompaniesIndexPage({ companies, filters, options }: Prop
                                                         </Badge>
                                                     </TableCell>
                                                     <TableCell>
-                                                        <span className="text-sm">{humanize(company.status)}</span>
+                                                        {humanize(company.status)}
                                                     </TableCell>
                                                     <TableCell>
                                                         {company.ats_type ? (
                                                             <div className="flex flex-col gap-0.5">
-                                                                <span className="text-sm">{humanize(company.ats_type)}</span>
+                                                                <div>{humanize(company.ats_type)}</div>
                                                                 {company.ats_slug ? (
                                                                     <span className="font-mono text-xs text-muted-foreground">
                                                                         {company.ats_slug}
@@ -446,11 +441,11 @@ export default function CompaniesIndexPage({ companies, filters, options }: Prop
                                                     </TableCell>
                                                     <TableCell>
                                                         {company.open_roles_count > 0 ? (
-                                                            <Badge variant="success" className="font-mono tabular-nums">
+                                                            <Badge variant="success" className="tabular-nums">
                                                                 {company.open_roles_count}
                                                             </Badge>
                                                         ) : (
-                                                            <span className="font-mono text-xs tabular-nums text-muted-foreground">
+                                                            <span className="text-sm tabular-nums text-muted-foreground">
                                                                 0
                                                             </span>
                                                         )}
@@ -459,37 +454,32 @@ export default function CompaniesIndexPage({ companies, filters, options }: Prop
                                                         {company.latest_open_posted_at ? (
                                                             <RelativeDate
                                                                 iso={company.latest_open_posted_at}
-                                                                className="font-mono text-xs tabular-nums text-muted-foreground"
+                                                                className="text-sm tabular-nums text-muted-foreground"
                                                             />
                                                         ) : (
-                                                            <span className="font-mono text-xs tabular-nums text-muted-foreground">-</span>
+                                                            <span className="text-sm tabular-nums text-muted-foreground">-</span>
                                                         )}
                                                     </TableCell>
                                                     <TableCell>
                                                         {company.last_checked_at ? (
                                                             <RelativeDate
                                                                 iso={company.last_checked_at}
-                                                                className="font-mono text-xs tabular-nums text-muted-foreground"
+                                                                className="text-sm tabular-nums text-muted-foreground"
                                                             />
                                                         ) : (
-                                                            <span className="font-mono text-xs tabular-nums text-muted-foreground">Never</span>
+                                                            <span className="text-sm tabular-nums text-muted-foreground">Never</span>
                                                         )}
                                                     </TableCell>
                                                     <TableCell className="text-right">
-                                                        <Link
-                                                            href={`/companies/${company.id}/edit`}
-                                                            className="text-xs font-medium text-muted-foreground hover:text-foreground"
-                                                        >
-                                                            Edit
-                                                        </Link>
+                                                        <Button asChild variant="ghost" size="sm">
+                                                            <Link href={`/companies/${company.id}/edit`}>Edit</Link>
+                                                        </Button>
                                                     </TableCell>
                                                 </TableRow>
                                             ))}
                                         </TableBody>
-                                    </Table>
-                                )}
-                            </CardContent>
-                        </Card>
+                            </Table>
+                        )}
 
                         {companies.last_page > 1 ? <Pagination links={companies.links} /> : null}
                     </div>
@@ -525,23 +515,23 @@ interface FilterPanelProps {
 
 function FilterPanel({ local, options, patchFilters, onClear, hasAny }: FilterPanelProps) {
     return (
-        <Card className="rounded-2xl border-border">
-            <CardHeader className="space-y-4">
-                <div className="flex items-center justify-between">
-                    <CardTitle className="text-sm font-medium">Filters</CardTitle>
-                    {hasAny ? (
-                        <Button variant="ghost" size="sm" onClick={onClear}>
-                            Clear
-                        </Button>
-                    ) : null}
-                </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-                <div className="space-y-1.5">
-                    <label className="font-mono text-xs font-medium uppercase tracking-wide text-muted-foreground">
+        <div className="flex flex-col gap-5">
+            <div className="flex items-center justify-between gap-2">
+                <h2 className="text-base font-semibold sm:text-sm">Filters</h2>
+                {hasAny ? (
+                    <Button variant="ghost" size="sm" onClick={onClear}>
+                        Clear
+                    </Button>
+                ) : null}
+            </div>
+            <div className="flex flex-col gap-5">
+                <div className="flex flex-col gap-1.5">
+                    <label htmlFor="filter-q" className="text-sm font-medium text-muted-foreground">
                         Search
                     </label>
                     <Input
+                        id="filter-q"
+                        name="q"
                         type="search"
                         placeholder="Name, domain, slug…"
                         value={local.q ?? ''}
@@ -598,19 +588,21 @@ function FilterPanel({ local, options, patchFilters, onClear, hasAny }: FilterPa
                         { value: '0', label: 'No open roles' },
                     ]}
                 />
-                <div className="space-y-1.5">
-                    <label className="font-mono text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                <div className="flex flex-col gap-1.5">
+                    <label htmlFor="filter-domain" className="text-sm font-medium text-muted-foreground">
                         Domain contains
                     </label>
                     <Input
+                        id="filter-domain"
+                        name="domain"
                         type="search"
                         placeholder="example.com"
                         value={local.domain ?? ''}
                         onChange={(e) => patchFilters({ domain: e.target.value === '' ? null : e.target.value })}
                     />
                 </div>
-            </CardContent>
-        </Card>
+            </div>
+        </div>
     );
 }
 
@@ -623,15 +615,16 @@ interface MultiCheckboxGroupProps {
 
 function MultiCheckboxGroup({ label, selected, onChange, options }: MultiCheckboxGroupProps) {
     return (
-        <fieldset className="space-y-1.5">
-            <legend className="font-mono text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</legend>
+        <fieldset className="flex flex-col gap-1.5">
+            <legend className="mb-1.5 text-sm font-medium text-muted-foreground">{label}</legend>
             <div className="flex flex-col gap-1">
                 {options.map((option) => {
                     const checked = selected.includes(option.value);
                     return (
-                        <label key={option.value} className="flex cursor-pointer items-center gap-2 text-sm">
+                        <label key={option.value} className="flex cursor-pointer items-center gap-2 text-base sm:text-sm">
                             <input
                                 type="checkbox"
+                                name={`${label}[]`}
                                 className="size-4 rounded border-input"
                                 checked={checked}
                                 onChange={() => onChange(toggleArrayValue(selected, option.value))}
@@ -653,16 +646,17 @@ interface SingleSelectProps {
 }
 
 function SingleSelect({ label, value, onChange, options }: SingleSelectProps) {
+    const id = `filter-${label.toLowerCase().replace(/\s+/g, '-')}`;
     return (
         <div className="flex flex-col gap-1.5">
-            <label className="font-mono text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</label>
-            <select
+            <label htmlFor={id} className="text-sm font-medium text-muted-foreground">
+                {label}
+            </label>
+            <NativeSelect
+                id={id}
+                name={id}
                 value={value ?? ''}
                 onChange={(e) => onChange(e.target.value === '' ? null : e.target.value)}
-                className={cn(
-                    'h-9 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm',
-                    'focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-2',
-                )}
             >
                 <option value="">All</option>
                 {options.map((option) => (
@@ -670,7 +664,7 @@ function SingleSelect({ label, value, onChange, options }: SingleSelectProps) {
                         {option.label}
                     </option>
                 ))}
-            </select>
+            </NativeSelect>
         </div>
     );
 }
@@ -688,7 +682,7 @@ function Pagination({ links }: PaginationProps) {
                     return (
                         <span
                             key={`${label}-${index}`}
-                            className="px-2 py-1 font-mono text-sm tabular-nums text-muted-foreground"
+                            className="px-2 py-1 text-sm tabular-nums text-muted-foreground"
                             dangerouslySetInnerHTML={{ __html: label }}
                         />
                     );
@@ -700,10 +694,10 @@ function Pagination({ links }: PaginationProps) {
                         preserveScroll
                         preserveState
                         className={cn(
-                            'rounded-md border px-3 py-1 font-mono text-sm tabular-nums transition',
+                            'rounded-md border px-3 py-1 text-sm tabular-nums',
                             link.active
-                                ? 'border-primary bg-primary text-primary-foreground'
-                                : 'border-border hover:bg-accent hover:text-accent-foreground',
+                                ? 'border-border bg-muted font-medium text-foreground'
+                                : 'border-transparent text-muted-foreground hover:bg-muted hover:text-foreground',
                         )}
                         dangerouslySetInnerHTML={{ __html: label }}
                     />

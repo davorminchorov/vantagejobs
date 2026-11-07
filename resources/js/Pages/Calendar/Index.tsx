@@ -2,10 +2,10 @@ import { Head, router } from '@inertiajs/react';
 import { useMemo, useState } from 'react';
 
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import PageHeader from '@/components/PageHeader';
 import CalendarEventForm, { humanizeType } from '@/components/calendar/CalendarEventForm';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
     Dialog,
     DialogContent,
@@ -109,25 +109,27 @@ export default function CalendarIndexPage({ events, filters, options }: Props) {
     return (
         <AuthenticatedLayout>
             <Head title="Calendar" />
-            <div className="space-y-6">
-                <header className="flex items-end justify-between gap-4">
-                    <div>
-                        <h1 className="text-2xl font-semibold tracking-tight text-foreground">Calendar</h1>
-                        <p className="text-sm text-muted-foreground">
-                            {rows.length === 0
-                                ? filters.past
-                                    ? 'No events on record.'
-                                    : 'Nothing scheduled ahead.'
-                                : `${rows.length} ${rows.length === 1 ? 'event' : 'events'}${filters.past ? '' : ' coming up'}.`}
-                        </p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <Button variant="ghost" onClick={togglePast}>
-                            {filters.past ? 'Upcoming only' : 'Show past'}
-                        </Button>
-                        <Button onClick={() => setFormState({ mode: 'create' })}>New event</Button>
-                    </div>
-                </header>
+            <div className="flex flex-col gap-6">
+                <PageHeader
+                    title="Calendar"
+                    subtitle={
+                        rows.length === 0
+                            ? filters.past
+                                ? 'No events on record.'
+                                : 'Nothing scheduled ahead.'
+                            : `${rows.length} ${rows.length === 1 ? 'event' : 'events'}${filters.past ? '' : ' coming up'}.`
+                    }
+                    actions={
+                        <>
+                            <Button type="button" variant="outline" onClick={togglePast}>
+                                {filters.past ? 'Upcoming only' : 'Show past'}
+                            </Button>
+                            <Button type="button" onClick={() => setFormState({ mode: 'create' })}>
+                                New event
+                            </Button>
+                        </>
+                    }
+                />
 
                 {rows.length === 0 ? (
                     <EmptyState>
@@ -135,47 +137,25 @@ export default function CalendarIndexPage({ events, filters, options }: Props) {
                         calendar app.
                     </EmptyState>
                 ) : (
-                    <div className="grid gap-4 sm:grid-cols-2">
+                    <ul role="list" className="divide-y divide-border border-y border-border">
                         {rows.map((event) => (
-                            <Card key={event.id} className="rounded-2xl border-border">
-                                <CardHeader className="flex flex-row items-start justify-between gap-2 space-y-0">
-                                    <div className="space-y-1">
-                                        <CardTitle className="text-base">{event.title}</CardTitle>
-                                        <p className="font-mono text-xs tabular-nums text-muted-foreground">
+                            <li key={event.id} className="flex flex-col gap-3 py-4 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
+                                <div className="flex min-w-0 flex-col gap-2">
+                                    <div className="flex flex-col gap-0.5">
+                                        <h2 className="text-base font-semibold text-balance">{event.title}</h2>
+                                        <p className="text-base tabular-nums text-muted-foreground sm:text-sm">
                                             {formatStart(event.starts_at, event.timezone)}
                                         </p>
                                     </div>
-                                    <div className="flex shrink-0 items-center gap-2">
-                                        <button
-                                            type="button"
-                                            onClick={() => setFormState({ mode: 'edit', event })}
-                                            className="text-xs font-medium text-muted-foreground hover:text-foreground"
-                                        >
-                                            Edit
-                                        </button>
-                                        <button
-                                            type="button"
-                                            onClick={() => setPendingDelete(event)}
-                                            className="text-xs font-medium text-destructive hover:underline"
-                                        >
-                                            Delete
-                                        </button>
-                                    </div>
-                                </CardHeader>
-                                <CardContent className="space-y-2">
                                     <div className="flex flex-wrap items-center gap-2">
-                                        {event.type ? (
-                                            <Badge variant="outline" className="font-mono">
-                                                {humanizeType(event.type)}
-                                            </Badge>
-                                        ) : null}
+                                        {event.type ? <Badge variant="outline">{humanizeType(event.type)}</Badge> : null}
                                         {event.owner_type ? (
-                                            <Badge variant="secondary" className="font-mono">
+                                            <Badge variant="secondary" className="tabular-nums">
                                                 {humanizeType(event.owner_type)} #{event.owner_id}
                                             </Badge>
                                         ) : null}
                                         {event.reminder_minutes !== null ? (
-                                            <Badge variant="outline" className="font-mono tabular-nums">
+                                            <Badge variant="outline" className="tabular-nums">
                                                 Reminder {event.reminder_minutes}m
                                             </Badge>
                                         ) : null}
@@ -185,18 +165,33 @@ export default function CalendarIndexPage({ events, filters, options }: Props) {
                                             href={event.url}
                                             target="_blank"
                                             rel="noreferrer"
-                                            className="block truncate text-xs text-primary hover:underline"
+                                            className="block truncate text-base text-primary hover:underline sm:text-sm"
                                         >
                                             {event.url}
                                         </a>
                                     ) : null}
                                     {event.notes ? (
-                                        <p className="whitespace-pre-wrap break-words text-sm text-muted-foreground">{event.notes}</p>
+                                        <p className="text-base break-words whitespace-pre-wrap text-pretty text-muted-foreground sm:text-sm">
+                                            {event.notes}
+                                        </p>
                                     ) : null}
-                                </CardContent>
-                            </Card>
+                                </div>
+                                <div className="flex shrink-0 items-center gap-2">
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => setFormState({ mode: 'edit', event })}
+                                    >
+                                        Edit
+                                    </Button>
+                                    <Button type="button" variant="ghost" size="sm" onClick={() => setPendingDelete(event)}>
+                                        Delete
+                                    </Button>
+                                </div>
+                            </li>
                         ))}
-                    </div>
+                    </ul>
                 )}
             </div>
 
@@ -264,10 +259,10 @@ export default function CalendarIndexPage({ events, filters, options }: Props) {
                         </DialogDescription>
                     </DialogHeader>
                     <div className="flex items-center justify-end gap-3">
-                        <Button variant="ghost" onClick={() => setPendingDelete(null)}>
+                        <Button type="button" variant="ghost" onClick={() => setPendingDelete(null)}>
                             Cancel
                         </Button>
-                        <Button variant="destructive" onClick={confirmDelete}>
+                        <Button type="button" variant="destructive" onClick={confirmDelete}>
                             Delete
                         </Button>
                     </div>

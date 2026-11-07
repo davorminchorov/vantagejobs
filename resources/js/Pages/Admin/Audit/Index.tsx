@@ -4,8 +4,13 @@ import { Fragment, useState } from 'react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { EmptyState } from '@/components/ui/empty-state';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { SectionLabel } from '@/components/ui/section-label';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { NativeSelect } from '@/components/ui/native-select';
+import PageHeader from '@/components/PageHeader';
 import { RelativeDate } from '@/lib/dates';
 
 interface Actor {
@@ -45,14 +50,14 @@ interface Props {
     };
 }
 
-function outcomeBadge(outcome: string): string {
+function outcomeVariant(outcome: string): 'success' | 'destructive' | 'secondary' {
     switch (outcome) {
         case 'success':
-            return 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300';
+            return 'success';
         case 'failure':
-            return 'bg-red-500/15 text-red-700 dark:text-red-300';
+            return 'destructive';
         default:
-            return 'bg-muted text-muted-foreground';
+            return 'secondary';
     }
 }
 
@@ -96,186 +101,176 @@ export default function AuditIndex({ logs, filters, options }: Props) {
     return (
         <AuthenticatedLayout>
             <Head title="Audit log" />
-            <div className="mx-auto max-w-7xl space-y-6 px-4 py-8 sm:px-6 lg:px-8">
-                <header className="flex flex-col gap-1">
-                    <h1 className="text-2xl font-semibold tracking-tight">Audit log</h1>
-                    <p className="text-muted-foreground text-sm">
-                        Append-only record of security and operational events — logins, password changes, two-factor changes,
-                        and bulk operations. Newest first.
-                    </p>
-                </header>
+            <div className="flex flex-col gap-8">
+                <PageHeader
+                    title="Audit log"
+                    subtitle="Append-only record of security and operational events: logins, password changes, two-factor changes, and bulk operations. Newest first."
+                />
 
-                <Card className="rounded-2xl">
-                    <CardHeader>
-                        <CardTitle className="text-sm">Filters</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                            <label className="flex flex-col gap-1 text-xs font-medium">
-                                <span>Action</span>
-                                <select
-                                    className="border-input bg-background h-9 rounded-md border px-3 text-sm"
-                                    value={draft.action ?? 'all'}
-                                    onChange={(e) => apply({ action: e.target.value === 'all' ? null : e.target.value })}
-                                >
-                                    {actionOptions.map((a) => (
-                                        <option key={a} value={a}>
-                                            {a}
-                                        </option>
-                                    ))}
-                                </select>
-                            </label>
-                            <label className="flex flex-col gap-1 text-xs font-medium">
-                                <span>Outcome</span>
-                                <select
-                                    className="border-input bg-background h-9 rounded-md border px-3 text-sm"
-                                    value={draft.outcome ?? 'all'}
-                                    onChange={(e) => apply({ outcome: e.target.value === 'all' ? null : e.target.value })}
-                                >
-                                    {outcomeOptions.map((o) => (
-                                        <option key={o} value={o}>
-                                            {o}
-                                        </option>
-                                    ))}
-                                </select>
-                            </label>
-                            <label className="flex flex-col gap-1 text-xs font-medium">
-                                <span>Date from</span>
-                                <Input
-                                    type="date"
-                                    value={draft.date_from ?? ''}
-                                    onChange={(e) => apply({ date_from: e.target.value || null })}
-                                />
-                            </label>
-                            <label className="flex flex-col gap-1 text-xs font-medium">
-                                <span>Date to</span>
-                                <Input
-                                    type="date"
-                                    value={draft.date_to ?? ''}
-                                    onChange={(e) => apply({ date_to: e.target.value || null })}
-                                />
-                            </label>
+                <section className="flex flex-col gap-4">
+                    <SectionLabel>Filters</SectionLabel>
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                        <div className="flex flex-col gap-1.5">
+                            <Label htmlFor="audit-action">Action</Label>
+                            <NativeSelect
+                                id="audit-action"
+                                name="action"
+                                value={draft.action ?? 'all'}
+                                onChange={(e) => apply({ action: e.target.value === 'all' ? null : e.target.value })}
+                            >
+                                {actionOptions.map((a) => (
+                                    <option key={a} value={a}>
+                                        {a}
+                                    </option>
+                                ))}
+                            </NativeSelect>
                         </div>
-                        <div>
-                            <Button type="button" size="sm" variant="ghost" onClick={clearFilters}>
-                                Clear filters
-                            </Button>
+                        <div className="flex flex-col gap-1.5">
+                            <Label htmlFor="audit-outcome">Outcome</Label>
+                            <NativeSelect
+                                id="audit-outcome"
+                                name="outcome"
+                                value={draft.outcome ?? 'all'}
+                                onChange={(e) => apply({ outcome: e.target.value === 'all' ? null : e.target.value })}
+                            >
+                                {outcomeOptions.map((o) => (
+                                    <option key={o} value={o}>
+                                        {o}
+                                    </option>
+                                ))}
+                            </NativeSelect>
                         </div>
-                    </CardContent>
-                </Card>
+                        <div className="flex flex-col gap-1.5">
+                            <Label htmlFor="audit-date-from">Date from</Label>
+                            <Input
+                                id="audit-date-from"
+                                name="date_from"
+                                type="date"
+                                value={draft.date_from ?? ''}
+                                onChange={(e) => apply({ date_from: e.target.value || null })}
+                            />
+                        </div>
+                        <div className="flex flex-col gap-1.5">
+                            <Label htmlFor="audit-date-to">Date to</Label>
+                            <Input
+                                id="audit-date-to"
+                                name="date_to"
+                                type="date"
+                                value={draft.date_to ?? ''}
+                                onChange={(e) => apply({ date_to: e.target.value || null })}
+                            />
+                        </div>
+                    </div>
+                    <div>
+                        <Button type="button" size="sm" variant="ghost" onClick={clearFilters}>
+                            Clear filters
+                        </Button>
+                    </div>
+                </section>
 
-                <Card className="rounded-2xl">
-                    <CardHeader>
-                        <CardTitle className="text-sm">
-                            <span className="font-mono tabular-nums">{logs.meta.total}</span>{' '}
-                            {logs.meta.total === 1 ? 'entry' : 'entries'}
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent className="p-0">
-                        {logs.data.length === 0 ? (
-                            <p className="text-muted-foreground px-6 py-8 text-center text-sm">No audit entries match these filters.</p>
-                        ) : (
-                            <div className="overflow-x-auto">
-                                <table className="w-full text-sm">
-                                    <thead className="bg-muted/50 font-mono text-xs uppercase tracking-wide">
-                                        <tr>
-                                            <th scope="col" className="px-4 py-2 text-left">When</th>
-                                            <th scope="col" className="px-4 py-2 text-left">Action</th>
-                                            <th scope="col" className="px-4 py-2 text-left">Outcome</th>
-                                            <th scope="col" className="px-4 py-2 text-left">Actor</th>
-                                            <th scope="col" className="px-4 py-2 text-left">IP</th>
-                                            <th scope="col" className="px-4 py-2"></th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y">
-                                        {logs.data.map((log) => (
-                                            <Fragment key={log.id}>
-                                                <tr className="hover:bg-accent/40">
-                                                    <td className="px-4 py-2 font-mono tabular-nums whitespace-nowrap">
-                                                        {log.created_at ? <RelativeDate iso={log.created_at} /> : '—'}
-                                                    </td>
-                                                    <td className="px-4 py-2 font-mono text-xs">{log.action}</td>
-                                                    <td className="px-4 py-2">
-                                                        <span className={'rounded-full px-2 py-0.5 font-mono text-xs uppercase ' + outcomeBadge(log.outcome)}>
-                                                            {log.outcome}
-                                                        </span>
-                                                    </td>
-                                                    <td className="px-4 py-2">
-                                                        {log.actor ? (
-                                                            <span title={log.actor.email}>{log.actor.name}</span>
-                                                        ) : (
-                                                            <Badge variant="outline" className="text-xs">anonymous</Badge>
-                                                        )}
-                                                    </td>
-                                                    <td className="text-muted-foreground px-4 py-2 font-mono text-xs">{log.ip ?? '—'}</td>
-                                                    <td className="px-4 py-2 text-right">
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => setExpanded(expanded === log.id ? null : log.id)}
-                                                            aria-expanded={expanded === log.id}
-                                                            className="text-primary text-xs hover:underline"
-                                                        >
-                                                            {expanded === log.id ? 'Hide' : 'Details'}
-                                                        </button>
-                                                    </td>
-                                                </tr>
-                                                {expanded === log.id && (
-                                                    <tr className="bg-muted/30">
-                                                        <td colSpan={6} className="px-4 py-3">
-                                                            <dl className="grid grid-cols-1 gap-2 text-xs sm:grid-cols-2">
-                                                                <div>
-                                                                    <dt className="text-muted-foreground font-medium">User agent</dt>
-                                                                    <dd className="font-mono break-all">{log.user_agent ?? '—'}</dd>
-                                                                </div>
-                                                                <div>
-                                                                    <dt className="text-muted-foreground font-medium">Context</dt>
-                                                                    <dd>
-                                                                        <pre className="bg-background overflow-x-auto rounded-md border p-2 font-mono text-xs">
-                                                                            {JSON.stringify(log.context, null, 2)}
-                                                                        </pre>
-                                                                    </dd>
-                                                                </div>
-                                                            </dl>
-                                                        </td>
-                                                    </tr>
+                <section className="border-border flex flex-col gap-3 border-t pt-6">
+                    <SectionLabel>
+                        <span className="tabular-nums">{logs.meta.total}</span> {logs.meta.total === 1 ? 'entry' : 'entries'}
+                    </SectionLabel>
+
+                    {logs.data.length === 0 ? (
+                        <EmptyState>No audit entries match these filters.</EmptyState>
+                    ) : (
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead scope="col">When</TableHead>
+                                    <TableHead scope="col">Action</TableHead>
+                                    <TableHead scope="col">Outcome</TableHead>
+                                    <TableHead scope="col">Actor</TableHead>
+                                    <TableHead scope="col">IP</TableHead>
+                                    <TableHead scope="col">
+                                        <span className="sr-only">Actions</span>
+                                    </TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {logs.data.map((log) => (
+                                    <Fragment key={log.id}>
+                                        <TableRow className="hover:bg-muted/50">
+                                            <TableCell className="whitespace-nowrap tabular-nums">
+                                                {log.created_at ? <RelativeDate iso={log.created_at} /> : '—'}
+                                            </TableCell>
+                                            <TableCell className="font-mono">{log.action}</TableCell>
+                                            <TableCell>
+                                                <Badge variant={outcomeVariant(log.outcome)}>{log.outcome}</Badge>
+                                            </TableCell>
+                                            <TableCell>
+                                                {log.actor ? (
+                                                    <span title={log.actor.email}>{log.actor.name}</span>
+                                                ) : (
+                                                    <Badge variant="outline">anonymous</Badge>
                                                 )}
-                                            </Fragment>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
-                        )}
+                                            </TableCell>
+                                            <TableCell className="text-muted-foreground font-mono tabular-nums">{log.ip ?? '—'}</TableCell>
+                                            <TableCell className="text-right">
+                                                <Button
+                                                    type="button"
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    onClick={() => setExpanded(expanded === log.id ? null : log.id)}
+                                                    aria-expanded={expanded === log.id}
+                                                >
+                                                    {expanded === log.id ? 'Hide' : 'Details'}
+                                                </Button>
+                                            </TableCell>
+                                        </TableRow>
+                                        {expanded === log.id && (
+                                            <TableRow>
+                                                <TableCell colSpan={6} className="py-4">
+                                                    <dl className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                                                        <div className="flex min-w-0 flex-col gap-1">
+                                                            <dt className="text-foreground text-sm font-medium">User agent</dt>
+                                                            <dd className="text-muted-foreground font-mono text-sm break-all">{log.user_agent ?? '—'}</dd>
+                                                        </div>
+                                                        <div className="flex min-w-0 flex-col gap-1">
+                                                            <dt className="text-foreground text-sm font-medium">Context</dt>
+                                                            <dd>
+                                                                <pre className="bg-muted/50 overflow-x-auto rounded-lg p-4 font-mono text-sm">
+                                                                    {JSON.stringify(log.context, null, 2)}
+                                                                </pre>
+                                                            </dd>
+                                                        </div>
+                                                    </dl>
+                                                </TableCell>
+                                            </TableRow>
+                                        )}
+                                    </Fragment>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    )}
 
-                        {logs.meta.last_page > 1 && (
-                            <div className="flex items-center justify-between border-t px-6 py-3 text-xs">
-                                <span className="text-muted-foreground">
-                                    Page <span className="font-mono tabular-nums">{logs.meta.current_page}</span> of{' '}
-                                    <span className="font-mono tabular-nums">{logs.meta.last_page}</span>
-                                </span>
-                                <div className="flex gap-2">
-                                    {logs.links.prev && (
-                                        <Link
-                                            href={logs.links.prev}
-                                            className="border-input hover:bg-accent rounded-md border px-3 py-1"
-                                            preserveScroll
-                                        >
+                    {logs.meta.last_page > 1 && (
+                        <div className="border-border flex items-center justify-between gap-3 border-t pt-4 text-base sm:text-sm">
+                            <span className="text-muted-foreground">
+                                Page <span className="tabular-nums">{logs.meta.current_page}</span> of{' '}
+                                <span className="tabular-nums">{logs.meta.last_page}</span>
+                            </span>
+                            <div className="flex gap-2">
+                                {logs.links.prev && (
+                                    <Button asChild variant="outline" size="sm">
+                                        <Link href={logs.links.prev} preserveScroll>
                                             Previous
                                         </Link>
-                                    )}
-                                    {logs.links.next && (
-                                        <Link
-                                            href={logs.links.next}
-                                            className="border-input hover:bg-accent rounded-md border px-3 py-1"
-                                            preserveScroll
-                                        >
+                                    </Button>
+                                )}
+                                {logs.links.next && (
+                                    <Button asChild variant="outline" size="sm">
+                                        <Link href={logs.links.next} preserveScroll>
                                             Next
                                         </Link>
-                                    )}
-                                </div>
+                                    </Button>
+                                )}
                             </div>
-                        )}
-                    </CardContent>
-                </Card>
+                        </div>
+                    )}
+                </section>
             </div>
         </AuthenticatedLayout>
     );

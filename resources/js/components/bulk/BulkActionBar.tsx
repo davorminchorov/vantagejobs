@@ -11,7 +11,9 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
-import { cn } from '@/lib/utils';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { NativeSelect } from '@/components/ui/native-select';
 
 export type BulkEntity = 'company' | 'role' | 'aggregator_listing';
 
@@ -171,14 +173,14 @@ export default function BulkActionBar({ entity, selectedIds, onClear, only, onAp
         <>
             {count > 0 ? (
                 <div
-                    className="sticky bottom-4 z-20 mx-auto flex w-full max-w-3xl flex-wrap items-center gap-3 rounded-2xl border border-border bg-card/95 px-4 py-3 shadow-lg backdrop-blur"
+                    className="sticky bottom-4 z-20 mx-auto flex w-full max-w-3xl flex-wrap items-center gap-3 rounded-xl border border-border bg-card px-4 py-3"
                     role="region"
                     aria-label="Bulk actions"
                 >
-                    <span className="font-mono text-sm tabular-nums text-foreground">
+                    <span className="text-base font-medium tabular-nums text-foreground sm:text-sm">
                         {count} selected
                     </span>
-                    <div className="flex flex-wrap items-center gap-1.5">
+                    <div className="flex flex-wrap items-center gap-2">
                         {actions.map((action) => (
                             <Button
                                 key={action.key}
@@ -210,75 +212,64 @@ export default function BulkActionBar({ entity, selectedIds, onClear, only, onAp
                         <DialogTitle>{pending?.label}</DialogTitle>
                         <DialogDescription>
                             {pending?.confirm} This affects{' '}
-                            <span className="font-mono tabular-nums">{count}</span>{' '}
+                            <span className="tabular-nums">{count}</span>{' '}
                             {count === 1 ? 'item' : 'items'}.
                         </DialogDescription>
                     </DialogHeader>
 
                     {pending?.tier ? (
-                        <div className="space-y-1.5">
-                            <label className="font-mono text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                                Tier
-                            </label>
-                            <select
+                        <div className="flex flex-col gap-1.5">
+                            <Label htmlFor="bulk-tier">Tier</Label>
+                            <NativeSelect
+                                id="bulk-tier"
+                                name="tier"
                                 value={tier}
                                 onChange={(e) => setTier(e.target.value)}
-                                className={cn(
-                                    'h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm',
-                                    'focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-2',
-                                )}
                             >
                                 {TIER_OPTIONS.map((t) => (
                                     <option key={t} value={t}>
                                         {t === 'graveyard' ? 'Graveyard' : `Tier ${t}`}
                                     </option>
                                 ))}
-                            </select>
+                            </NativeSelect>
                         </div>
                     ) : null}
 
                     {pending?.tag ? (
-                        <div className="space-y-1.5">
-                            <label className="font-mono text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                                Tag
-                            </label>
-                            <input
+                        <div className="flex flex-col gap-1.5">
+                            <Label htmlFor="bulk-tag">Tag</Label>
+                            <Input
+                                id="bulk-tag"
+                                name="tag"
                                 type="text"
                                 value={tag}
                                 onChange={(e) => setTag(e.target.value)}
                                 placeholder="e.g. high-priority"
-                                className={cn(
-                                    'h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm',
-                                    'focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-2',
-                                )}
                             />
                         </div>
                     ) : null}
 
                     {pending?.days ? (
-                        <div className="space-y-1.5">
-                            <label className="font-mono text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                                Days
-                            </label>
-                            <input
+                        <div className="flex flex-col gap-1.5">
+                            <Label htmlFor="bulk-days">Days</Label>
+                            <Input
+                                id="bulk-days"
+                                name="days"
                                 type="number"
                                 min={1}
                                 max={90}
                                 value={days}
                                 onChange={(e) => setDays(Number(e.target.value))}
-                                className={cn(
-                                    'h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm',
-                                    'focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-2',
-                                )}
                             />
                         </div>
                     ) : null}
 
                     <DialogFooter>
-                        <Button variant="ghost" onClick={() => setPending(null)} disabled={submitting}>
+                        <Button type="button" variant="ghost" onClick={() => setPending(null)} disabled={submitting}>
                             Cancel
                         </Button>
                         <Button
+                            type="button"
                             onClick={submit}
                             disabled={
                                 submitting ||
@@ -294,12 +285,12 @@ export default function BulkActionBar({ entity, selectedIds, onClear, only, onAp
 
             {undo ? (
                 <div
-                    className="fixed bottom-6 right-6 z-30 flex items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 text-sm shadow-lg"
+                    className="fixed right-4 bottom-4 z-30 flex items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 text-base shadow-lg sm:right-6 sm:bottom-6 sm:text-sm"
                     role="status"
                     aria-live="polite"
                 >
                     <span className="text-foreground">
-                        Applied to <span className="font-mono tabular-nums">{undo.count}</span>{' '}
+                        Applied to <span className="tabular-nums">{undo.count}</span>{' '}
                         {undo.count === 1 ? 'item' : 'items'}.
                     </span>
                     <Button size="sm" variant="outline" onClick={performUndo}>

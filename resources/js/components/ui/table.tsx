@@ -9,7 +9,7 @@ function Table({ className, ...props }: React.HTMLAttributes<HTMLTableElement>) 
         // 375px. `[-webkit-overflow-scrolling:touch]` gives momentum scroll
         // on iOS.
         <div className="relative w-full max-w-full overflow-x-auto [-webkit-overflow-scrolling:touch]">
-            <table className={cn('w-full caption-bottom text-sm', className)} {...props} />
+            <table className={cn('w-full caption-bottom text-base sm:text-sm', className)} {...props} />
         </div>
     );
 }
@@ -31,7 +31,7 @@ function TableRow({
         <tr
             ref={ref}
             className={cn(
-                'border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted',
+                'border-b data-[state=selected]:bg-muted',
                 className,
             )}
             {...props}
@@ -43,7 +43,7 @@ function TableHead({ className, ...props }: React.ThHTMLAttributes<HTMLTableCell
     return (
         <th
             className={cn(
-                'h-10 px-3 text-left align-middle text-xs font-medium uppercase tracking-wide text-muted-foreground',
+                'h-10 px-3 text-left align-middle text-sm font-medium whitespace-nowrap text-muted-foreground',
                 className,
             )}
             {...props}

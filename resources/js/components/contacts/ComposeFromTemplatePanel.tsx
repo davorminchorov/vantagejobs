@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
-import { cn } from '@/lib/utils';
+import { NativeSelect } from '@/components/ui/native-select';
 
 export interface TemplateOption {
     id: number;
@@ -84,22 +84,18 @@ export default function ComposeFromTemplatePanel({ contactId, templates }: Compo
     return (
         <Card>
             <CardHeader>
-                <CardTitle className="text-base">Compose from template</CardTitle>
+                <CardTitle className="text-balance">Compose from template</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="flex flex-col gap-4">
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
-                    <div className="flex-1 space-y-1.5">
+                    <div className="flex min-w-0 flex-1 flex-col gap-1.5">
                         <Label htmlFor="compose-template">Template</Label>
-                        <select
+                        <NativeSelect
                             id="compose-template"
+                            name="template_id"
                             value={templateId}
                             onChange={(e) => setTemplateId(e.target.value === '' ? '' : Number(e.target.value))}
                             disabled={templates.length === 0 || loading}
-                            className={cn(
-                                'flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm',
-                                'ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
-                                'disabled:cursor-not-allowed disabled:opacity-50',
-                            )}
                         >
                             {templates.length === 0 ? (
                                 <option value="">No templates yet</option>
@@ -110,18 +106,18 @@ export default function ComposeFromTemplatePanel({ contactId, templates }: Compo
                                     </option>
                                 ))
                             )}
-                        </select>
+                        </NativeSelect>
                     </div>
-                    <Button type="button" onClick={compose} disabled={templateId === '' || loading}>
+                    <Button type="button" variant="outline" onClick={compose} disabled={templateId === '' || loading}>
                         {loading ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : null}
                         Render
                     </Button>
                 </div>
 
-                {error ? <p className="text-sm text-destructive">{error}</p> : null}
+                {error ? <p className="text-base text-destructive sm:text-sm">{error}</p> : null}
 
-                <div className="space-y-1.5">
-                    <div className="flex items-center justify-between">
+                <div className="flex flex-col gap-1.5">
+                    <div className="flex items-center justify-between gap-2">
                         <Label htmlFor="compose-draft">Draft</Label>
                         <Button
                             type="button"
@@ -129,10 +125,9 @@ export default function ComposeFromTemplatePanel({ contactId, templates }: Compo
                             size="sm"
                             onClick={copy}
                             disabled={draft.trim() === ''}
-                            className="gap-1.5"
                         >
                             {copied ? (
-                                <Check className="size-4 text-teal-600 dark:text-teal-400" aria-hidden="true" />
+                                <Check className="size-4 text-emerald-600 dark:text-emerald-400" aria-hidden="true" />
                             ) : (
                                 <Copy className="size-4" aria-hidden="true" />
                             )}
@@ -141,17 +136,14 @@ export default function ComposeFromTemplatePanel({ contactId, templates }: Compo
                     </div>
                     <textarea
                         id="compose-draft"
+                        name="draft"
                         value={draft}
                         onChange={(e) => setDraft(e.target.value)}
                         rows={12}
                         placeholder="Pick a template and hit Render to draft your message…"
-                        className={cn(
-                            'flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm',
-                            'font-mono leading-relaxed ring-offset-background placeholder:text-muted-foreground',
-                            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
-                        )}
+                        className="w-full rounded-md border border-input bg-background px-3 py-2 text-base placeholder:text-muted-foreground focus-visible:outline-2 focus-visible:-outline-offset-1 focus-visible:outline-ring sm:text-sm"
                     />
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-xs text-pretty text-muted-foreground">
                         Unknown {'{{tokens}}'} are left in place so you can fill them by hand. Nothing is sent.
                     </p>
                 </div>

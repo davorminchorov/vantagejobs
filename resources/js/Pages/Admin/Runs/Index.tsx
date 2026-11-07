@@ -4,8 +4,13 @@ import { useEffect, useMemo, useState } from 'react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { EmptyState } from '@/components/ui/empty-state';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { SectionLabel } from '@/components/ui/section-label';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { NativeSelect } from '@/components/ui/native-select';
+import PageHeader from '@/components/PageHeader';
 import { RelativeDate } from '@/lib/dates';
 
 interface RunRow {
@@ -79,19 +84,29 @@ interface Props {
     activeRunCount: number;
 }
 
-function statusBadge(status: string): string {
+function statusVariant(status: string): 'success' | 'warning' | 'destructive' | 'secondary' | 'outline' {
     switch (status) {
         case 'completed':
-            return 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300';
+            return 'success';
         case 'partial':
-            return 'bg-amber-500/15 text-amber-700 dark:text-amber-300';
+            return 'warning';
         case 'error':
-            return 'bg-red-500/15 text-red-700 dark:text-red-300';
+            return 'destructive';
         case 'running':
-            return 'bg-sky-500/15 text-sky-700 dark:text-sky-300';
+            return 'outline';
         default:
-            return 'bg-muted text-muted-foreground';
+            return 'secondary';
     }
+}
+
+const RUNNING_CLASS = 'bg-sky-50 text-sky-700 inset-ring-sky-600/20 dark:bg-sky-400/10 dark:text-sky-300 dark:inset-ring-sky-400/20';
+
+function StatusBadge({ status }: { status: string }) {
+    return (
+        <Badge variant={statusVariant(status)} className={status === 'running' ? RUNNING_CLASS : undefined}>
+            {status}
+        </Badge>
+    );
 }
 
 function formatDuration(seconds: number | null): string {
@@ -204,310 +219,310 @@ export default function RunsIndex({ runs, filters, options, health, triggerOptio
     return (
         <AuthenticatedLayout>
             <Head title="Scrape runs" />
-            <div className="mx-auto max-w-7xl space-y-6 px-4 py-8 sm:px-6 lg:px-8">
-                <header className="flex flex-col gap-1">
-                    <h1 className="text-2xl font-semibold tracking-tight">Scrape runs</h1>
-                    <p className="text-muted-foreground text-sm">
-                        Every ATS and aggregator scrape run, newest first. Click a row to drill into errors and captured artifacts.
-                    </p>
-                </header>
+            <div className="flex flex-col gap-8">
+                <PageHeader
+                    title="Scrape runs"
+                    subtitle="Every ATS and aggregator scrape run, newest first. Click a row to drill into errors and captured artifacts."
+                />
 
                 {flash?.success && (
-                    <div className="rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-4 py-2 text-sm text-emerald-700 dark:text-emerald-300">
+                    <div className="rounded-lg border border-emerald-600/20 bg-emerald-50 px-4 py-2 text-base text-emerald-700 sm:text-sm dark:border-emerald-400/20 dark:bg-emerald-400/10 dark:text-emerald-300">
                         {flash.success}
                     </div>
                 )}
 
-                <Card className="rounded-2xl">
-                    <CardHeader className="flex flex-row items-center justify-between">
-                        <CardTitle className="text-sm">Run scrapers</CardTitle>
+                <section className="flex flex-col gap-4">
+                    <div className="flex items-center justify-between gap-3">
+                        <SectionLabel>Run scrapers</SectionLabel>
                         {activeRunCount > 0 && (
-                            <span className="flex items-center gap-1.5 text-xs font-medium text-sky-600 dark:text-sky-400">
-                                <span className="h-2 w-2 animate-pulse rounded-full bg-sky-500" />
+                            <span className="flex items-center gap-1.5 text-sm font-medium text-sky-700 sm:text-xs dark:text-sky-300">
+                                <span className="size-2 shrink-0 animate-pulse rounded-full bg-sky-500" />
                                 {activeRunCount} running
                             </span>
                         )}
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                        <div>
-                            <Button type="button" size="sm" onClick={() => trigger('all')}>
-                                Run everything
-                            </Button>
-                        </div>
+                    </div>
 
-                        <div className="flex flex-col gap-2">
-                            <span className="text-xs font-medium">ATS scrapers</span>
-                            <div className="flex flex-wrap gap-1.5">
-                                <Button type="button" size="sm" variant="outline" onClick={() => trigger('ats')}>
-                                    Run all ATS
+                    <div>
+                        <Button type="button" onClick={() => trigger('all')}>
+                            Run everything
+                        </Button>
+                    </div>
+
+                    <div className="flex flex-col gap-2">
+                        <span className="text-sm font-medium">ATS scrapers</span>
+                        <div className="flex flex-wrap gap-2">
+                            <Button type="button" size="sm" variant="outline" onClick={() => trigger('ats')}>
+                                Run all ATS
+                            </Button>
+                            {triggerOptions.ats_types.map((t) => (
+                                <Button
+                                    key={t.value}
+                                    type="button"
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => trigger(`ats:${t.value}`)}
+                                >
+                                    {t.label} ({t.count})
                                 </Button>
-                                {triggerOptions.ats_types.map((t) => (
+                            ))}
+                        </div>
+                    </div>
+
+                    <div className="flex flex-col gap-2">
+                        <span className="text-sm font-medium">Aggregators</span>
+                        <div className="flex flex-wrap items-center gap-2">
+                            <Button type="button" size="sm" variant="outline" onClick={() => trigger('aggregators')}>
+                                Run all aggregators
+                            </Button>
+                            {triggerOptions.aggregators.length > 0 && (
+                                <>
+                                    <NativeSelect
+                                        name="aggregator"
+                                        aria-label="Aggregator"
+                                        value={selectedAggregator}
+                                        onChange={(e) => setSelectedAggregator(e.target.value)}
+                                    >
+                                        {triggerOptions.aggregators.map((a) => (
+                                            <option key={a.value} value={a.value}>
+                                                {a.label}
+                                            </option>
+                                        ))}
+                                    </NativeSelect>
                                     <Button
-                                        key={t.value}
                                         type="button"
                                         size="sm"
                                         variant="outline"
-                                        onClick={() => trigger(`ats:${t.value}`)}
+                                        disabled={!selectedAggregator}
+                                        onClick={() => trigger(`aggregator:${selectedAggregator}`)}
                                     >
-                                        {t.label} ({t.count})
+                                        Run
                                     </Button>
+                                </>
+                            )}
+                        </div>
+                    </div>
+                </section>
+
+                {health.length > 0 && (
+                    <section className="flex flex-col gap-3 border-t border-border pt-6">
+                        <SectionLabel>
+                            Source health: {health.length}{' '}
+                            {health.length === 1 ? 'source needs attention' : 'sources need attention'}
+                        </SectionLabel>
+                        <ul role="list" className="flex flex-wrap gap-2">
+                            {health.map((h) => (
+                                <li key={`${h.kind}-${h.value}`} className="min-w-0">
+                                    <button
+                                        type="button"
+                                        onClick={() => filterToSource(h.value)}
+                                        title={h.reason}
+                                        className="flex max-w-full flex-col rounded-lg bg-amber-50 px-3 py-2 text-left text-base text-amber-800 inset-ring inset-ring-amber-600/20 hover:bg-amber-100 sm:text-sm dark:bg-amber-400/10 dark:text-amber-300 dark:inset-ring-amber-400/20 dark:hover:bg-amber-400/20"
+                                    >
+                                        <span className="truncate font-medium">{h.label}</span>
+                                        <span className="truncate opacity-80">{h.reason}</span>
+                                    </button>
+                                </li>
+                            ))}
+                        </ul>
+                    </section>
+                )}
+
+                <section className="flex flex-col gap-4 border-t border-border pt-6">
+                    <SectionLabel>Filters</SectionLabel>
+                    <div className="flex flex-wrap gap-2">
+                        <Button type="button" size="sm" variant="outline" onClick={() => presetRange(0)}>
+                            Today
+                        </Button>
+                        <Button type="button" size="sm" variant="outline" onClick={() => presetRange(7)}>
+                            7d
+                        </Button>
+                        <Button type="button" size="sm" variant="outline" onClick={() => presetRange(30)}>
+                            30d
+                        </Button>
+                        <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            aria-pressed={draft.failed_24h}
+                            className={draft.failed_24h ? 'bg-muted font-semibold' : undefined}
+                            onClick={() => apply({ failed_24h: !draft.failed_24h })}
+                        >
+                            Failed in last 24h
+                        </Button>
+                        <Button type="button" size="sm" variant="ghost" onClick={clearFilters}>
+                            All sources
+                        </Button>
+                    </div>
+
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                        <div className="flex flex-col gap-1.5">
+                            <Label htmlFor="runs-date-from">Date from</Label>
+                            <Input
+                                id="runs-date-from"
+                                name="date_from"
+                                type="date"
+                                value={draft.date_from ?? ''}
+                                onChange={(e) => apply({ date_from: e.target.value || null })}
+                            />
+                        </div>
+                        <div className="flex flex-col gap-1.5">
+                            <Label htmlFor="runs-date-to">Date to</Label>
+                            <Input
+                                id="runs-date-to"
+                                name="date_to"
+                                type="date"
+                                value={draft.date_to ?? ''}
+                                onChange={(e) => apply({ date_to: e.target.value || null })}
+                            />
+                        </div>
+                        <div className="flex flex-col gap-1.5">
+                            <Label htmlFor="runs-source-kind">Source kind</Label>
+                            <NativeSelect
+                                id="runs-source-kind"
+                                name="source_kind"
+                                value={draft.source_kind ?? 'all'}
+                                onChange={(e) => apply({ source_kind: e.target.value === 'all' ? null : e.target.value })}
+                            >
+                                {sourceKindOptions.map((k) => (
+                                    <option key={k} value={k}>
+                                        {k}
+                                    </option>
                                 ))}
+                            </NativeSelect>
+                        </div>
+                        <div className="flex flex-col gap-1.5">
+                            <Label htmlFor="runs-status">Status</Label>
+                            <NativeSelect
+                                id="runs-status"
+                                name="status"
+                                value={draft.status ?? 'all'}
+                                onChange={(e) => apply({ status: e.target.value === 'all' ? null : e.target.value })}
+                            >
+                                {statusOptions.map((s) => (
+                                    <option key={s} value={s}>
+                                        {s}
+                                    </option>
+                                ))}
+                            </NativeSelect>
+                        </div>
+                    </div>
+
+                    {options.sources.length > 0 && (
+                        <div className="flex flex-col gap-2">
+                            <span className="text-sm font-medium">Source</span>
+                            <div className="flex flex-wrap gap-2">
+                                {options.sources.map((opt) => {
+                                    const active = draft.source_id.includes(opt.value);
+                                    return (
+                                        <button
+                                            key={opt.value}
+                                            type="button"
+                                            aria-pressed={active}
+                                            onClick={() => toggleSource(opt.value)}
+                                            className={
+                                                'rounded-md border px-2.5 py-1 text-base sm:text-sm ' +
+                                                (active
+                                                    ? 'border-border bg-muted font-semibold text-foreground'
+                                                    : 'border-input bg-background text-muted-foreground hover:bg-muted')
+                                            }
+                                        >
+                                            {opt.label}
+                                        </button>
+                                    );
+                                })}
                             </div>
                         </div>
+                    )}
+                </section>
 
-                        <div className="flex flex-col gap-2">
-                            <span className="text-xs font-medium">Aggregators</span>
-                            <div className="flex flex-wrap items-center gap-1.5">
-                                <Button type="button" size="sm" variant="outline" onClick={() => trigger('aggregators')}>
-                                    Run all aggregators
-                                </Button>
-                                {triggerOptions.aggregators.length > 0 && (
-                                    <>
-                                        <select
-                                            className="border-input bg-background h-9 rounded-md border px-3 text-sm"
-                                            value={selectedAggregator}
-                                            onChange={(e) => setSelectedAggregator(e.target.value)}
+                <section className="flex flex-col gap-3 border-t border-border pt-6">
+                    <SectionLabel>
+                        <span className="tabular-nums">{runs.meta.total}</span> {runs.meta.total === 1 ? 'run' : 'runs'}
+                    </SectionLabel>
+
+                    {runs.data.length === 0 ? (
+                        <EmptyState>No runs match these filters.</EmptyState>
+                    ) : (
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Started</TableHead>
+                                    <TableHead>Duration</TableHead>
+                                    <TableHead>Kind</TableHead>
+                                    <TableHead>Source</TableHead>
+                                    <TableHead>Status</TableHead>
+                                    <TableHead className="text-right">Fetched</TableHead>
+                                    <TableHead className="text-right">New</TableHead>
+                                    <TableHead className="text-right">Errors</TableHead>
+                                    <TableHead>
+                                        <span className="sr-only">Actions</span>
+                                    </TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {runs.data.map((run) => (
+                                    <TableRow key={run.id} className="hover:bg-muted/50">
+                                        <TableCell className="whitespace-nowrap tabular-nums">
+                                            {run.started_at ? <RelativeDate iso={run.started_at} /> : '—'}
+                                        </TableCell>
+                                        <TableCell className="whitespace-nowrap tabular-nums">
+                                            {formatDuration(run.duration_seconds)}
+                                        </TableCell>
+                                        <TableCell>
+                                            <Badge variant="outline" className="font-mono">
+                                                {run.source_kind}
+                                            </Badge>
+                                        </TableCell>
+                                        <TableCell>{run.source_label}</TableCell>
+                                        <TableCell>
+                                            <StatusBadge status={run.status} />
+                                        </TableCell>
+                                        <TableCell className="text-right tabular-nums">{run.fetched}</TableCell>
+                                        <TableCell className="text-right tabular-nums">{run.new_count}</TableCell>
+                                        <TableCell
+                                            className={
+                                                'text-right tabular-nums ' +
+                                                (run.error_count > 0 ? 'text-rose-700 dark:text-rose-300' : '')
+                                            }
                                         >
-                                            {triggerOptions.aggregators.map((a) => (
-                                                <option key={a.value} value={a.value}>
-                                                    {a.label}
-                                                </option>
-                                            ))}
-                                        </select>
-                                        <Button
-                                            type="button"
-                                            size="sm"
-                                            variant="outline"
-                                            disabled={!selectedAggregator}
-                                            onClick={() => trigger(`aggregator:${selectedAggregator}`)}
-                                        >
-                                            Run
-                                        </Button>
-                                    </>
+                                            {run.error_count}
+                                        </TableCell>
+                                        <TableCell className="text-right">
+                                            <Button asChild variant="ghost" size="sm">
+                                                <Link href={`/admin/runs/${run.id}`}>View</Link>
+                                            </Button>
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    )}
+
+                    {runs.meta.last_page > 1 && (
+                        <div className="flex items-center justify-between gap-3 border-t border-border pt-4 text-base sm:text-sm">
+                            <span className="text-muted-foreground">
+                                Page <span className="tabular-nums">{runs.meta.current_page}</span> of{' '}
+                                <span className="tabular-nums">{runs.meta.last_page}</span>
+                            </span>
+                            <div className="flex gap-2">
+                                {runs.links.prev && (
+                                    <Button asChild variant="outline" size="sm">
+                                        <Link href={runs.links.prev} preserveScroll>
+                                            Previous
+                                        </Link>
+                                    </Button>
+                                )}
+                                {runs.links.next && (
+                                    <Button asChild variant="outline" size="sm">
+                                        <Link href={runs.links.next} preserveScroll>
+                                            Next
+                                        </Link>
+                                    </Button>
                                 )}
                             </div>
                         </div>
-                    </CardContent>
-                </Card>
-
-                {health.length > 0 && (
-                    <Card className="rounded-2xl border-amber-500/50">
-                        <CardHeader>
-                            <CardTitle className="text-sm">Source health — {health.length} {health.length === 1 ? 'source needs attention' : 'sources need attention'}</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="flex flex-wrap gap-2">
-                                {health.map((h) => (
-                                    <button
-                                        type="button"
-                                        key={`${h.kind}-${h.value}`}
-                                        onClick={() => filterToSource(h.value)}
-                                        title={h.reason}
-                                        className="rounded-full border border-amber-500/40 bg-amber-500/10 px-3 py-1.5 text-left text-xs font-medium text-amber-700 hover:bg-amber-500/20 dark:text-amber-300"
-                                    >
-                                        <span className="block font-semibold">{h.label}</span>
-                                        <span className="text-amber-700/80 dark:text-amber-300/80">{h.reason}</span>
-                                    </button>
-                                ))}
-                            </div>
-                        </CardContent>
-                    </Card>
-                )}
-
-                <Card className="rounded-2xl">
-                    <CardHeader>
-                        <CardTitle className="text-sm">Filters</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                        <div className="flex flex-wrap gap-2">
-                            <Button type="button" size="sm" variant="outline" onClick={() => presetRange(0)}>
-                                Today
-                            </Button>
-                            <Button type="button" size="sm" variant="outline" onClick={() => presetRange(7)}>
-                                7d
-                            </Button>
-                            <Button type="button" size="sm" variant="outline" onClick={() => presetRange(30)}>
-                                30d
-                            </Button>
-                            <Button
-                                type="button"
-                                size="sm"
-                                variant={draft.failed_24h ? 'default' : 'outline'}
-                                onClick={() => apply({ failed_24h: ! draft.failed_24h })}
-                            >
-                                Failed in last 24h
-                            </Button>
-                            <Button type="button" size="sm" variant="ghost" onClick={clearFilters}>
-                                All sources
-                            </Button>
-                        </div>
-
-                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                            <label className="flex flex-col gap-1 text-xs font-medium">
-                                <span>Date from</span>
-                                <Input
-                                    type="date"
-                                    value={draft.date_from ?? ''}
-                                    onChange={(e) => apply({ date_from: e.target.value || null })}
-                                />
-                            </label>
-                            <label className="flex flex-col gap-1 text-xs font-medium">
-                                <span>Date to</span>
-                                <Input
-                                    type="date"
-                                    value={draft.date_to ?? ''}
-                                    onChange={(e) => apply({ date_to: e.target.value || null })}
-                                />
-                            </label>
-                            <label className="flex flex-col gap-1 text-xs font-medium">
-                                <span>Source kind</span>
-                                <select
-                                    className="border-input bg-background h-9 rounded-md border px-3 text-sm"
-                                    value={draft.source_kind ?? 'all'}
-                                    onChange={(e) => apply({ source_kind: e.target.value === 'all' ? null : e.target.value })}
-                                >
-                                    {sourceKindOptions.map((k) => (
-                                        <option key={k} value={k}>
-                                            {k}
-                                        </option>
-                                    ))}
-                                </select>
-                            </label>
-                            <label className="flex flex-col gap-1 text-xs font-medium">
-                                <span>Status</span>
-                                <select
-                                    className="border-input bg-background h-9 rounded-md border px-3 text-sm"
-                                    value={draft.status ?? 'all'}
-                                    onChange={(e) => apply({ status: e.target.value === 'all' ? null : e.target.value })}
-                                >
-                                    {statusOptions.map((s) => (
-                                        <option key={s} value={s}>
-                                            {s}
-                                        </option>
-                                    ))}
-                                </select>
-                            </label>
-                        </div>
-
-                        {options.sources.length > 0 && (
-                            <div className="flex flex-col gap-2">
-                                <span className="text-xs font-medium">Source</span>
-                                <div className="flex flex-wrap gap-1.5">
-                                    {options.sources.map((opt) => {
-                                        const active = draft.source_id.includes(opt.value);
-                                        return (
-                                            <button
-                                                key={opt.value}
-                                                type="button"
-                                                onClick={() => toggleSource(opt.value)}
-                                                className={
-                                                    'rounded-full border px-2.5 py-1 text-xs ' +
-                                                    (active
-                                                        ? 'border-primary bg-primary text-primary-foreground'
-                                                        : 'border-input bg-background hover:bg-accent')
-                                                }
-                                            >
-                                                {opt.label}
-                                            </button>
-                                        );
-                                    })}
-                                </div>
-                            </div>
-                        )}
-                    </CardContent>
-                </Card>
-
-                <Card className="rounded-2xl">
-                    <CardHeader>
-                        <CardTitle className="text-sm">
-                            <span className="font-mono tabular-nums">{runs.meta.total}</span>{' '}
-                            {runs.meta.total === 1 ? 'run' : 'runs'}
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent className="p-0">
-                        {runs.data.length === 0 ? (
-                            <p className="px-6 py-8 text-center text-sm text-muted-foreground">No runs match these filters.</p>
-                        ) : (
-                            <div className="overflow-x-auto">
-                                <table className="w-full text-sm">
-                                    <thead className="bg-muted/50 font-mono text-xs uppercase tracking-wide">
-                                        <tr>
-                                            <th className="px-4 py-2 text-left">Started</th>
-                                            <th className="px-4 py-2 text-left">Duration</th>
-                                            <th className="px-4 py-2 text-left">Kind</th>
-                                            <th className="px-4 py-2 text-left">Source</th>
-                                            <th className="px-4 py-2 text-left">Status</th>
-                                            <th className="px-4 py-2 text-right">Fetched</th>
-                                            <th className="px-4 py-2 text-right">New</th>
-                                            <th className="px-4 py-2 text-right">Errors</th>
-                                            <th className="px-4 py-2"></th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y">
-                                        {runs.data.map((run) => (
-                                            <tr key={run.id} className="hover:bg-accent/40">
-                                                <td className="px-4 py-2 font-mono tabular-nums whitespace-nowrap">
-                                                    {run.started_at ? <RelativeDate iso={run.started_at} /> : '—'}
-                                                </td>
-                                                <td className="px-4 py-2 font-mono tabular-nums">{formatDuration(run.duration_seconds)}</td>
-                                                <td className="px-4 py-2">
-                                                    <Badge variant="outline" className="font-mono text-xs uppercase">
-                                                        {run.source_kind}
-                                                    </Badge>
-                                                </td>
-                                                <td className="px-4 py-2">{run.source_label}</td>
-                                                <td className="px-4 py-2">
-                                                    <span className={'rounded-full px-2 py-0.5 font-mono text-xs uppercase ' + statusBadge(run.status)}>
-                                                        {run.status}
-                                                    </span>
-                                                </td>
-                                                <td className="px-4 py-2 text-right font-mono tabular-nums">{run.fetched}</td>
-                                                <td className="px-4 py-2 text-right font-mono tabular-nums">{run.new_count}</td>
-                                                <td className={'px-4 py-2 text-right font-mono tabular-nums ' + (run.error_count > 0 ? 'text-red-600 dark:text-red-400' : '')}>
-                                                    {run.error_count}
-                                                </td>
-                                                <td className="px-4 py-2 text-right">
-                                                    <Link href={`/admin/runs/${run.id}`} className="text-primary text-xs hover:underline">
-                                                        View
-                                                    </Link>
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
-                        )}
-
-                        {runs.meta.last_page > 1 && (
-                            <div className="flex items-center justify-between border-t px-6 py-3 text-xs">
-                                <span className="text-muted-foreground">
-                                    Page <span className="font-mono tabular-nums">{runs.meta.current_page}</span> of{' '}
-                                    <span className="font-mono tabular-nums">{runs.meta.last_page}</span>
-                                </span>
-                                <div className="flex gap-2">
-                                    {runs.links.prev && (
-                                        <Link
-                                            href={runs.links.prev}
-                                            className="border-input hover:bg-accent rounded-md border px-3 py-1"
-                                            preserveScroll
-                                        >
-                                            Previous
-                                        </Link>
-                                    )}
-                                    {runs.links.next && (
-                                        <Link
-                                            href={runs.links.next}
-                                            className="border-input hover:bg-accent rounded-md border px-3 py-1"
-                                            preserveScroll
-                                        >
-                                            Next
-                                        </Link>
-                                    )}
-                                </div>
-                            </div>
-                        )}
-                    </CardContent>
-                </Card>
+                    )}
+                </section>
             </div>
         </AuthenticatedLayout>
     );

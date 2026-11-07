@@ -45,20 +45,20 @@ export default function PipelineColumn({
                 }
             }}
             className={cn(
-                'flex w-72 shrink-0 flex-col rounded-2xl border border-border bg-muted/30 transition',
-                isOver && draggingRole && !isSameColumn && 'border-teal-500 bg-teal-500/5 ring-2 ring-teal-500/30',
+                'flex w-72 shrink-0 flex-col rounded-xl bg-muted/50',
+                isOver && draggingRole && !isSameColumn && 'bg-accent ring-2 ring-primary/30',
             )}
         >
-            <header className="flex items-center justify-between gap-2 border-b border-border px-3 py-2.5">
-                <h2 className="text-sm font-semibold tracking-tight">{label}</h2>
-                <Badge variant="outline" className="font-mono tabular-nums">
+            <header className="flex items-center justify-between gap-2 px-3 pt-3 pb-1">
+                <h2 className="text-base font-semibold text-balance sm:text-sm">{label}</h2>
+                <Badge variant="secondary" className="tabular-nums">
                     {roles.length}
                 </Badge>
             </header>
 
             <div className="flex flex-1 flex-col gap-2 p-2">
                 {roles.length === 0 ? (
-                    <p className="px-2 py-6 text-center text-xs text-muted-foreground">
+                    <p className="px-2 py-6 text-center text-sm text-muted-foreground sm:text-xs">
                         {isOver && draggingRole && !isSameColumn ? 'Drop to move here' : 'No roles'}
                     </p>
                 ) : (

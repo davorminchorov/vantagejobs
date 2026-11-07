@@ -5,6 +5,7 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import PageHeader from '@/components/PageHeader';
 import PipelineColumn from '@/components/pipeline/PipelineColumn';
 import { type PipelineRole } from '@/components/pipeline/PipelineCard';
+import { EmptyState } from '@/components/ui/empty-state';
 
 interface StatusOption {
     value: string;
@@ -46,7 +47,7 @@ export default function PipelineIndexPage({ columns, statuses, follow_up_thresho
         <AuthenticatedLayout>
             <Head title="Pipeline" />
 
-            <div className="text-foreground">
+            <div className="flex flex-col gap-6 text-foreground">
                 <PageHeader
                     title="Pipeline"
                     subtitle={
@@ -60,19 +61,19 @@ export default function PipelineIndexPage({ columns, statuses, follow_up_thresho
                         </>
                     }
                     actions={
-                        <span className="text-sm text-muted-foreground">
-                            <span className="font-mono tabular-nums">{totals.total}</span> in pipeline
+                        <span className="text-base text-muted-foreground sm:text-sm">
+                            <span className="tabular-nums">{totals.total}</span> in pipeline
                         </span>
                     }
                 />
 
                 {totals.total === 0 ? (
-                    <div className="mt-6 rounded-2xl border border-dashed border-border px-6 py-16 text-center text-sm text-muted-foreground">
+                    <EmptyState className="py-16">
                         Add a role to the pipeline from a company page to start tracking it here.
-                    </div>
+                    </EmptyState>
                 ) : (
-                    <div className="relative mt-6">
-                        <div className="flex snap-x gap-4 overflow-x-auto pb-4 [&>section]:snap-start">
+                    <div className="relative">
+                        <div className="flex snap-x snap-mandatory gap-3 overflow-x-auto pb-4 sm:snap-proximity [&>section]:snap-start">
                             {statuses.map((status) => (
                                 <PipelineColumn
                                     key={status.value}

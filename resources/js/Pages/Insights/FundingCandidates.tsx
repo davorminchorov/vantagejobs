@@ -1,10 +1,10 @@
 import { Head, Link, router } from '@inertiajs/react';
 
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import PageHeader from '@/components/PageHeader';
 import InsightsNav from '@/components/insights/InsightsNav';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
 
 interface Candidate {
@@ -32,80 +32,66 @@ export default function FundingCandidatesPage({ candidates }: Props) {
     return (
         <AuthenticatedLayout>
             <Head title="Funding candidates" />
-            <div className="space-y-6">
-                <header>
-                    <h1 className="text-2xl font-semibold tracking-tight">Funding candidates</h1>
-                    <p className="text-sm text-muted-foreground">
-                        Google News hits awaiting review. Confirm to record a funding event on the
-                        company, or dismiss to drop the row from this queue.
-                    </p>
-                </header>
+            <div className="flex flex-col gap-6">
+                <PageHeader
+                    title="Funding candidates"
+                    subtitle="Google News hits awaiting review. Confirm to record a funding event on the company, or dismiss to drop the row from this queue."
+                />
 
                 <InsightsNav />
 
                 {candidates.length === 0 ? (
                     <EmptyState>Nothing to review.</EmptyState>
                 ) : (
-                    <div className="space-y-3">
+                    <ul role="list" className="divide-y divide-border border-y border-border">
                         {candidates.map((c) => (
-                            <Card
+                            <li
                                 key={c.id}
-                                className="transition-all hover:-translate-y-0.5 hover:shadow-md"
+                                className="flex flex-col gap-3 py-4 sm:flex-row sm:items-start sm:justify-between sm:gap-4"
                             >
-                                <CardHeader className="flex flex-row items-start justify-between space-y-0 gap-4">
-                                    <div className="space-y-1">
-                                        <CardTitle className="text-base font-semibold leading-snug">
-                                            <a
-                                                href={c.url}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                className="hover:text-teal-700 hover:underline"
-                                            >
-                                                {c.title}
-                                            </a>
-                                        </CardTitle>
-                                        <div className="text-sm text-muted-foreground">
-                                            <Link
-                                                href={`/companies/${c.company.id}`}
-                                                className="hover:text-teal-700 hover:underline"
-                                            >
-                                                {c.company.name}
-                                            </Link>
-                                            {c.published_at ? (
-                                                <span>
-                                                    {' · '}
-                                                    <span className="font-mono tabular-nums">
-                                                        {new Date(c.published_at).toLocaleDateString()}
-                                                    </span>
+                                <div className="flex min-w-0 flex-col gap-2">
+                                    <a
+                                        href={c.url}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-base font-medium text-pretty text-foreground hover:underline"
+                                    >
+                                        {c.title}
+                                    </a>
+                                    <div className="text-base text-muted-foreground sm:text-sm">
+                                        <Link href={`/companies/${c.company.id}`} className="hover:underline">
+                                            {c.company.name}
+                                        </Link>
+                                        {c.published_at ? (
+                                            <span>
+                                                {' · '}
+                                                <span className="tabular-nums">
+                                                    {new Date(c.published_at).toLocaleDateString()}
                                                 </span>
-                                            ) : null}
+                                            </span>
+                                        ) : null}
+                                    </div>
+                                    {c.matched_keywords.length > 0 ? (
+                                        <div className="flex flex-wrap gap-1.5">
+                                            {c.matched_keywords.map((k) => (
+                                                <Badge key={k} variant="secondary">
+                                                    {k}
+                                                </Badge>
+                                            ))}
                                         </div>
-                                    </div>
-                                    <div className="flex flex-shrink-0 gap-2">
-                                        <Button size="sm" onClick={() => confirm(c.id)}>
-                                            Confirm
-                                        </Button>
-                                        <Button
-                                            size="sm"
-                                            variant="outline"
-                                            onClick={() => dismiss(c.id)}
-                                        >
-                                            Dismiss
-                                        </Button>
-                                    </div>
-                                </CardHeader>
-                                <CardContent>
-                                    <div className="flex flex-wrap gap-1.5">
-                                        {c.matched_keywords.map((k) => (
-                                            <Badge key={k} variant="secondary">
-                                                {k}
-                                            </Badge>
-                                        ))}
-                                    </div>
-                                </CardContent>
-                            </Card>
+                                    ) : null}
+                                </div>
+                                <div className="flex shrink-0 gap-2">
+                                    <Button type="button" size="sm" variant="outline" onClick={() => confirm(c.id)}>
+                                        Confirm
+                                    </Button>
+                                    <Button type="button" size="sm" variant="ghost" onClick={() => dismiss(c.id)}>
+                                        Dismiss
+                                    </Button>
+                                </div>
+                            </li>
                         ))}
-                    </div>
+                    </ul>
                 )}
             </div>
         </AuthenticatedLayout>

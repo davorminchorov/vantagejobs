@@ -27,12 +27,12 @@ export default function ConfirmPassword(): ReactNode {
         <GuestLayout title="Confirm your password">
             <Head title="Confirm password" />
 
-            <p className="text-muted-foreground mb-4 text-sm">
+            <p className="text-base text-pretty text-muted-foreground sm:text-sm">
                 This is a secure area. Confirm your password before continuing.
             </p>
 
-            <form onSubmit={submit} className="space-y-4">
-                <div className="space-y-2">
+            <form onSubmit={submit} className="flex flex-col gap-5">
+                <div className="flex flex-col gap-2">
                     <Label htmlFor="password">Password</Label>
                     <Input
                         id="password"
@@ -45,11 +45,11 @@ export default function ConfirmPassword(): ReactNode {
                         autoFocus
                     />
                     {errors.password ? (
-                        <p className="text-destructive text-sm">{errors.password}</p>
+                        <p className="text-sm text-destructive">{errors.password}</p>
                     ) : null}
                 </div>
 
-                <Button type="submit" disabled={processing} className="min-h-11 w-full">
+                <Button type="submit" disabled={processing} className="w-full">
                     Confirm
                 </Button>
             </form>

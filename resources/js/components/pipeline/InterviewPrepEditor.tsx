@@ -1,6 +1,8 @@
 import { useForm } from '@inertiajs/react';
 
 import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
+import { cn } from '@/lib/utils';
 import type { ApplicationMetadata } from '@/components/pipeline/ApplicationMetadataForm';
 
 interface PrepFormValues {
@@ -47,24 +49,29 @@ export default function InterviewPrepEditor({ roleId, interviewPrep, application
     }
 
     return (
-        <form onSubmit={submit} className="space-y-4">
-            <p className="text-sm text-muted-foreground">
+        <form onSubmit={submit} className="flex flex-col gap-4">
+            <p className="text-base text-pretty text-muted-foreground sm:text-sm">
                 Plain markdown. Seeded from the company&rsquo;s latest note when the role first entered the pipeline.
             </p>
+            <Label htmlFor="interview_prep" className="sr-only">
+                Interview prep notes
+            </Label>
             <textarea
-                className="min-h-64 w-full rounded-md border border-input bg-background p-3 font-mono text-sm leading-relaxed shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                id="interview_prep"
+                name="interview_prep"
+                className={cn('min-h-64 font-mono leading-relaxed', 'w-full rounded-md border border-input bg-background px-3 py-2 text-base placeholder:text-muted-foreground focus-visible:outline-2 focus-visible:-outline-offset-1 focus-visible:outline-ring sm:text-sm')}
                 value={form.data.interview_prep}
                 onChange={(e) => form.setData('interview_prep', e.target.value)}
                 placeholder={'## Topics to review\n- System design\n- Behavioral stories\n\n## Questions to ask'}
             />
             {form.errors.interview_prep ? (
-                <span className="text-sm text-destructive">{form.errors.interview_prep}</span>
+                <span className="text-base text-destructive sm:text-sm">{form.errors.interview_prep}</span>
             ) : null}
             <div className="flex items-center gap-3">
                 <Button type="submit" disabled={form.processing}>
                     {form.processing ? 'Saving…' : 'Save prep notes'}
                 </Button>
-                {form.recentlySuccessful ? <span className="text-sm text-teal-700">Saved.</span> : null}
+                {form.recentlySuccessful ? <span className="text-base text-muted-foreground sm:text-sm">Saved.</span> : null}
             </div>
         </form>
     );

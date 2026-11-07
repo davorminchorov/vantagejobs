@@ -36,15 +36,15 @@ export default function TwoFactorChallenge(): ReactNode {
         <GuestLayout title="Two-factor authentication">
             <Head title="Two-factor challenge" />
 
-            <p className="text-muted-foreground mb-4 text-sm">
+            <p className="text-base text-pretty text-muted-foreground sm:text-sm">
                 {usingRecoveryCode
                     ? 'Enter one of your recovery codes to continue.'
                     : 'Enter the 6-digit code from your authenticator app.'}
             </p>
 
-            <form onSubmit={submit} className="space-y-4">
+            <form onSubmit={submit} className="flex flex-col gap-5">
                 {usingRecoveryCode ? (
-                    <div className="space-y-2">
+                    <div className="flex flex-col gap-2">
                         <Label htmlFor="recovery_code">Recovery code</Label>
                         <Input
                             id="recovery_code"
@@ -58,11 +58,11 @@ export default function TwoFactorChallenge(): ReactNode {
                             className="font-mono tracking-wide"
                         />
                         {errors.recovery_code ? (
-                            <p className="text-destructive text-sm">{errors.recovery_code}</p>
+                            <p className="text-sm text-destructive">{errors.recovery_code}</p>
                         ) : null}
                     </div>
                 ) : (
-                    <div className="space-y-2">
+                    <div className="flex flex-col gap-2">
                         <Label htmlFor="code">Authentication code</Label>
                         <Input
                             id="code"
@@ -77,19 +77,19 @@ export default function TwoFactorChallenge(): ReactNode {
                             className="font-mono tracking-wide tabular-nums"
                         />
                         {errors.code ? (
-                            <p className="text-destructive text-sm">{errors.code}</p>
+                            <p className="text-sm text-destructive">{errors.code}</p>
                         ) : null}
                     </div>
                 )}
 
-                <Button type="submit" disabled={processing} className="min-h-11 w-full">
+                <Button type="submit" disabled={processing} className="w-full">
                     Verify
                 </Button>
 
                 <button
                     type="button"
                     onClick={toggleMode}
-                    className="text-muted-foreground w-full text-sm underline-offset-4 hover:underline"
+                    className="w-full text-base text-muted-foreground underline-offset-4 hover:text-foreground hover:underline sm:text-sm"
                 >
                     {usingRecoveryCode ? 'Use authenticator code instead' : 'Use a recovery code instead'}
                 </button>

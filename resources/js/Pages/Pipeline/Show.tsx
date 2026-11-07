@@ -10,8 +10,10 @@ import InterviewPrepEditor from '@/components/pipeline/InterviewPrepEditor';
 import OfferComparison from '@/components/pipeline/OfferComparison';
 import OfferPanel, { type OfferSummary } from '@/components/pipeline/OfferPanel';
 import StageNotesPanel, { type PipelineStage, type StageNote as PanelStageNote } from '@/components/pipeline/StageNotesPanel';
+import PageHeader from '@/components/PageHeader';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { SectionLabel } from '@/components/ui/section-label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 interface CompanySummary {
@@ -94,48 +96,42 @@ export default function ShowRolePage({ role, contacts, options }: Props) {
     return (
         <AuthenticatedLayout>
             <Head title={role.title} />
-            <div className="space-y-6">
-                <header className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-                    <div className="space-y-1">
-                        <div className="flex items-center gap-2">
-                            <Link href="/pipeline" className="text-sm text-teal-700 hover:text-teal-800">
-                                ← Pipeline
-                            </Link>
-                        </div>
-                        <h1 className="text-2xl font-semibold tracking-tight">{role.title}</h1>
-                        <div className="flex flex-wrap items-center gap-2">
-                            {role.pipeline_status ? (
-                                <Badge variant={STATUS_VARIANT[role.pipeline_status] ?? 'secondary'}>
-                                    {humanize(role.pipeline_status)}
-                                </Badge>
-                            ) : (
-                                <Badge variant="outline">Not in pipeline</Badge>
-                            )}
-                            {role.company ? (
-                                <Link
-                                    href={`/companies/${role.company.id}`}
-                                    className="text-sm text-teal-700 hover:text-teal-800"
-                                >
-                                    {role.company.name}
-                                </Link>
-                            ) : null}
-                            {role.location ? (
-                                <span className="text-sm text-muted-foreground">{role.location}</span>
-                            ) : null}
-                            {role.has_offer ? <Badge variant="success">Offer recorded</Badge> : null}
-                        </div>
-                    </div>
-                    {role.url ? (
-                        <a
-                            href={role.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-sm text-teal-700 hover:text-teal-800 hover:underline"
-                        >
-                            View posting ↗
-                        </a>
-                    ) : null}
-                </header>
+            <div className="flex flex-col gap-6">
+                <div className="flex flex-col gap-3">
+                    <Link href="/pipeline" className="w-fit text-base text-primary hover:underline sm:text-sm">
+                        ← Pipeline
+                    </Link>
+                    <PageHeader
+                        title={role.title}
+                        subtitle={
+                            <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                                {role.pipeline_status ? (
+                                    <Badge variant={STATUS_VARIANT[role.pipeline_status] ?? 'secondary'}>
+                                        {humanize(role.pipeline_status)}
+                                    </Badge>
+                                ) : (
+                                    <Badge variant="outline">Not in pipeline</Badge>
+                                )}
+                                {role.company ? (
+                                    <Link href={`/companies/${role.company.id}`} className="text-primary hover:underline">
+                                        {role.company.name}
+                                    </Link>
+                                ) : null}
+                                {role.location ? <span>{role.location}</span> : null}
+                                {role.has_offer ? <Badge variant="success">Offer recorded</Badge> : null}
+                            </span>
+                        }
+                        actions={
+                            role.url ? (
+                                <Button asChild variant="outline" size="sm">
+                                    <a href={role.url} target="_blank" rel="noopener noreferrer">
+                                        View posting ↗
+                                    </a>
+                                </Button>
+                            ) : null
+                        }
+                    />
+                </div>
 
                 <Tabs value={tab} onValueChange={(v) => setTab(v as typeof tab)}>
                     <TabsList>
@@ -146,51 +142,37 @@ export default function ShowRolePage({ role, contacts, options }: Props) {
                     </TabsList>
 
                     <TabsContent value="application">
-                        <Card className="rounded-2xl">
-                            <CardHeader>
-                                <CardTitle className="font-mono text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-                                    Application details
-                                </CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <ApplicationMetadataForm
-                                    roleId={role.id}
-                                    application={role.application}
-                                    interviewPrep={role.interview_prep}
-                                    contacts={contacts}
-                                    sources={options.application_sources}
-                                />
-                            </CardContent>
-                        </Card>
+                        <section className="flex max-w-3xl flex-col gap-4">
+                            <SectionLabel>Application details</SectionLabel>
+                            <ApplicationMetadataForm
+                                roleId={role.id}
+                                application={role.application}
+                                interviewPrep={role.interview_prep}
+                                contacts={contacts}
+                                sources={options.application_sources}
+                            />
+                        </section>
                     </TabsContent>
 
                     <TabsContent value="prep">
-                        <Card className="rounded-2xl">
-                            <CardHeader>
-                                <CardTitle className="font-mono text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-                                    Interview prep
-                                </CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <InterviewPrepEditor
-                                    roleId={role.id}
-                                    interviewPrep={role.interview_prep}
-                                    application={role.application}
-                                />
-                            </CardContent>
-                        </Card>
+                        <section className="flex max-w-3xl flex-col gap-4">
+                            <SectionLabel>Interview prep</SectionLabel>
+                            <InterviewPrepEditor
+                                roleId={role.id}
+                                interviewPrep={role.interview_prep}
+                                application={role.application}
+                            />
+                        </section>
                     </TabsContent>
 
                     <TabsContent value="notes">
-                        <Card className="rounded-2xl">
-                            <CardContent className="pt-6">
-                                <StageNotesPanel roleId={role.id} notes={flatStageNotes} activeStage={activeStage} />
-                            </CardContent>
-                        </Card>
+                        <div className="max-w-3xl">
+                            <StageNotesPanel roleId={role.id} notes={flatStageNotes} activeStage={activeStage} />
+                        </div>
                     </TabsContent>
 
                     <TabsContent value="offer">
-                        <div className="space-y-6">
+                        <div className="flex flex-col gap-8">
                             <OfferPanel
                                 offer={role.offer}
                                 action={`/pipeline/roles/${role.id}/offer`}

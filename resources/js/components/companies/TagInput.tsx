@@ -104,19 +104,19 @@ export default function TagInput({ companyId, tags }: TagInputProps) {
     const showCreateItem = trimmed !== '' && !exactMatch;
 
     return (
-        <div ref={wrapperRef} className="space-y-2">
+        <div ref={wrapperRef} className="flex flex-col gap-2">
             <div className="flex flex-wrap items-center gap-1.5">
                 {tags.length === 0 ? (
-                    <span className="text-xs text-muted-foreground">No tags yet.</span>
+                    <span className="text-sm text-muted-foreground">No tags yet.</span>
                 ) : (
                     tags.map((tag) => (
-                        <Badge key={tag.id} variant="secondary" className="gap-1 rounded-full py-1 pl-2 pr-1">
+                        <Badge key={tag.id} variant="secondary" className="gap-1 pr-1">
                             <span>{tag.name}</span>
                             <button
                                 type="button"
                                 onClick={() => detach(tag)}
                                 aria-label={`Remove tag ${tag.name}`}
-                                className="rounded-full p-0.5 transition-colors hover:bg-background/50"
+                                className="rounded-sm p-0.5 hover:bg-background/50"
                             >
                                 <X className="size-3" aria-hidden="true" />
                             </button>
@@ -128,6 +128,8 @@ export default function TagInput({ companyId, tags }: TagInputProps) {
             <div className="relative">
                 <Input
                     type="text"
+                    name="tag"
+                    aria-label="Add a tag"
                     value={query}
                     placeholder="Add a tag…"
                     disabled={busy}
@@ -160,7 +162,7 @@ export default function TagInput({ companyId, tags }: TagInputProps) {
                                     >
                                         <span>{tag.name}</span>
                                         {typeof tag.usage_count === 'number' ? (
-                                            <span className="font-mono text-xs tabular-nums text-muted-foreground">
+                                            <span className="text-xs tabular-nums text-muted-foreground">
                                                 {tag.usage_count}
                                             </span>
                                         ) : null}

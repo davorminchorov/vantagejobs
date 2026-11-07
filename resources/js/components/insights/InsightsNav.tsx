@@ -14,36 +14,37 @@ const INSIGHTS_TABS: ReadonlyArray<InsightsTab> = [
 ];
 
 /**
- * Tab row linking the three Insights pages, with the current page highlighted.
+ * Tab row linking the three Insights pages, with the current page underlined.
+ * Scrolls horizontally on narrow screens instead of overflowing the page.
  */
 export default function InsightsNav() {
     const { url } = usePage();
     const currentUrl = url.split('?')[0] ?? '/';
 
     return (
-        <div
-            role="tablist"
-            aria-label="Insights"
-            className="inline-flex items-center gap-1 rounded-md bg-muted p-1 text-muted-foreground"
-        >
-            {INSIGHTS_TABS.map((tab) => {
-                const active = currentUrl === tab.href;
-                return (
-                    <Link
-                        key={tab.href}
-                        href={tab.href}
-                        role="tab"
-                        aria-selected={active}
-                        aria-current={active ? 'page' : undefined}
-                        className={cn(
-                            'inline-flex h-9 items-center justify-center whitespace-nowrap rounded-sm px-3 text-sm font-medium transition-colors',
-                            active ? 'bg-background text-foreground shadow-sm' : 'hover:text-foreground',
-                        )}
-                    >
-                        {tab.name}
-                    </Link>
-                );
-            })}
+        <div className="-mx-4 overflow-x-auto px-4 shadow-[inset_0_-1px_0_var(--border)] sm:mx-0 sm:px-0">
+            <nav role="tablist" aria-label="Insights" className="flex min-w-max items-center gap-6">
+                {INSIGHTS_TABS.map((tab) => {
+                    const active = currentUrl === tab.href;
+                    return (
+                        <Link
+                            key={tab.href}
+                            href={tab.href}
+                            role="tab"
+                            aria-selected={active}
+                            aria-current={active ? 'page' : undefined}
+                            className={cn(
+                                'inline-flex items-center whitespace-nowrap border-b-2 py-2.5 text-base font-medium sm:text-sm',
+                                active
+                                    ? 'border-primary text-foreground'
+                                    : 'border-transparent text-muted-foreground hover:text-foreground',
+                            )}
+                        >
+                            {tab.name}
+                        </Link>
+                    );
+                })}
+            </nav>
         </div>
     );
 }

@@ -62,14 +62,14 @@ export default function SavedViewsNav({ variant = 'rail', onNavigate }: SavedVie
 
     if (savedViews.length === 0) {
         return (
-            <div className={cn('px-3 py-2 text-xs text-muted-foreground', variant === 'compact' && 'text-center')}>
+            <p className={cn('px-2 py-1 text-xs text-pretty text-muted-foreground', variant === 'rail' && 'px-3 py-2')}>
                 No saved views yet. Apply filters on a list, then click Save view.
-            </div>
+            </p>
         );
     }
 
     return (
-        <div className="space-y-3">
+        <div className="flex flex-col gap-3">
             {(Object.keys(grouped) as SharedSavedView['entity'][]).map((entity) => (
                 <SavedViewsGroup
                     key={entity}
@@ -124,10 +124,10 @@ function SavedViewsGroup({ entity, label, views, onNavigate }: SavedViewsGroupPr
 
     return (
         <div>
-            <SectionLabel className="px-3 pb-1 font-medium">{label}</SectionLabel>
+            <SectionLabel className="px-2 pb-1 text-xs">{label}</SectionLabel>
             <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
                 <SortableContext items={items.map((v) => v.id)} strategy={verticalListSortingStrategy}>
-                    <ul className="flex flex-col">
+                    <ul role="list" className="flex flex-col gap-0.5">
                         {items.map((view) => (
                             <SavedViewRow key={view.id} view={view} entity={entity} onNavigate={onNavigate} />
                         ))}
@@ -176,28 +176,28 @@ function SavedViewRow({ view, entity, onNavigate }: SavedViewRowProps) {
     }
 
     return (
-        <li ref={setNodeRef} style={style} className="group flex items-center gap-1 rounded-md px-2 hover:bg-accent">
+        <li ref={setNodeRef} style={style} className="group flex items-center gap-1 rounded-md pr-1 text-muted-foreground hover:bg-muted/60 hover:text-foreground">
             <button
                 type="button"
-                className="cursor-grab touch-none p-1 text-muted-foreground opacity-0 group-hover:opacity-100"
+                className="cursor-grab touch-none p-1 opacity-0 group-focus-within:opacity-100 group-hover:opacity-100"
                 aria-label="Drag to reorder"
                 {...attributes}
                 {...listeners}
             >
-                <GripVertical className="size-3.5" />
+                <GripVertical className="size-3.5 shrink-0" aria-hidden="true" />
             </button>
             <Link
                 href={href}
                 onClick={onNavigate}
-                className="flex flex-1 items-center gap-2 truncate py-1.5 text-sm"
+                className="flex min-w-0 flex-1 items-center gap-2 py-1.5 text-sm font-medium"
             >
-                {view.is_default ? <Star className="size-3.5 fill-current text-amber-500" aria-label="Default view" /> : null}
+                {view.is_default ? <Star className="size-3.5 shrink-0 fill-amber-500 stroke-amber-500" aria-label="Default view" /> : null}
                 <span className="truncate">{view.name}</span>
             </Link>
             <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" className="size-7 opacity-0 group-hover:opacity-100" aria-label="View actions">
-                        <MoreHorizontal className="size-4" />
+                    <Button variant="ghost" size="icon" className="size-7 opacity-0 group-focus-within:opacity-100 group-hover:opacity-100 sm:size-7" aria-label="View actions">
+                        <MoreHorizontal className="size-4" aria-hidden="true" />
                     </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">

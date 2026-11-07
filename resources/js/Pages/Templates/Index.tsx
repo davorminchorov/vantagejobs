@@ -2,10 +2,11 @@ import { Head, router } from '@inertiajs/react';
 import { useMemo, useState } from 'react';
 
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import PageHeader from '@/components/PageHeader';
 import TemplateForm, { humanizeCategory } from '@/components/templates/TemplateForm';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { EmptyState } from '@/components/ui/empty-state';
 import {
     Dialog,
     DialogContent,
@@ -63,74 +64,73 @@ export default function TemplatesIndexPage({ templates, categories }: Props) {
     return (
         <AuthenticatedLayout>
             <Head title="Templates" />
-            <div className="space-y-6">
-                <header className="flex items-end justify-between gap-4">
-                    <div>
-                        <h1 className="text-2xl font-semibold tracking-tight text-foreground">Templates</h1>
-                        <p className="text-sm text-muted-foreground">
-                            {templates.length === 0
-                                ? 'No message templates yet.'
-                                : `${templates.length} ${templates.length === 1 ? 'template' : 'templates'} for outreach.`}
-                        </p>
-                    </div>
-                    <Button onClick={() => setFormState({ mode: 'create' })}>New template</Button>
-                </header>
+            <div className="flex flex-col gap-8">
+                <PageHeader
+                    title="Templates"
+                    subtitle={
+                        templates.length === 0
+                            ? 'No message templates yet.'
+                            : `${templates.length} ${templates.length === 1 ? 'template' : 'templates'} for outreach.`
+                    }
+                    actions={
+                        <Button type="button" onClick={() => setFormState({ mode: 'create' })}>
+                            New template
+                        </Button>
+                    }
+                />
 
                 {grouped.length === 0 ? (
-                    <Card className="rounded-2xl border-border">
-                        <CardContent className="px-6 py-12 text-center text-sm text-muted-foreground">
-                            Create your first template to reuse cold intros, referral asks, and follow-ups.
-                        </CardContent>
-                    </Card>
+                    <EmptyState>Create your first template to reuse cold intros, referral asks, and follow-ups.</EmptyState>
                 ) : (
-                    <div className="space-y-8">
+                    <div className="flex flex-col gap-8">
                         {grouped.map((group) => (
-                            <section key={group.category} className="space-y-3">
+                            <section key={group.category} className="flex flex-col gap-3">
                                 <div className="flex items-center gap-2">
-                                    <h2 className="font-mono text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+                                    <h2 className="text-sm font-medium text-muted-foreground">
                                         {humanizeCategory(group.category)}
                                     </h2>
-                                    <Badge variant="outline" className="font-mono tabular-nums">
+                                    <Badge variant="secondary" className="tabular-nums">
                                         {group.rows.length}
                                     </Badge>
                                 </div>
-                                <div className="grid gap-4 sm:grid-cols-2">
+                                <ul role="list" className="grid gap-4 sm:grid-cols-2">
                                     {group.rows.map((template) => (
-                                        <Card key={template.id} className="rounded-2xl border-border">
-                                            <CardHeader className="flex flex-row items-start justify-between gap-2 space-y-0">
-                                                <div>
-                                                    <CardTitle className="text-base">{template.name}</CardTitle>
+                                        <li key={template.id} className="flex min-w-0 flex-col gap-3 rounded-xl border border-border p-5">
+                                            <div className="flex items-start justify-between gap-2">
+                                                <div className="min-w-0">
+                                                    <h3 className="text-base font-semibold text-balance">{template.name}</h3>
                                                     {template.updated_at ? (
-                                                        <p className="font-mono text-xs tabular-nums text-muted-foreground">
+                                                        <p className="text-xs tabular-nums text-muted-foreground">
                                                             Updated <RelativeDate iso={template.updated_at} />
                                                         </p>
                                                     ) : null}
                                                 </div>
-                                                <div className="flex shrink-0 items-center gap-2">
-                                                    <button
+                                                <div className="flex shrink-0 items-center gap-1">
+                                                    <Button
                                                         type="button"
+                                                        variant="ghost"
+                                                        size="sm"
                                                         onClick={() => setFormState({ mode: 'edit', template })}
-                                                        className="text-xs font-medium text-muted-foreground hover:text-foreground"
                                                     >
                                                         Edit
-                                                    </button>
-                                                    <button
+                                                    </Button>
+                                                    <Button
                                                         type="button"
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        className="text-destructive hover:text-destructive"
                                                         onClick={() => setPendingDelete(template)}
-                                                        className="text-xs font-medium text-destructive hover:underline"
                                                     >
                                                         Delete
-                                                    </button>
+                                                    </Button>
                                                 </div>
-                                            </CardHeader>
-                                            <CardContent>
-                                                <pre className="max-h-40 overflow-hidden whitespace-pre-wrap break-words font-mono text-xs text-muted-foreground">
-                                                    {template.body}
-                                                </pre>
-                                            </CardContent>
-                                        </Card>
+                                            </div>
+                                            <pre className="max-h-40 overflow-hidden font-mono text-xs break-words whitespace-pre-wrap text-muted-foreground">
+                                                {template.body}
+                                            </pre>
+                                        </li>
                                     ))}
-                                </div>
+                                </ul>
                             </section>
                         ))}
                     </div>
@@ -192,10 +192,10 @@ export default function TemplatesIndexPage({ templates, categories }: Props) {
                         </DialogDescription>
                     </DialogHeader>
                     <div className="flex items-center justify-end gap-3">
-                        <Button variant="ghost" onClick={() => setPendingDelete(null)}>
+                        <Button type="button" variant="ghost" onClick={() => setPendingDelete(null)}>
                             Cancel
                         </Button>
-                        <Button variant="destructive" onClick={confirmDelete}>
+                        <Button type="button" variant="destructive" onClick={confirmDelete}>
                             Delete
                         </Button>
                     </div>

@@ -2,7 +2,6 @@ import { useForm } from '@inertiajs/react';
 import type { FormEvent } from 'react';
 
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
@@ -86,107 +85,126 @@ export default function OfferPanel({ offer, action }: OfferPanelProps) {
     const revisions = offer?.revisions ?? [];
 
     return (
-        <Card>
-            <CardHeader>
-                <CardTitle className="text-lg">Offer</CardTitle>
-                <CardDescription>
+        <section className="flex max-w-3xl flex-col gap-4">
+            <div className="flex flex-col gap-1">
+                <h2 className="text-base font-semibold text-balance">Offer</h2>
+                <p className="text-base text-pretty text-muted-foreground tabular-nums sm:text-sm">
                     {offer
                         ? `Current total comp ${formatUsd(offer.computed_total_comp_usd)} (USD, computed)`
                         : 'No offer recorded yet for this role.'}
-                </CardDescription>
-            </CardHeader>
-            <CardContent>
-                <form onSubmit={submit} className="space-y-4">
+                </p>
+            </div>
+            <form onSubmit={submit} className="flex flex-col gap-4">
                     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                        <Field label="Currency" error={form.errors.currency}>
+                        <Field id="currency" label="Currency" error={form.errors.currency}>
                             <Input
+                                id="currency"
+                                name="currency"
                                 value={form.data.currency}
                                 onChange={(e) => form.setData('currency', e.target.value.toUpperCase())}
                                 maxLength={3}
                                 placeholder="USD"
                             />
                         </Field>
-                        <Field label="Base salary" error={form.errors.base}>
+                        <Field id="base" label="Base salary" error={form.errors.base}>
                             <Input
                                 type="number"
                                 min={0}
+                                id="base"
+                                name="base"
                                 value={form.data.base}
                                 onChange={(e) => form.setData('base', e.target.value)}
                                 placeholder="180000"
                             />
                         </Field>
-                        <Field label="Annual bonus" error={form.errors.bonus}>
+                        <Field id="bonus" label="Annual bonus" error={form.errors.bonus}>
                             <Input
                                 type="number"
                                 min={0}
+                                id="bonus"
+                                name="bonus"
                                 value={form.data.bonus}
                                 onChange={(e) => form.setData('bonus', e.target.value)}
                             />
                         </Field>
-                        <Field label="Signing bonus" error={form.errors.signing_bonus}>
+                        <Field id="signing_bonus" label="Signing bonus" error={form.errors.signing_bonus}>
                             <Input
                                 type="number"
                                 min={0}
+                                id="signing_bonus"
+                                name="signing_bonus"
                                 value={form.data.signing_bonus}
                                 onChange={(e) => form.setData('signing_bonus', e.target.value)}
                             />
                         </Field>
-                        <Field label="Equity shares" error={form.errors.equity_shares}>
+                        <Field id="equity_shares" label="Equity shares" error={form.errors.equity_shares}>
                             <Input
                                 type="number"
                                 min={0}
+                                id="equity_shares"
+                                name="equity_shares"
                                 value={form.data.equity_shares}
                                 onChange={(e) => form.setData('equity_shares', e.target.value)}
                             />
                         </Field>
-                        <Field label="Vesting years" error={form.errors.vesting_years}>
+                        <Field id="vesting_years" label="Vesting years" error={form.errors.vesting_years}>
                             <Input
                                 type="number"
                                 min={1}
                                 max={10}
+                                id="vesting_years"
+                                name="vesting_years"
                                 value={form.data.vesting_years}
                                 onChange={(e) => form.setData('vesting_years', e.target.value)}
                                 placeholder="4"
                             />
                         </Field>
-                        <Field label="Strike price" error={form.errors.equity_strike}>
+                        <Field id="equity_strike" label="Strike price" error={form.errors.equity_strike}>
                             <Input
                                 type="number"
                                 min={0}
                                 step="0.0001"
+                                id="equity_strike"
+                                name="equity_strike"
                                 value={form.data.equity_strike}
                                 onChange={(e) => form.setData('equity_strike', e.target.value)}
                             />
                         </Field>
-                        <Field label="Assumed share price" error={form.errors.equity_assumed_price}>
+                        <Field id="equity_assumed_price" label="Assumed share price" error={form.errors.equity_assumed_price}>
                             <Input
                                 type="number"
                                 min={0}
                                 step="0.0001"
+                                id="equity_assumed_price"
+                                name="equity_assumed_price"
                                 value={form.data.equity_assumed_price}
                                 onChange={(e) => form.setData('equity_assumed_price', e.target.value)}
                             />
                         </Field>
-                        <Field label="Decision deadline" error={form.errors.decision_deadline}>
+                        <Field id="decision_deadline" label="Decision deadline" error={form.errors.decision_deadline}>
                             <Input
                                 type="date"
+                                id="decision_deadline"
+                                name="decision_deadline"
                                 value={form.data.decision_deadline}
                                 onChange={(e) => form.setData('decision_deadline', e.target.value)}
                             />
                         </Field>
                     </div>
 
-                    <Field label="Notes" error={form.errors.notes}>
+                    <Field id="notes" label="Notes" error={form.errors.notes}>
                         <textarea
-                            className="flex min-h-20 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                            id="notes"
+                            name="notes"
+                            className={cn('min-h-20 w-full rounded-md border border-input bg-background px-3 py-2 text-base placeholder:text-muted-foreground focus-visible:outline-2 focus-visible:-outline-offset-1 focus-visible:outline-ring sm:text-sm')}
                             value={form.data.notes}
                             onChange={(e) => form.setData('notes', e.target.value)}
                             rows={3}
                         />
                     </Field>
 
-                    <div className="flex items-center justify-between">
-                        <p className="text-xs text-muted-foreground">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                        <p className="text-sm text-muted-foreground sm:text-xs">
                             Total comp is computed in USD using static conversion rates.
                         </p>
                         <Button type="submit" disabled={form.processing}>
@@ -195,14 +213,14 @@ export default function OfferPanel({ offer, action }: OfferPanelProps) {
                     </div>
                 </form>
 
-                {revisions.length > 0 && (
-                    <div className="mt-6 border-t pt-4">
-                        <h3 className="text-sm font-medium">Revision history</h3>
-                        <ul className="mt-2 space-y-1">
+            {revisions.length > 0 && (
+                <div className="flex flex-col gap-2 border-t border-border pt-4">
+                    <h3 className="text-base font-medium sm:text-sm">Revision history</h3>
+                    <ul role="list" className="divide-y divide-border">
                             {revisions.map((revision) => (
                                 <li
                                     key={revision.id}
-                                    className="flex items-center justify-between text-sm text-muted-foreground"
+                                    className="flex items-center justify-between gap-3 py-2 text-base text-muted-foreground tabular-nums sm:text-sm"
                                 >
                                     <span>
                                         {revision.created_at
@@ -215,25 +233,27 @@ export default function OfferPanel({ offer, action }: OfferPanelProps) {
                                 </li>
                             ))}
                         </ul>
-                    </div>
-                )}
-            </CardContent>
-        </Card>
+                </div>
+            )}
+        </section>
     );
 }
 
 interface FieldProps {
+    id: string;
     label: string;
     error?: string;
     children: React.ReactNode;
 }
 
-function Field({ label, error, children }: FieldProps) {
+function Field({ id, label, error, children }: FieldProps) {
     return (
-        <div className="space-y-1.5">
-            <Label className={cn(error && 'text-destructive')}>{label}</Label>
+        <div className="flex flex-col gap-1.5">
+            <Label htmlFor={id} className={cn(error && 'text-destructive')}>
+                {label}
+            </Label>
             {children}
-            {error && <p className="text-xs text-destructive">{error}</p>}
+            {error && <p className="text-sm text-destructive">{error}</p>}
         </div>
     );
 }

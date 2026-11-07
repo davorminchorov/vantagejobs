@@ -1,9 +1,12 @@
 import { Head, Link } from '@inertiajs/react';
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { SectionLabel } from '@/components/ui/section-label';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import PageHeader from '@/components/PageHeader';
 import { formatDateTime, RelativeDate } from '@/lib/dates';
 
 interface RunSummary {
@@ -46,20 +49,22 @@ interface Props {
     artifacts: ArtifactRow[];
 }
 
-function statusBadge(status: string): string {
+function statusVariant(status: string): 'success' | 'warning' | 'destructive' | 'secondary' | 'outline' {
     switch (status) {
         case 'completed':
-            return 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300';
+            return 'success';
         case 'partial':
-            return 'bg-amber-500/15 text-amber-700 dark:text-amber-300';
+            return 'warning';
         case 'error':
-            return 'bg-red-500/15 text-red-700 dark:text-red-300';
+            return 'destructive';
         case 'running':
-            return 'bg-sky-500/15 text-sky-700 dark:text-sky-300';
+            return 'outline';
         default:
-            return 'bg-muted text-muted-foreground';
+            return 'secondary';
     }
 }
+
+const RUNNING_CLASS = 'bg-sky-50 text-sky-700 inset-ring-sky-600/20 dark:bg-sky-400/10 dark:text-sky-300 dark:inset-ring-sky-400/20';
 
 function formatDuration(seconds: number | null): string {
     if (seconds === null) {
@@ -88,29 +93,34 @@ function ErrorRow({ entry, index }: { entry: ErrorEntry; index: number }) {
     const [open, setOpen] = useState(false);
     const ctx = entry.context !== null ? JSON.stringify(entry.context, null, 2) : null;
     const ctxTruncated = ctx !== null && ctx.length > 1024;
-    const ctxShown = ctxTruncated && ! open ? ctx.slice(0, 1024) + '\n…' : ctx;
+    const ctxShown = ctxTruncated && !open ? ctx.slice(0, 1024) + '\n…' : ctx;
 
     return (
-        <li className="border-border border-t px-6 py-3">
-            <div className="flex items-start gap-3">
-                <span className="text-muted-foreground font-mono text-xs tabular-nums">#{index + 1}</span>
-                <div className="flex-1 space-y-2">
-                    <p className="text-sm">{entry.message}</p>
-                    {ctx !== null && (
-                        <pre className="bg-muted/50 overflow-x-auto rounded-md p-2 font-mono text-xs">{ctxShown}</pre>
-                    )}
-                    {ctxTruncated && (
-                        <button
-                            type="button"
-                            onClick={() => setOpen(! open)}
-                            className="text-sm text-teal-700 hover:underline dark:text-teal-300"
-                        >
+        <li className="flex items-start gap-3 py-4">
+            <span className="text-muted-foreground font-mono text-sm tabular-nums">#{index + 1}</span>
+            <div className="flex min-w-0 flex-1 flex-col gap-2">
+                <p className="text-base text-pretty sm:text-sm">{entry.message}</p>
+                {ctx !== null && (
+                    <pre className="bg-muted/50 overflow-x-auto rounded-lg p-4 font-mono text-sm">{ctxShown}</pre>
+                )}
+                {ctxTruncated && (
+                    <div>
+                        <Button type="button" variant="link" size="sm" className="h-auto p-0" onClick={() => setOpen(!open)}>
                             {open ? 'Collapse' : 'Show full context'}
-                        </button>
-                    )}
-                </div>
+                        </Button>
+                    </div>
+                )}
             </div>
         </li>
+    );
+}
+
+function Stat({ label, children }: { label: string; children: ReactNode }) {
+    return (
+        <div className="flex min-w-0 flex-col gap-0.5">
+            <dt className="text-foreground truncate text-sm font-medium">{label}</dt>
+            <dd className="text-muted-foreground truncate font-mono text-base tabular-nums sm:text-sm">{children}</dd>
+        </div>
     );
 }
 
@@ -118,152 +128,124 @@ export default function RunsShow({ run, errors, artifacts }: Props) {
     return (
         <AuthenticatedLayout>
             <Head title={`Run #${run.id}`} />
-            <div className="mx-auto max-w-7xl space-y-6 px-4 py-8 sm:px-6 lg:px-8">
-                <header className="flex flex-col gap-2">
-                    <Link href="/admin/runs" className="text-sm text-teal-700 hover:underline dark:text-teal-300">
-                        ← All runs
-                    </Link>
-                    <div className="flex flex-wrap items-center gap-3">
-                        <h1 className="text-2xl font-semibold tracking-tight text-foreground">
-                            Run #<span className="font-mono tabular-nums">{run.id}</span>
-                        </h1>
-                        <span className={'rounded-full px-2.5 py-0.5 font-mono text-xs uppercase tracking-wide ' + statusBadge(run.status)}>
-                            {run.status}
-                        </span>
-                        <Badge variant="outline" className="font-mono text-xs uppercase tracking-wide">
-                            {run.source_kind}
-                        </Badge>
-                        <span className="text-sm text-muted-foreground">{run.source_label}</span>
-                    </div>
-                </header>
+            <div className="flex flex-col gap-8">
+                <div className="flex flex-col gap-3">
+                    <Button asChild variant="link" size="sm" className="h-auto self-start p-0">
+                        <Link href="/admin/runs">← All runs</Link>
+                    </Button>
+                    <PageHeader
+                        title={`Run #${run.id}`}
+                        actions={
+                            <>
+                                <Badge
+                                    variant={statusVariant(run.status)}
+                                    className={run.status === 'running' ? RUNNING_CLASS : undefined}
+                                >
+                                    {run.status}
+                                </Badge>
+                                <Badge variant="outline" className="font-mono">
+                                    {run.source_kind}
+                                </Badge>
+                                <span className="text-muted-foreground text-base sm:text-sm">{run.source_label}</span>
+                            </>
+                        }
+                    />
+                </div>
 
-                <Card className="rounded-2xl border-border bg-card shadow-sm">
-                    <CardHeader>
-                        <CardTitle className="text-sm">Summary</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <dl className="grid grid-cols-2 gap-4 text-sm sm:grid-cols-4">
-                            <div>
-                                <dt className="text-muted-foreground text-xs">Started</dt>
-                                <dd className="font-mono tabular-nums">{formatDateTime(run.started_at)}</dd>
-                            </div>
-                            <div>
-                                <dt className="text-muted-foreground text-xs">Finished</dt>
-                                <dd className="font-mono tabular-nums">{formatDateTime(run.finished_at)}</dd>
-                            </div>
-                            <div>
-                                <dt className="text-muted-foreground text-xs">Duration</dt>
-                                <dd className="font-mono tabular-nums">{formatDuration(run.duration_seconds)}</dd>
-                            </div>
-                            <div>
-                                <dt className="text-muted-foreground text-xs">Source</dt>
-                                <dd className="font-mono">{run.source}</dd>
-                            </div>
-                            <div>
-                                <dt className="text-muted-foreground text-xs">Fetched</dt>
-                                <dd className="font-mono tabular-nums">{run.fetched}</dd>
-                            </div>
-                            <div>
-                                <dt className="text-muted-foreground text-xs">New</dt>
-                                <dd className="font-mono tabular-nums">{run.new_count}</dd>
-                            </div>
-                            <div>
-                                <dt className="text-muted-foreground text-xs">Closed</dt>
-                                <dd className="font-mono tabular-nums">{run.closed_count}</dd>
-                            </div>
-                            <div>
-                                <dt className="text-muted-foreground text-xs">Errors</dt>
-                                <dd className={'font-mono tabular-nums ' + (run.error_count > 0 ? 'text-red-700 dark:text-red-300' : '')}>
-                                    {run.error_count}
-                                </dd>
-                            </div>
-                        </dl>
-                    </CardContent>
-                </Card>
+                <section className="flex flex-col gap-4">
+                    <SectionLabel>Summary</SectionLabel>
+                    <dl className="grid grid-cols-2 gap-x-6 gap-y-4 sm:grid-cols-4">
+                        <Stat label="Started">{formatDateTime(run.started_at)}</Stat>
+                        <Stat label="Finished">{formatDateTime(run.finished_at)}</Stat>
+                        <Stat label="Duration">{formatDuration(run.duration_seconds)}</Stat>
+                        <Stat label="Source">{run.source}</Stat>
+                        <Stat label="Fetched">{run.fetched}</Stat>
+                        <Stat label="New">{run.new_count}</Stat>
+                        <Stat label="Closed">{run.closed_count}</Stat>
+                        <div className="flex min-w-0 flex-col gap-0.5">
+                            <dt className="text-foreground truncate text-sm font-medium">Errors</dt>
+                            <dd
+                                className={
+                                    'truncate font-mono text-base tabular-nums sm:text-sm ' +
+                                    (run.error_count > 0 ? 'text-rose-700 dark:text-rose-300' : 'text-muted-foreground')
+                                }
+                            >
+                                {run.error_count}
+                            </dd>
+                        </div>
+                    </dl>
+                </section>
 
-                <Card className="rounded-2xl border-border bg-card shadow-sm">
-                    <CardHeader>
-                        <CardTitle className="text-sm">
-                            Errors (<span className="font-mono tabular-nums">{errors.length}</span>)
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent className="p-0">
-                        {errors.length === 0 ? (
-                            <p className="px-6 py-4 text-sm text-muted-foreground">No errors recorded for this run.</p>
-                        ) : (
-                            <ul className="divide-border divide-y">
-                                {errors.map((entry, idx) => (
-                                    <ErrorRow key={idx} entry={entry} index={idx} />
+                <section className="border-border flex flex-col gap-3 border-t pt-6">
+                    <SectionLabel>
+                        Errors (<span className="tabular-nums">{errors.length}</span>)
+                    </SectionLabel>
+                    {errors.length === 0 ? (
+                        <p className="text-muted-foreground text-base text-pretty sm:text-sm">No errors recorded for this run.</p>
+                    ) : (
+                        <ul role="list" className="divide-border divide-y">
+                            {errors.map((entry, idx) => (
+                                <ErrorRow key={idx} entry={entry} index={idx} />
+                            ))}
+                        </ul>
+                    )}
+                </section>
+
+                <section className="border-border flex flex-col gap-3 border-t pt-6">
+                    <SectionLabel>
+                        Artifacts (<span className="tabular-nums">{artifacts.length}</span>)
+                    </SectionLabel>
+                    {artifacts.length === 0 ? (
+                        <p className="text-muted-foreground text-base text-pretty sm:text-sm">
+                            No artifacts captured for this run. (Phase 1 ATS scrapes don&apos;t write artifacts, and aggregator runs that finished before step 7 won&apos;t have any.)
+                        </p>
+                    ) : (
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Fetched</TableHead>
+                                    <TableHead>Connector</TableHead>
+                                    <TableHead>Endpoint</TableHead>
+                                    <TableHead className="text-right">HTTP</TableHead>
+                                    <TableHead className="text-right">Size</TableHead>
+                                    <TableHead>Retained until</TableHead>
+                                    <TableHead>
+                                        <span className="sr-only">Actions</span>
+                                    </TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {artifacts.map((artifact) => (
+                                    <TableRow key={artifact.id} className={artifact.expired ? 'opacity-50' : ''}>
+                                        <TableCell className="whitespace-nowrap tabular-nums">
+                                            {artifact.fetched_at ? <RelativeDate iso={artifact.fetched_at} /> : '—'}
+                                        </TableCell>
+                                        <TableCell className="font-mono">{artifact.connector}</TableCell>
+                                        <TableCell className="font-mono" title={artifact.request_endpoint}>
+                                            {truncate(artifact.request_endpoint, 80)}
+                                        </TableCell>
+                                        <TableCell className="text-right font-mono tabular-nums">{artifact.http_status ?? '—'}</TableCell>
+                                        <TableCell className="text-right tabular-nums">{formatBytes(artifact.size_bytes)}</TableCell>
+                                        <TableCell className="whitespace-nowrap tabular-nums">
+                                            {artifact.retained_until ? <RelativeDate iso={artifact.retained_until} /> : '—'}
+                                        </TableCell>
+                                        <TableCell className="text-right">
+                                            {artifact.expired ? (
+                                                <Badge variant="outline">expired</Badge>
+                                            ) : artifact.download_url ? (
+                                                <Button asChild variant="ghost" size="sm">
+                                                    <a href={artifact.download_url}>Download</a>
+                                                </Button>
+                                            ) : (
+                                                '—'
+                                            )}
+                                        </TableCell>
+                                    </TableRow>
                                 ))}
-                            </ul>
-                        )}
-                    </CardContent>
-                </Card>
-
-                <Card className="rounded-2xl border-border bg-card shadow-sm">
-                    <CardHeader>
-                        <CardTitle className="text-sm">
-                            Artifacts (<span className="font-mono tabular-nums">{artifacts.length}</span>)
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent className="p-0">
-                        {artifacts.length === 0 ? (
-                            <p className="px-6 py-4 text-sm text-muted-foreground">
-                                No artifacts captured for this run. (Phase 1 ATS scrapes don&apos;t write artifacts, and aggregator runs that finished before step 7 won&apos;t have any.)
-                            </p>
-                        ) : (
-                            <div className="overflow-x-auto">
-                                <table className="w-full text-sm">
-                                    <thead className="bg-muted/50 font-mono text-xs uppercase tracking-wide text-muted-foreground">
-                                        <tr>
-                                            <th className="px-4 py-2 text-left">Fetched</th>
-                                            <th className="px-4 py-2 text-left">Connector</th>
-                                            <th className="px-4 py-2 text-left">Endpoint</th>
-                                            <th className="px-4 py-2 text-right">HTTP</th>
-                                            <th className="px-4 py-2 text-right">Size</th>
-                                            <th className="px-4 py-2 text-left">Retained until</th>
-                                            <th className="px-4 py-2 text-right"></th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-border divide-y">
-                                        {artifacts.map((artifact) => (
-                                            <tr key={artifact.id} className={artifact.expired ? 'opacity-50' : ''}>
-                                                <td className="px-4 py-2 whitespace-nowrap font-mono text-xs tabular-nums">
-                                                    {artifact.fetched_at ? <RelativeDate iso={artifact.fetched_at} /> : '—'}
-                                                </td>
-                                                <td className="px-4 py-2 font-mono text-xs">{artifact.connector}</td>
-                                                <td className="px-4 py-2 font-mono text-xs" title={artifact.request_endpoint}>
-                                                    {truncate(artifact.request_endpoint, 80)}
-                                                </td>
-                                                <td className="px-4 py-2 text-right font-mono tabular-nums">{artifact.http_status ?? '—'}</td>
-                                                <td className="px-4 py-2 text-right font-mono tabular-nums">{formatBytes(artifact.size_bytes)}</td>
-                                                <td className="px-4 py-2 whitespace-nowrap font-mono text-xs tabular-nums">
-                                                    {artifact.retained_until ? <RelativeDate iso={artifact.retained_until} /> : '—'}
-                                                </td>
-                                                <td className="px-4 py-2 text-right">
-                                                    {artifact.expired ? (
-                                                        <Badge variant="outline" className="text-xs">
-                                                            expired
-                                                        </Badge>
-                                                    ) : artifact.download_url ? (
-                                                        <a
-                                                            href={artifact.download_url}
-                                                            className="text-sm text-teal-700 hover:underline dark:text-teal-300"
-                                                        >
-                                                            Download
-                                                        </a>
-                                                    ) : (
-                                                        '—'
-                                                    )}
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
-                        )}
-                    </CardContent>
-                </Card>
+                            </TableBody>
+                        </Table>
+                    )}
+                </section>
             </div>
         </AuthenticatedLayout>
     );
