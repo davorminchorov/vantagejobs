@@ -2,15 +2,16 @@ import { Head, Link, router, usePage, usePoll } from '@inertiajs/react';
 import { useEffect, useMemo, useState } from 'react';
 
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { Badge } from '@/components/ui/badge';
+import PageHeader from '@/components/PageHeader';
+import { kindLabel, RunStatusBadge, formatDuration, statusLabel } from '@/components/runs/run-status';
+import { SourceHealth, type HealthEntry } from '@/components/runs/source-health';
+import { TriggerMenu, type TriggerOptions } from '@/components/runs/trigger-menu';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { SectionLabel } from '@/components/ui/section-label';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { NativeSelect } from '@/components/ui/native-select';
-import PageHeader from '@/components/PageHeader';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { RelativeDate } from '@/lib/dates';
 
 interface RunRow {
@@ -31,31 +32,6 @@ interface RunRow {
 interface SourceOption {
     value: string;
     label: string;
-}
-
-interface HealthEntry {
-    kind: string;
-    value: string;
-    label: string;
-    reason: string;
-    last_run_at: string | null;
-    consecutive_failures: number;
-}
-
-interface AtsTypeOption {
-    value: string;
-    label: string;
-    count: number;
-}
-
-interface AggregatorOption {
-    value: string;
-    label: string;
-}
-
-interface TriggerOptions {
-    ats_types: AtsTypeOption[];
-    aggregators: AggregatorOption[];
 }
 
 interface FilterState {
@@ -84,41 +60,36 @@ interface Props {
     activeRunCount: number;
 }
 
-function statusVariant(status: string): 'success' | 'warning' | 'destructive' | 'secondary' | 'outline' {
-    switch (status) {
-        case 'completed':
-            return 'success';
-        case 'partial':
-            return 'warning';
-        case 'error':
-            return 'destructive';
-        case 'running':
-            return 'outline';
-        default:
-            return 'secondary';
-    }
+type RangeKey = 'today' | '7d' | '30d' | 'all';
+
+const RANGE_DAYS: Record<Exclude<RangeKey, 'all'>, number> = { today: 0, '7d': 7, '30d': 30 };
+
+const ATS_PREFIX = '[ats] ';
+const AGGREGATOR_PREFIX = '[aggregator] ';
+const MULTIPLE_SOURCES = '__multiple';
+
+function isoDay(date: Date): string {
+    return date.toISOString().slice(0, 10);
 }
 
-const RUNNING_CLASS = 'bg-sky-50 text-sky-700 inset-ring-sky-600/20 dark:bg-sky-400/10 dark:text-sky-300 dark:inset-ring-sky-400/20';
-
-function StatusBadge({ status }: { status: string }) {
-    return (
-        <Badge variant={statusVariant(status)} className={status === 'running' ? RUNNING_CLASS : undefined}>
-            {status}
-        </Badge>
-    );
+function rangeDates(days: number): { date_from: string; date_to: string } {
+    const today = new Date();
+    const from = new Date(today);
+    from.setDate(from.getDate() - days);
+    return { date_from: isoDay(from), date_to: isoDay(today) };
 }
 
-function formatDuration(seconds: number | null): string {
-    if (seconds === null) {
-        return '—';
+function activeRange(filters: FilterState): RangeKey | '' {
+    if (!filters.date_from && !filters.date_to) {
+        return 'all';
     }
-    if (seconds < 60) {
-        return `${seconds}s`;
+    for (const key of Object.keys(RANGE_DAYS) as Exclude<RangeKey, 'all'>[]) {
+        const { date_from, date_to } = rangeDates(RANGE_DAYS[key]);
+        if (filters.date_from === date_from && filters.date_to === date_to) {
+            return key;
+        }
     }
-    const m = Math.floor(seconds / 60);
-    const s = seconds % 60;
-    return s === 0 ? `${m}m` : `${m}m ${s}s`;
+    return '';
 }
 
 function buildQuery(filters: Partial<FilterState>): Record<string, string | string[]> {
@@ -132,10 +103,12 @@ function buildQuery(filters: Partial<FilterState>): Record<string, string | stri
     return out;
 }
 
+function hasActiveFilters(filters: FilterState): boolean {
+    return Object.keys(buildQuery(filters)).length > 0;
+}
+
 export default function RunsIndex({ runs, filters, options, health, triggerOptions, activeRunCount }: Props) {
     const [draft, setDraft] = useState<FilterState>(filters);
-
-    const [selectedAggregator, setSelectedAggregator] = useState<string>(triggerOptions.aggregators[0]?.value ?? '');
 
     const flash = (usePage().props.flash ?? null) as { success?: string | null; error?: string | null } | null;
 
@@ -163,8 +136,18 @@ export default function RunsIndex({ runs, filters, options, health, triggerOptio
         );
     }
 
-    const sourceKindOptions = useMemo(() => ['all', ...options.source_kinds], [options.source_kinds]);
-    const statusOptions = useMemo(() => ['all', ...options.statuses], [options.statuses]);
+    const sourceGroups = useMemo(() => {
+        const strip = (label: string, prefix: string) => (label.startsWith(prefix) ? label.slice(prefix.length) : label);
+        return {
+            ats: options.sources
+                .filter((s) => s.label.startsWith(ATS_PREFIX))
+                .map((s) => ({ value: s.value, label: strip(s.label, ATS_PREFIX) })),
+            aggregators: options.sources
+                .filter((s) => s.label.startsWith(AGGREGATOR_PREFIX))
+                .map((s) => ({ value: s.value, label: strip(s.label, AGGREGATOR_PREFIX) })),
+            other: options.sources.filter((s) => !s.label.startsWith(ATS_PREFIX) && !s.label.startsWith(AGGREGATOR_PREFIX)),
+        };
+    }, [options.sources]);
 
     function apply(next: Partial<FilterState>) {
         const merged: FilterState = { ...draft, ...next };
@@ -176,12 +159,12 @@ export default function RunsIndex({ runs, filters, options, health, triggerOptio
         });
     }
 
-    function presetRange(days: number) {
-        const today = new Date();
-        const start = new Date(today);
-        start.setDate(start.getDate() - days);
-        const fmt = (d: Date) => d.toISOString().slice(0, 10);
-        apply({ date_from: fmt(start), date_to: fmt(today) });
+    function changeRange(range: string) {
+        if (range === 'all') {
+            apply({ date_from: null, date_to: null });
+            return;
+        }
+        apply(rangeDates(RANGE_DAYS[range as Exclude<RangeKey, 'all'>]));
     }
 
     function clearFilters() {
@@ -196,22 +179,26 @@ export default function RunsIndex({ runs, filters, options, health, triggerOptio
         router.get('/admin/runs', {}, { preserveScroll: true, replace: true });
     }
 
-    function toggleSource(value: string) {
-        const next = draft.source_id.includes(value) ? draft.source_id.filter((v) => v !== value) : [...draft.source_id, value];
-        apply({ source_id: next });
-    }
-
-    function filterToSource(value: string) {
-        apply({ source_id: [value] });
-    }
+    const sourceSelectValue = draft.source_id.length === 0 ? '' : draft.source_id.length === 1 ? draft.source_id[0] : MULTIPLE_SOURCES;
 
     return (
         <AuthenticatedLayout>
             <Head title="Scrape runs" />
-            <div className="flex flex-col gap-8">
+            <div className="flex flex-col gap-6">
                 <PageHeader
                     title="Scrape runs"
-                    subtitle="Every ATS and aggregator scrape run, newest first. Click a row to drill into errors and captured artifacts."
+                    subtitle="Every ATS and aggregator scrape, newest first. Open a run to see its errors and captured artifacts."
+                    actions={
+                        <>
+                            {activeRunCount > 0 && (
+                                <span className="flex items-center gap-1.5 text-sm font-medium text-sky-700 dark:text-sky-300">
+                                    <span className="size-2 shrink-0 animate-pulse rounded-full bg-sky-500" />
+                                    <span className="tabular-nums">{activeRunCount}</span> running
+                                </span>
+                            )}
+                            <TriggerMenu options={triggerOptions} onTrigger={trigger} />
+                        </>
+                    }
                 />
 
                 {flash?.success && (
@@ -220,107 +207,17 @@ export default function RunsIndex({ runs, filters, options, health, triggerOptio
                     </div>
                 )}
 
-                <section className="flex flex-col gap-4">
-                    <div className="flex items-center justify-between gap-3">
-                        <SectionLabel>Run scrapers</SectionLabel>
-                        {activeRunCount > 0 && (
-                            <span className="flex items-center gap-1.5 text-sm font-medium text-sky-700 sm:text-xs dark:text-sky-300">
-                                <span className="size-2 shrink-0 animate-pulse rounded-full bg-sky-500" />
-                                {activeRunCount} running
-                            </span>
-                        )}
-                    </div>
+                <div className="flex flex-col gap-3">
+                    <Tabs value={activeRange(draft)} onValueChange={changeRange}>
+                        <TabsList aria-label="Date range">
+                            <TabsTrigger value="today">Today</TabsTrigger>
+                            <TabsTrigger value="7d">7 days</TabsTrigger>
+                            <TabsTrigger value="30d">30 days</TabsTrigger>
+                            <TabsTrigger value="all">All time</TabsTrigger>
+                        </TabsList>
+                    </Tabs>
 
-                    <div>
-                        <Button type="button" onClick={() => trigger('all')}>
-                            Run everything
-                        </Button>
-                    </div>
-
-                    <div className="flex flex-col gap-2">
-                        <span className="text-sm font-medium">ATS scrapers</span>
-                        <div className="flex flex-wrap gap-2">
-                            <Button type="button" size="sm" variant="outline" onClick={() => trigger('ats')}>
-                                Run all ATS
-                            </Button>
-                            {triggerOptions.ats_types.map((t) => (
-                                <Button key={t.value} type="button" size="sm" variant="outline" onClick={() => trigger(`ats:${t.value}`)}>
-                                    {t.label} ({t.count})
-                                </Button>
-                            ))}
-                        </div>
-                    </div>
-
-                    <div className="flex flex-col gap-2">
-                        <span className="text-sm font-medium">Aggregators</span>
-                        <div className="flex flex-wrap items-center gap-2">
-                            <Button type="button" size="sm" variant="outline" onClick={() => trigger('aggregators')}>
-                                Run all aggregators
-                            </Button>
-                            {triggerOptions.aggregators.length > 0 && (
-                                <>
-                                    <NativeSelect
-                                        name="aggregator"
-                                        aria-label="Aggregator"
-                                        value={selectedAggregator}
-                                        onChange={(e) => setSelectedAggregator(e.target.value)}
-                                    >
-                                        {triggerOptions.aggregators.map((a) => (
-                                            <option key={a.value} value={a.value}>
-                                                {a.label}
-                                            </option>
-                                        ))}
-                                    </NativeSelect>
-                                    <Button
-                                        type="button"
-                                        size="sm"
-                                        variant="outline"
-                                        disabled={!selectedAggregator}
-                                        onClick={() => trigger(`aggregator:${selectedAggregator}`)}
-                                    >
-                                        Run
-                                    </Button>
-                                </>
-                            )}
-                        </div>
-                    </div>
-                </section>
-
-                {health.length > 0 && (
-                    <section className="flex flex-col gap-3 border-t border-border pt-6">
-                        <SectionLabel>
-                            Source health: {health.length} {health.length === 1 ? 'source needs attention' : 'sources need attention'}
-                        </SectionLabel>
-                        <ul role="list" className="flex flex-wrap gap-2">
-                            {health.map((h) => (
-                                <li key={`${h.kind}-${h.value}`} className="min-w-0">
-                                    <button
-                                        type="button"
-                                        onClick={() => filterToSource(h.value)}
-                                        title={h.reason}
-                                        className="flex max-w-full flex-col rounded-lg bg-amber-50 px-3 py-2 text-left text-base text-amber-800 inset-ring inset-ring-amber-600/20 hover:bg-amber-100 sm:text-sm dark:bg-amber-400/10 dark:text-amber-300 dark:inset-ring-amber-400/20 dark:hover:bg-amber-400/20"
-                                    >
-                                        <span className="truncate font-medium">{h.label}</span>
-                                        <span className="truncate opacity-80">{h.reason}</span>
-                                    </button>
-                                </li>
-                            ))}
-                        </ul>
-                    </section>
-                )}
-
-                <section className="flex flex-col gap-4 border-t border-border pt-6">
-                    <SectionLabel>Filters</SectionLabel>
-                    <div className="flex flex-wrap gap-2">
-                        <Button type="button" size="sm" variant="outline" onClick={() => presetRange(0)}>
-                            Today
-                        </Button>
-                        <Button type="button" size="sm" variant="outline" onClick={() => presetRange(7)}>
-                            7d
-                        </Button>
-                        <Button type="button" size="sm" variant="outline" onClick={() => presetRange(30)}>
-                            30d
-                        </Button>
+                    <div className="flex flex-wrap items-center gap-2">
                         <Button
                             type="button"
                             size="sm"
@@ -331,96 +228,93 @@ export default function RunsIndex({ runs, filters, options, health, triggerOptio
                         >
                             Failed in last 24h
                         </Button>
-                        <Button type="button" size="sm" variant="ghost" onClick={clearFilters}>
-                            All sources
-                        </Button>
+                        <NativeSelect
+                            name="status"
+                            aria-label="Status"
+                            value={draft.status ?? ''}
+                            onChange={(e) => apply({ status: e.target.value || null })}
+                        >
+                            <option value="">All statuses</option>
+                            {options.statuses.map((s) => (
+                                <option key={s} value={s}>
+                                    {statusLabel(s)}
+                                </option>
+                            ))}
+                        </NativeSelect>
+                        <NativeSelect
+                            name="source_kind"
+                            aria-label="Kind"
+                            value={draft.source_kind ?? ''}
+                            onChange={(e) => apply({ source_kind: e.target.value || null })}
+                        >
+                            <option value="">All kinds</option>
+                            {options.source_kinds.map((k) => (
+                                <option key={k} value={k}>
+                                    {kindLabel(k)}
+                                </option>
+                            ))}
+                        </NativeSelect>
+                        <NativeSelect
+                            name="source_id"
+                            aria-label="Source"
+                            wrapperClassName="max-w-full"
+                            value={sourceSelectValue}
+                            onChange={(e) => apply({ source_id: e.target.value ? [e.target.value] : [] })}
+                        >
+                            <option value="">All sources</option>
+                            {draft.source_id.length > 1 && <option value={MULTIPLE_SOURCES}>{draft.source_id.length} sources</option>}
+                            {sourceGroups.ats.length > 0 && (
+                                <optgroup label="ATS">
+                                    {sourceGroups.ats.map((s) => (
+                                        <option key={s.value} value={s.value}>
+                                            {s.label}
+                                        </option>
+                                    ))}
+                                </optgroup>
+                            )}
+                            {sourceGroups.aggregators.length > 0 && (
+                                <optgroup label="Aggregators">
+                                    {sourceGroups.aggregators.map((s) => (
+                                        <option key={s.value} value={s.value}>
+                                            {s.label}
+                                        </option>
+                                    ))}
+                                </optgroup>
+                            )}
+                            {sourceGroups.other.map((s) => (
+                                <option key={s.value} value={s.value}>
+                                    {s.label}
+                                </option>
+                            ))}
+                        </NativeSelect>
+                        <Input
+                            name="date_from"
+                            type="date"
+                            aria-label="From date"
+                            className="w-40"
+                            value={draft.date_from ?? ''}
+                            onChange={(e) => apply({ date_from: e.target.value || null })}
+                        />
+                        <Input
+                            name="date_to"
+                            type="date"
+                            aria-label="To date"
+                            className="w-40"
+                            value={draft.date_to ?? ''}
+                            onChange={(e) => apply({ date_to: e.target.value || null })}
+                        />
+                        {hasActiveFilters(draft) && (
+                            <Button type="button" size="sm" variant="ghost" onClick={clearFilters}>
+                                Clear filters
+                            </Button>
+                        )}
                     </div>
+                </div>
 
-                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                        <div className="flex flex-col gap-1.5">
-                            <Label htmlFor="runs-date-from">Date from</Label>
-                            <Input
-                                id="runs-date-from"
-                                name="date_from"
-                                type="date"
-                                value={draft.date_from ?? ''}
-                                onChange={(e) => apply({ date_from: e.target.value || null })}
-                            />
-                        </div>
-                        <div className="flex flex-col gap-1.5">
-                            <Label htmlFor="runs-date-to">Date to</Label>
-                            <Input
-                                id="runs-date-to"
-                                name="date_to"
-                                type="date"
-                                value={draft.date_to ?? ''}
-                                onChange={(e) => apply({ date_to: e.target.value || null })}
-                            />
-                        </div>
-                        <div className="flex flex-col gap-1.5">
-                            <Label htmlFor="runs-source-kind">Source kind</Label>
-                            <NativeSelect
-                                id="runs-source-kind"
-                                name="source_kind"
-                                value={draft.source_kind ?? 'all'}
-                                onChange={(e) => apply({ source_kind: e.target.value === 'all' ? null : e.target.value })}
-                            >
-                                {sourceKindOptions.map((k) => (
-                                    <option key={k} value={k}>
-                                        {k}
-                                    </option>
-                                ))}
-                            </NativeSelect>
-                        </div>
-                        <div className="flex flex-col gap-1.5">
-                            <Label htmlFor="runs-status">Status</Label>
-                            <NativeSelect
-                                id="runs-status"
-                                name="status"
-                                value={draft.status ?? 'all'}
-                                onChange={(e) => apply({ status: e.target.value === 'all' ? null : e.target.value })}
-                            >
-                                {statusOptions.map((s) => (
-                                    <option key={s} value={s}>
-                                        {s}
-                                    </option>
-                                ))}
-                            </NativeSelect>
-                        </div>
-                    </div>
-
-                    {options.sources.length > 0 && (
-                        <div className="flex flex-col gap-2">
-                            <span className="text-sm font-medium">Source</span>
-                            <div className="flex flex-wrap gap-2">
-                                {options.sources.map((opt) => {
-                                    const active = draft.source_id.includes(opt.value);
-                                    return (
-                                        <button
-                                            key={opt.value}
-                                            type="button"
-                                            aria-pressed={active}
-                                            onClick={() => toggleSource(opt.value)}
-                                            className={
-                                                'rounded-md border px-2.5 py-1 text-base sm:text-sm ' +
-                                                (active
-                                                    ? 'border-border bg-muted font-semibold text-foreground'
-                                                    : 'border-input bg-background text-muted-foreground hover:bg-muted')
-                                            }
-                                        >
-                                            {opt.label}
-                                        </button>
-                                    );
-                                })}
-                            </div>
-                        </div>
-                    )}
-                </section>
-
-                <section className="flex flex-col gap-3 border-t border-border pt-6">
-                    <SectionLabel>
+                <section className="flex flex-col gap-3">
+                    <p className="text-base text-muted-foreground sm:text-sm">
                         <span className="tabular-nums">{runs.meta.total}</span> {runs.meta.total === 1 ? 'run' : 'runs'}
-                    </SectionLabel>
+                    </p>
 
                     {runs.data.length === 0 ? (
                         <EmptyState>No runs match these filters.</EmptyState>
@@ -436,28 +330,35 @@ export default function RunsIndex({ runs, filters, options, health, triggerOptio
                                     <TableHead className="text-right">Fetched</TableHead>
                                     <TableHead className="text-right">New</TableHead>
                                     <TableHead className="text-right">Errors</TableHead>
-                                    <TableHead>
-                                        <span className="sr-only">Actions</span>
-                                    </TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
                                 {runs.data.map((run) => (
-                                    <TableRow key={run.id} className="hover:bg-muted/50">
+                                    <TableRow
+                                        key={run.id}
+                                        className="cursor-pointer hover:bg-muted/50"
+                                        onClick={() => router.visit(`/admin/runs/${run.id}`)}
+                                    >
                                         <TableCell className="whitespace-nowrap tabular-nums">
-                                            {run.started_at ? <RelativeDate iso={run.started_at} /> : '—'}
+                                            {run.started_at ? <RelativeDate iso={run.started_at} /> : '–'}
                                         </TableCell>
                                         <TableCell className="whitespace-nowrap tabular-nums">
                                             {formatDuration(run.duration_seconds)}
                                         </TableCell>
-                                        <TableCell>
-                                            <Badge variant="outline" className="font-mono">
-                                                {run.source_kind}
-                                            </Badge>
+                                        <TableCell className="whitespace-nowrap text-muted-foreground">
+                                            {kindLabel(run.source_kind)}
                                         </TableCell>
-                                        <TableCell>{run.source_label}</TableCell>
+                                        <TableCell className="font-medium">
+                                            <Link
+                                                href={`/admin/runs/${run.id}`}
+                                                onClick={(e) => e.stopPropagation()}
+                                                className="hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                                            >
+                                                {run.source_label}
+                                            </Link>
+                                        </TableCell>
                                         <TableCell>
-                                            <StatusBadge status={run.status} />
+                                            <RunStatusBadge status={run.status} />
                                         </TableCell>
                                         <TableCell className="text-right tabular-nums">{run.fetched}</TableCell>
                                         <TableCell className="text-right tabular-nums">{run.new_count}</TableCell>
@@ -468,11 +369,6 @@ export default function RunsIndex({ runs, filters, options, health, triggerOptio
                                         >
                                             {run.error_count}
                                         </TableCell>
-                                        <TableCell className="text-right">
-                                            <Button asChild variant="ghost" size="sm">
-                                                <Link href={`/admin/runs/${run.id}`}>View</Link>
-                                            </Button>
-                                        </TableCell>
                                     </TableRow>
                                 ))}
                             </TableBody>
@@ -480,7 +376,7 @@ export default function RunsIndex({ runs, filters, options, health, triggerOptio
                     )}
 
                     {runs.meta.last_page > 1 && (
-                        <div className="flex items-center justify-between gap-3 border-t border-border pt-4 text-base sm:text-sm">
+                        <div className="flex items-center justify-between gap-3 pt-2 text-base sm:text-sm">
                             <span className="text-muted-foreground">
                                 Page <span className="tabular-nums">{runs.meta.current_page}</span> of{' '}
                                 <span className="tabular-nums">{runs.meta.last_page}</span>
@@ -504,6 +400,8 @@ export default function RunsIndex({ runs, filters, options, health, triggerOptio
                         </div>
                     )}
                 </section>
+
+                <SourceHealth health={health} onSelectSource={(value) => apply({ source_id: [value] })} />
             </div>
         </AuthenticatedLayout>
     );
