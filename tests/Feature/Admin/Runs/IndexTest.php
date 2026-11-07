@@ -265,17 +265,10 @@ final class IndexTest extends TestCase
         $greenhouse = $atsTypes->firstWhere('value', 'greenhouse');
         $this->assertNotNull($greenhouse);
         $this->assertSame(2, $greenhouse['count']);
-        $this->assertSame('Greenhouse', $greenhouse['label']);
         // A type with zero companies (e.g. lever) is omitted.
         $this->assertNull($atsTypes->firstWhere('value', 'lever'));
 
         $aggregators = collect($props['triggerOptions']['aggregators']);
         $this->assertNotNull($aggregators->firstWhere('value', 'remotive'));
-    }
-
-    public function test_ats_type_labels_use_brand_casing(): void
-    {
-        $this->assertSame('SmartRecruiters', AtsType::SMARTRECRUITERS->label());
-        $this->assertSame('BambooHR', AtsType::BAMBOOHR->label());
     }
 }

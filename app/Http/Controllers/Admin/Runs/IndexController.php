@@ -159,7 +159,7 @@ final readonly class IndexController
             }
             $atsTypes[] = [
                 'value' => $type->value,
-                'label' => $type->label(),
+                'label' => ucfirst($type->value),
                 'count' => $count,
             ];
         }
