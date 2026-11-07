@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace Tests\Feature\Notifications;
 
 use App\Enums\AggregatorListingStatus;
+use App\Mail\DailyDigestMail;
 use App\Models\AggregatorListing;
 use App\Models\AggregatorSource;
-use App\Mail\DailyDigestMail;
 use App\Models\Company;
 use App\Models\Event;
 use App\Models\Role;
@@ -37,7 +37,7 @@ final class DailyDigestTest extends TestCase
         app(TenantContext::class)->setCurrent($this->tenant);
     }
 
-    private function query(): DailyDigestQuery
+    private function digestQuery(): DailyDigestQuery
     {
         return app(DailyDigestQuery::class);
     }
@@ -59,7 +59,7 @@ final class DailyDigestTest extends TestCase
             'occurred_at' => $now->subHours(3),
         ]);
 
-        $digest = $this->query()->build($now);
+        $digest = $this->digestQuery()->build($now);
 
         $this->assertCount(2, $digest->companyActivity);
         $this->assertSame(3, $digest->eventCount());
@@ -84,7 +84,7 @@ final class DailyDigestTest extends TestCase
             'occurred_at' => $now->subHours(30),
         ]);
 
-        $digest = $this->query()->build($now);
+        $digest = $this->digestQuery()->build($now);
 
         $this->assertSame(1, $digest->eventCount());
     }
@@ -103,7 +103,7 @@ final class DailyDigestTest extends TestCase
         AggregatorListing::factory()->recycle($source)->create(['status' => AggregatorListingStatus::DISMISSED]);
         AggregatorListing::factory()->recycle($source)->create(['status' => AggregatorListingStatus::KEPT]);
 
-        $digest = $this->query()->build($now);
+        $digest = $this->digestQuery()->build($now);
 
         $this->assertSame(3, $digest->discoverQueueCount);
     }
@@ -135,7 +135,7 @@ final class DailyDigestTest extends TestCase
             'last_checked_at' => $now->subDays(30),
         ]);
 
-        $digest = $this->query()->build($now);
+        $digest = $this->digestQuery()->build($now);
 
         $ids = $digest->staleATierCompanies->pluck('id')->all();
         $this->assertContains($staleNever->id, $ids);
@@ -158,7 +158,7 @@ final class DailyDigestTest extends TestCase
         // Recently active: not listed.
         Role::factory()->create(['company_id' => $company->id, 'pipeline_status' => 'applied', 'applied_at' => $now->subDay()]);
 
-        $digest = $this->query()->build($now);
+        $digest = $this->digestQuery()->build($now);
 
         $this->assertCount(1, $digest->attentionItems);
         $item = $digest->attentionItems[0];
@@ -180,7 +180,7 @@ final class DailyDigestTest extends TestCase
             'next_action_date' => now()->subDays(3)->toDateString(),
         ]);
 
-        $digest = $this->query()->build(CarbonImmutable::now());
+        $digest = $this->digestQuery()->build(CarbonImmutable::now());
         $mail = new DailyDigestMail($digest, 'UTC');
 
         $mail->assertSeeInHtml('Applications needing attention');
@@ -200,7 +200,7 @@ final class DailyDigestTest extends TestCase
             'next_action_date' => now()->subDays(3)->toDateString(),
         ]);
 
-        $mail = new DailyDigestMail($this->query()->build(CarbonImmutable::now()), 'UTC');
+        $mail = new DailyDigestMail($this->digestQuery()->build(CarbonImmutable::now()), 'UTC');
 
         $mail->assertDontSeeInHtml('href="https://evil.example"', false);
         $mail->assertSeeInHtml('Engineer](https://evil.example) [click', false);
@@ -211,7 +211,7 @@ final class DailyDigestTest extends TestCase
     {
         $now = CarbonImmutable::now();
 
-        $digest = $this->query()->build($now);
+        $digest = $this->digestQuery()->build($now);
 
         $this->assertTrue($digest->isEmpty());
         $this->assertSame(0, $digest->eventCount());
@@ -226,7 +226,7 @@ final class DailyDigestTest extends TestCase
         $now = CarbonImmutable::now();
         AggregatorListing::factory()->create(['status' => AggregatorListingStatus::NEW]);
 
-        $digest = $this->query()->build($now);
+        $digest = $this->digestQuery()->build($now);
 
         $this->assertFalse($digest->isEmpty());
     }
@@ -246,7 +246,7 @@ final class DailyDigestTest extends TestCase
             AggregatorListing::factory()->create(['status' => AggregatorListingStatus::NEW]);
         });
 
-        $digest = $this->query()->build($now);
+        $digest = $this->digestQuery()->build($now);
 
         $this->assertTrue($digest->isEmpty());
     }
