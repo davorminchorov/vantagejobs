@@ -3,15 +3,7 @@ import { router } from '@inertiajs/react';
 import { useState } from 'react';
 
 import { Button } from '@/components/ui/button';
-import {
-    Dialog,
-    DialogClose,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-} from '@/components/ui/dialog';
+import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
@@ -54,9 +46,7 @@ export default function SaveViewButton({ entity, filters, disabled = false }: Sa
             <DialogContent>
                 <DialogHeader>
                     <DialogTitle>Save current filters as view</DialogTitle>
-                    <DialogDescription>
-                        Give this set of filters a name. It will appear under Views in the sidebar.
-                    </DialogDescription>
+                    <DialogDescription>Give this set of filters a name. It will appear under Views in the sidebar.</DialogDescription>
                 </DialogHeader>
                 <form onSubmit={handleSubmit} className="flex flex-col gap-4">
                     <div className="flex flex-col gap-1.5">

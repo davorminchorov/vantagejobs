@@ -162,8 +162,7 @@ export default function ApplicationsIndexPage({
                     subtitle={
                         <>
                             <span className="tabular-nums">{counts.active}</span> active,{' '}
-                            <span className="tabular-nums">{counts.attention}</span>{' '}
-                            {counts.attention === 1 ? 'needs' : 'need'} attention
+                            <span className="tabular-nums">{counts.attention}</span> {counts.attention === 1 ? 'needs' : 'need'} attention
                         </>
                     }
                 />
@@ -171,9 +170,7 @@ export default function ApplicationsIndexPage({
                 <FilterBar filters={filters} statuses={statuses} counts={counts} onChange={(patch) => visit(patch)} />
 
                 {showEmptyWorkspace ? (
-                    <EmptyState>
-                        Add a role from a company page, the Roles inbox or Discover to start tracking it here.
-                    </EmptyState>
+                    <EmptyState>Add a role from a company page, the Roles inbox or Discover to start tracking it here.</EmptyState>
                 ) : (
                     <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(20rem,26rem)_minmax(0,1fr)] lg:items-start">
                         <div className="min-w-0">{leftPane}</div>

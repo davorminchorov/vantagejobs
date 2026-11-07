@@ -26,15 +26,9 @@ export default function ProfilePage({ user }: Props) {
     return (
         <>
             <Head title="Profile" />
-            <SettingsLayout
-                title="Profile"
-                description="Update your name and email address."
-            >
+            <SettingsLayout title="Profile" description="Update your name and email address.">
                 <form onSubmit={submit}>
-                    <SettingsSection
-                        title="Name and email"
-                        description="Update your name and email address."
-                    >
+                    <SettingsSection title="Name and email" description="Update your name and email address.">
                         <div className="flex flex-col gap-5">
                             <div className="flex flex-col gap-2">
                                 <Label htmlFor="name">Name</Label>
@@ -67,9 +61,7 @@ export default function ProfilePage({ user }: Props) {
                                 <Button type="submit" disabled={processing}>
                                     Save
                                 </Button>
-                                {recentlySuccessful && (
-                                    <span className="text-sm text-muted-foreground">Saved.</span>
-                                )}
+                                {recentlySuccessful && <span className="text-sm text-muted-foreground">Saved.</span>}
                             </div>
                         </div>
                     </SettingsSection>

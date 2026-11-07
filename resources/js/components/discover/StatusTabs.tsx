@@ -32,8 +32,7 @@ export function StatusTabs({
                                 : 'border-transparent text-muted-foreground hover:text-foreground')
                         }
                     >
-                        {titleCaseStatus(status)}{' '}
-                        <span className="text-xs tabular-nums text-muted-foreground">{counts[status] ?? 0}</span>
+                        {titleCaseStatus(status)} <span className="text-xs tabular-nums text-muted-foreground">{counts[status] ?? 0}</span>
                     </button>
                 );
             })}

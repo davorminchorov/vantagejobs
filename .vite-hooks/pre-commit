@@ -1,0 +1,4 @@
+# vp and its native Oxlint/Oxfmt binaries are installed inside the Linux
+# node container, not on the host, so run the staged checks there.
+# Needs the dev stack running (`spin up`). Skip once with VP_GIT_HOOKS=0.
+./vendor/bin/spin exec -T node pnpm exec vp staged

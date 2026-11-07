@@ -18,12 +18,11 @@ interface Props {
 }
 
 export default function TriagePage({ settings }: Props) {
-    const { data, setData, post, processing, errors, recentlySuccessful } =
-        useForm<TriageSettings>({
-            auto_dismiss_threshold: settings.auto_dismiss_threshold,
-            dismissed_retention_days: settings.dismissed_retention_days,
-            listing_expiry_days: settings.listing_expiry_days,
-        });
+    const { data, setData, post, processing, errors, recentlySuccessful } = useForm<TriageSettings>({
+        auto_dismiss_threshold: settings.auto_dismiss_threshold,
+        dismissed_retention_days: settings.dismissed_retention_days,
+        listing_expiry_days: settings.listing_expiry_days,
+    });
 
     const submit: FormEventHandler = (event) => {
         event.preventDefault();
@@ -103,17 +102,13 @@ export default function TriagePage({ settings }: Props) {
                                     onChange={(event) => setData('listing_expiry_days', event.target.valueAsNumber)}
                                     required
                                 />
-                                {errors.listing_expiry_days && (
-                                    <p className="text-sm text-destructive">{errors.listing_expiry_days}</p>
-                                )}
+                                {errors.listing_expiry_days && <p className="text-sm text-destructive">{errors.listing_expiry_days}</p>}
                             </div>
                             <div className="flex items-center gap-3">
                                 <Button type="submit" disabled={processing}>
                                     Save
                                 </Button>
-                                {recentlySuccessful && (
-                                    <span className="text-sm text-muted-foreground">Saved.</span>
-                                )}
+                                {recentlySuccessful && <span className="text-sm text-muted-foreground">Saved.</span>}
                             </div>
                         </div>
                     </SettingsSection>

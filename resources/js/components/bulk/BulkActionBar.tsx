@@ -3,14 +3,7 @@ import { router, usePage } from '@inertiajs/react';
 import { useEffect, useRef, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-} from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { NativeSelect } from '@/components/ui/native-select';
@@ -158,11 +151,15 @@ export default function BulkActionBar({ entity, selectedIds, onClear, only, onAp
         if (undoTimer.current) {
             window.clearTimeout(undoTimer.current);
         }
-        router.post(`/bulk-actions/${id}/undo`, {}, {
-            preserveScroll: true,
-            preserveState: true,
-            only,
-        });
+        router.post(
+            `/bulk-actions/${id}/undo`,
+            {},
+            {
+                preserveScroll: true,
+                preserveState: true,
+                only,
+            },
+        );
     }
 
     if (count === 0 && !undo) {
@@ -177,9 +174,7 @@ export default function BulkActionBar({ entity, selectedIds, onClear, only, onAp
                     role="region"
                     aria-label="Bulk actions"
                 >
-                    <span className="text-base font-medium tabular-nums text-foreground sm:text-sm">
-                        {count} selected
-                    </span>
+                    <span className="text-base font-medium tabular-nums text-foreground sm:text-sm">{count} selected</span>
                     <div className="flex flex-wrap items-center gap-2">
                         {actions.map((action) => (
                             <Button
@@ -211,21 +206,14 @@ export default function BulkActionBar({ entity, selectedIds, onClear, only, onAp
                     <DialogHeader>
                         <DialogTitle>{pending?.label}</DialogTitle>
                         <DialogDescription>
-                            {pending?.confirm} This affects{' '}
-                            <span className="tabular-nums">{count}</span>{' '}
-                            {count === 1 ? 'item' : 'items'}.
+                            {pending?.confirm} This affects <span className="tabular-nums">{count}</span> {count === 1 ? 'item' : 'items'}.
                         </DialogDescription>
                     </DialogHeader>
 
                     {pending?.tier ? (
                         <div className="flex flex-col gap-1.5">
                             <Label htmlFor="bulk-tier">Tier</Label>
-                            <NativeSelect
-                                id="bulk-tier"
-                                name="tier"
-                                value={tier}
-                                onChange={(e) => setTier(e.target.value)}
-                            >
+                            <NativeSelect id="bulk-tier" name="tier" value={tier} onChange={(e) => setTier(e.target.value)}>
                                 {TIER_OPTIONS.map((t) => (
                                     <option key={t} value={t}>
                                         {t === 'graveyard' ? 'Graveyard' : `Tier ${t}`}
@@ -290,8 +278,7 @@ export default function BulkActionBar({ entity, selectedIds, onClear, only, onAp
                     aria-live="polite"
                 >
                     <span className="text-foreground">
-                        Applied to <span className="tabular-nums">{undo.count}</span>{' '}
-                        {undo.count === 1 ? 'item' : 'items'}.
+                        Applied to <span className="tabular-nums">{undo.count}</span> {undo.count === 1 ? 'item' : 'items'}.
                     </span>
                     <Button size="sm" variant="outline" onClick={performUndo}>
                         Undo

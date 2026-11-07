@@ -25,15 +25,9 @@ export default function PasswordPage() {
     return (
         <>
             <Head title="Password" />
-            <SettingsLayout
-                title="Password"
-                description="Choose a strong password — at least 12 characters."
-            >
+            <SettingsLayout title="Password" description="Choose a strong password — at least 12 characters.">
                 <form onSubmit={submit}>
-                    <SettingsSection
-                        title="Update password"
-                        description="Use at least 12 characters."
-                    >
+                    <SettingsSection title="Update password" description="Use at least 12 characters.">
                         <div className="flex flex-col gap-5">
                             <div className="flex flex-col gap-2">
                                 <Label htmlFor="current_password">Current password</Label>
@@ -46,9 +40,7 @@ export default function PasswordPage() {
                                     autoComplete="current-password"
                                     required
                                 />
-                                {errors.current_password && (
-                                    <p className="text-sm text-destructive">{errors.current_password}</p>
-                                )}
+                                {errors.current_password && <p className="text-sm text-destructive">{errors.current_password}</p>}
                             </div>
 
                             <div className="flex flex-col gap-2">
@@ -62,9 +54,7 @@ export default function PasswordPage() {
                                     autoComplete="new-password"
                                     required
                                 />
-                                {errors.password && (
-                                    <p className="text-sm text-destructive">{errors.password}</p>
-                                )}
+                                {errors.password && <p className="text-sm text-destructive">{errors.password}</p>}
                             </div>
 
                             <div className="flex flex-col gap-2">
@@ -84,9 +74,7 @@ export default function PasswordPage() {
                                 <Button type="submit" disabled={processing}>
                                     Update password
                                 </Button>
-                                {recentlySuccessful && (
-                                    <span className="text-sm text-muted-foreground">Password updated.</span>
-                                )}
+                                {recentlySuccessful && <span className="text-sm text-muted-foreground">Password updated.</span>}
                             </div>
                         </div>
                     </SettingsSection>

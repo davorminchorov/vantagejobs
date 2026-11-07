@@ -135,17 +135,11 @@ function buildQuery(filters: Partial<FilterState>): Record<string, string | stri
 export default function RunsIndex({ runs, filters, options, health, triggerOptions, activeRunCount }: Props) {
     const [draft, setDraft] = useState<FilterState>(filters);
 
-    const [selectedAggregator, setSelectedAggregator] = useState<string>(
-        triggerOptions.aggregators[0]?.value ?? '',
-    );
+    const [selectedAggregator, setSelectedAggregator] = useState<string>(triggerOptions.aggregators[0]?.value ?? '');
 
     const flash = (usePage().props.flash ?? null) as { success?: string | null; error?: string | null } | null;
 
-    const { start, stop } = usePoll(
-        2500,
-        { only: ['runs', 'health', 'activeRunCount'] },
-        { autoStart: false },
-    );
+    const { start, stop } = usePoll(2500, { only: ['runs', 'health', 'activeRunCount'] }, { autoStart: false });
 
     // Poll while any scrape is in flight; stop as soon as the count hits zero.
     useEffect(() => {
@@ -169,10 +163,7 @@ export default function RunsIndex({ runs, filters, options, health, triggerOptio
         );
     }
 
-    const sourceKindOptions = useMemo(
-        () => ['all', ...options.source_kinds],
-        [options.source_kinds],
-    );
+    const sourceKindOptions = useMemo(() => ['all', ...options.source_kinds], [options.source_kinds]);
     const statusOptions = useMemo(() => ['all', ...options.statuses], [options.statuses]);
 
     function apply(next: Partial<FilterState>) {
@@ -206,9 +197,7 @@ export default function RunsIndex({ runs, filters, options, health, triggerOptio
     }
 
     function toggleSource(value: string) {
-        const next = draft.source_id.includes(value)
-            ? draft.source_id.filter((v) => v !== value)
-            : [...draft.source_id, value];
+        const next = draft.source_id.includes(value) ? draft.source_id.filter((v) => v !== value) : [...draft.source_id, value];
         apply({ source_id: next });
     }
 
@@ -255,13 +244,7 @@ export default function RunsIndex({ runs, filters, options, health, triggerOptio
                                 Run all ATS
                             </Button>
                             {triggerOptions.ats_types.map((t) => (
-                                <Button
-                                    key={t.value}
-                                    type="button"
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() => trigger(`ats:${t.value}`)}
-                                >
+                                <Button key={t.value} type="button" size="sm" variant="outline" onClick={() => trigger(`ats:${t.value}`)}>
                                     {t.label} ({t.count})
                                 </Button>
                             ))}
@@ -306,8 +289,7 @@ export default function RunsIndex({ runs, filters, options, health, triggerOptio
                 {health.length > 0 && (
                     <section className="flex flex-col gap-3 border-t border-border pt-6">
                         <SectionLabel>
-                            Source health: {health.length}{' '}
-                            {health.length === 1 ? 'source needs attention' : 'sources need attention'}
+                            Source health: {health.length} {health.length === 1 ? 'source needs attention' : 'sources need attention'}
                         </SectionLabel>
                         <ul role="list" className="flex flex-wrap gap-2">
                             {health.map((h) => (
@@ -481,8 +463,7 @@ export default function RunsIndex({ runs, filters, options, health, triggerOptio
                                         <TableCell className="text-right tabular-nums">{run.new_count}</TableCell>
                                         <TableCell
                                             className={
-                                                'text-right tabular-nums ' +
-                                                (run.error_count > 0 ? 'text-rose-700 dark:text-rose-300' : '')
+                                                'text-right tabular-nums ' + (run.error_count > 0 ? 'text-rose-700 dark:text-rose-300' : '')
                                             }
                                         >
                                             {run.error_count}

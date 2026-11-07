@@ -27,10 +27,7 @@ interface TabsProps {
 
 function Tabs({ value, onValueChange, children, className }: TabsProps) {
     const baseId = React.useId();
-    const ctx = React.useMemo(
-        () => ({ value, setValue: onValueChange, baseId }),
-        [value, onValueChange, baseId],
-    );
+    const ctx = React.useMemo(() => ({ value, setValue: onValueChange, baseId }), [value, onValueChange, baseId]);
 
     return (
         <TabsContext.Provider value={ctx}>
@@ -50,9 +47,7 @@ function TabsList({ className, ...props }: React.HTMLAttributes<HTMLDivElement>)
             onKeyDown={(e) => {
                 const target = e.target as HTMLElement;
                 if (target.getAttribute('role') !== 'tab') return;
-                const tabs = Array.from(
-                    e.currentTarget.querySelectorAll<HTMLButtonElement>('[role="tab"]'),
-                );
+                const tabs = Array.from(e.currentTarget.querySelectorAll<HTMLButtonElement>('[role="tab"]'));
                 const index = tabs.indexOf(target as HTMLButtonElement);
                 if (index < 0) return;
 
@@ -119,10 +114,7 @@ function TabsContent({ value, className, ...props }: TabsContentProps) {
             id={`${baseId}-panel-${value}`}
             aria-labelledby={`${baseId}-tab-${value}`}
             tabIndex={0}
-            className={cn(
-                'mt-6 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring',
-                className,
-            )}
+            className={cn('mt-6 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring', className)}
             {...props}
         />
     );

@@ -17,9 +17,7 @@ export default function GuestLayout({ children, title }: GuestLayoutProps): Reac
                     VantageJobs
                 </a>
                 <div className="flex flex-col gap-6">
-                    {title ? (
-                        <h1 className="text-2xl font-semibold tracking-tight text-balance">{title}</h1>
-                    ) : null}
+                    {title ? <h1 className="text-2xl font-semibold tracking-tight text-balance">{title}</h1> : null}
                     {children}
                 </div>
             </div>

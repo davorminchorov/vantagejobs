@@ -156,7 +156,9 @@ export default function ContactsIndexPage({ contacts, filters, options }: Props)
                             <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
                                 <DialogHeader>
                                     <DialogTitle>Add a contact</DialogTitle>
-                                    <DialogDescription>Track someone in your network. Everything is optional except the name.</DialogDescription>
+                                    <DialogDescription>
+                                        Track someone in your network. Everything is optional except the name.
+                                    </DialogDescription>
                                 </DialogHeader>
                                 <ContactForm
                                     mode="create"
@@ -360,7 +362,9 @@ function Pagination({ links }: PaginationProps) {
                         preserveState
                         className={cn(
                             'rounded-md px-3 py-1 text-sm tabular-nums',
-                            link.active ? 'bg-muted font-medium text-foreground' : 'text-muted-foreground hover:bg-muted hover:text-foreground',
+                            link.active
+                                ? 'bg-muted font-medium text-foreground'
+                                : 'text-muted-foreground hover:bg-muted hover:text-foreground',
                         )}
                         dangerouslySetInnerHTML={{ __html: label }}
                     />

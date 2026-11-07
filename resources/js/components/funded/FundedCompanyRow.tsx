@@ -83,9 +83,7 @@ export function FundedCompanyRow({ group, onDismiss }: FundedCompanyRowProps) {
                                     <span className="text-base text-pretty sm:text-sm">{headline.title}</span>
                                 )}
                                 {headline.summary ? (
-                                    <p className="line-clamp-2 max-w-prose text-sm text-pretty text-muted-foreground">
-                                        {headline.summary}
-                                    </p>
+                                    <p className="line-clamp-2 max-w-prose text-sm text-pretty text-muted-foreground">{headline.summary}</p>
                                 ) : null}
                                 <span className="text-sm text-muted-foreground sm:text-xs">
                                     {headline.source} · <span className="tabular-nums">{formatDate(headline.published_at)}</span>

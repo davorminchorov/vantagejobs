@@ -49,13 +49,7 @@ function toDateInput(value: string | null): string {
     return value.slice(0, 10);
 }
 
-export default function ApplicationMetadataForm({
-    roleId,
-    application,
-    interviewPrep,
-    contacts,
-    sources,
-}: ApplicationMetadataFormProps) {
+export default function ApplicationMetadataForm({ roleId, application, interviewPrep, contacts, sources }: ApplicationMetadataFormProps) {
     const form = useForm<ApplicationFormValues>({
         applied_at: toDateInput(application.applied_at),
         application_source: application.application_source ?? '',
@@ -91,10 +85,7 @@ export default function ApplicationMetadataForm({
                         id="application_source"
                         value={form.data.application_source}
                         onChange={(v) => form.setData('application_source', v)}
-                        options={[
-                            { value: '', label: 'Unspecified' },
-                            ...sources.map((s) => ({ value: s, label: humanize(s) })),
-                        ]}
+                        options={[{ value: '', label: 'Unspecified' }, ...sources.map((s) => ({ value: s, label: humanize(s) }))]}
                     />
                 </Field>
 
@@ -138,7 +129,10 @@ export default function ApplicationMetadataForm({
                 <textarea
                     id="general_notes"
                     name="general_notes"
-                    className={cn('min-h-28', 'w-full rounded-md border border-input bg-background px-3 py-2 text-base placeholder:text-muted-foreground focus-visible:outline-2 focus-visible:-outline-offset-1 focus-visible:outline-ring sm:text-sm')}
+                    className={cn(
+                        'min-h-28',
+                        'w-full rounded-md border border-input bg-background px-3 py-2 text-base placeholder:text-muted-foreground focus-visible:outline-2 focus-visible:-outline-offset-1 focus-visible:outline-ring sm:text-sm',
+                    )}
                     value={form.data.general_notes}
                     onChange={(e) => form.setData('general_notes', e.target.value)}
                     placeholder="Free-form notes about this application."
@@ -149,9 +143,7 @@ export default function ApplicationMetadataForm({
                 <Button type="submit" disabled={form.processing}>
                     {form.processing ? 'Saving…' : 'Save application details'}
                 </Button>
-                {form.recentlySuccessful ? (
-                    <span className="text-base text-muted-foreground sm:text-sm">Saved.</span>
-                ) : null}
+                {form.recentlySuccessful ? <span className="text-base text-muted-foreground sm:text-sm">Saved.</span> : null}
             </div>
         </form>
     );
@@ -183,13 +175,7 @@ interface SelectInputProps {
 
 function SelectInput({ id, value, onChange, options }: SelectInputProps) {
     return (
-        <NativeSelect
-            id={id}
-            name={id}
-            value={value}
-            onChange={(e) => onChange(e.target.value)}
-            wrapperClassName="w-full"
-        >
+        <NativeSelect id={id} name={id} value={value} onChange={(e) => onChange(e.target.value)} wrapperClassName="w-full">
             {options.map((option) => (
                 <option key={option.value} value={option.value}>
                     {option.label}

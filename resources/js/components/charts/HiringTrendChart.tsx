@@ -1,13 +1,4 @@
-import {
-    CartesianGrid,
-    Legend,
-    Line,
-    LineChart,
-    ResponsiveContainer,
-    Tooltip,
-    XAxis,
-    YAxis,
-} from 'recharts';
+import { CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 
 import { formatDate } from '@/lib/dates';
 
@@ -39,12 +30,17 @@ const COMPACT_NUMBER = new Intl.NumberFormat(undefined, { notation: 'compact', m
 /** "Aug 12" for a YYYY-MM-DD string, read as a calendar date. */
 function shortDate(date: string): string {
     const parsed = new Date(`${date}T00:00:00`);
-    return Number.isNaN(parsed.getTime())
-        ? date
-        : parsed.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+    return Number.isNaN(parsed.getTime()) ? date : parsed.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 }
 
-export default function HiringTrendChart({ data, showListings = true, showLegend = true, curve = 'smooth', height = 240, compact = false }: Props) {
+export default function HiringTrendChart({
+    data,
+    showListings = true,
+    showLegend = true,
+    curve = 'smooth',
+    height = 240,
+    compact = false,
+}: Props) {
     if (data.length === 0) {
         if (compact) {
             return (

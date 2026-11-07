@@ -53,12 +53,16 @@ const SORT_LABELS: Record<string, string> = {
 
 export default function BookmarksIndex({ bookmarks, sort, options }: Props) {
     function applySort(next: string) {
-        router.get('/bookmarks', { sort: next }, {
-            replace: true,
-            preserveScroll: true,
-            preserveState: true,
-            only: ['bookmarks', 'sort'],
-        });
+        router.get(
+            '/bookmarks',
+            { sort: next },
+            {
+                replace: true,
+                preserveScroll: true,
+                preserveState: true,
+                only: ['bookmarks', 'sort'],
+            },
+        );
     }
 
     function unbookmark(id: number) {
@@ -79,7 +83,8 @@ export default function BookmarksIndex({ bookmarks, sort, options }: Props) {
                     title="Bookmarks"
                     subtitle={
                         <>
-                            <span className="tabular-nums">{bookmarks.total}</span> bookmarked {bookmarks.total === 1 ? 'listing' : 'listings'} · auto-expires after 30 days
+                            <span className="tabular-nums">{bookmarks.total}</span> bookmarked{' '}
+                            {bookmarks.total === 1 ? 'listing' : 'listings'} · auto-expires after 30 days
                         </>
                     }
                     actions={
@@ -107,13 +112,15 @@ export default function BookmarksIndex({ bookmarks, sort, options }: Props) {
 
                 {warnedCount > 0 && (
                     <Badge variant="warning" className="w-fit whitespace-normal">
-                        <span className="tabular-nums">{warnedCount}</span> {warnedCount === 1 ? 'bookmark expires' : 'bookmarks expire'} within the next 3 days.
+                        <span className="tabular-nums">{warnedCount}</span> {warnedCount === 1 ? 'bookmark expires' : 'bookmarks expire'}{' '}
+                        within the next 3 days.
                     </Badge>
                 )}
 
                 {bookmarks.data.length === 0 ? (
                     <EmptyState>
-                        Nothing bookmarked yet. Press <kbd className="rounded-md border border-border px-1 font-mono">B</kbd> on a listing in{' '}
+                        Nothing bookmarked yet. Press <kbd className="rounded-md border border-border px-1 font-mono">B</kbd> on a listing
+                        in{' '}
                         <Link href="/discover" className="font-medium text-primary hover:underline">
                             Discover
                         </Link>{' '}
@@ -151,21 +158,16 @@ function BookmarkCard({ row, onRemove }: { row: BookmarkRow; onRemove: () => voi
     return (
         <div className="flex items-start justify-between gap-4 py-4">
             <div className="flex min-w-0 flex-col gap-1">
-                <h3 className="text-base font-medium text-balance">
-                    {listing.parsed_role_title ?? '(role unknown)'}
-                </h3>
+                <h3 className="text-base font-medium text-balance">{listing.parsed_role_title ?? '(role unknown)'}</h3>
                 <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
-                    <span className="font-medium text-foreground">
-                        {listing.parsed_company_name ?? '(company unknown)'}
-                    </span>
+                    <span className="font-medium text-foreground">{listing.parsed_company_name ?? '(company unknown)'}</span>
                     {listing.source && <Badge variant="secondary">{listing.source.type}</Badge>}
                     {listing.parsed_remote_type && <span>· {listing.parsed_remote_type.replace('_', ' ')}</span>}
                     {listing.location_bucket && <span>· {listing.location_bucket}</span>}
                     {listing.has_comp && listing.parsed_comp_min_usd != null && (
                         <span className="tabular-nums">
                             · ${(listing.parsed_comp_min_usd / 1000).toFixed(0)}k
-                            {listing.parsed_comp_max_usd != null &&
-                                `-$${(listing.parsed_comp_max_usd / 1000).toFixed(0)}k`}
+                            {listing.parsed_comp_max_usd != null && `-$${(listing.parsed_comp_max_usd / 1000).toFixed(0)}k`}
                         </span>
                     )}
                 </div>

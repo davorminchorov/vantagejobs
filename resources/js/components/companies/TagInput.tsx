@@ -149,9 +149,7 @@ export default function TagInput({ companyId, tags }: TagInputProps) {
                 />
 
                 {open && (suggestions.length > 0 || showCreateItem) ? (
-                    <div className={cn(
-                        'absolute z-10 mt-1 w-full overflow-hidden rounded-md border bg-popover shadow-md',
-                    )}>
+                    <div className={cn('absolute z-10 mt-1 w-full overflow-hidden rounded-md border bg-popover shadow-md')}>
                         <ul className="max-h-60 overflow-auto py-1 text-sm">
                             {suggestions.map((tag) => (
                                 <li key={tag.id}>
@@ -162,9 +160,7 @@ export default function TagInput({ companyId, tags }: TagInputProps) {
                                     >
                                         <span>{tag.name}</span>
                                         {typeof tag.usage_count === 'number' ? (
-                                            <span className="text-xs tabular-nums text-muted-foreground">
-                                                {tag.usage_count}
-                                            </span>
+                                            <span className="text-xs tabular-nums text-muted-foreground">{tag.usage_count}</span>
                                         ) : null}
                                     </button>
                                 </li>

@@ -33,14 +33,7 @@ import {
 import { Separator } from '@/components/ui/separator';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { type Appearance } from '@/hooks/use-appearance';
-import {
-    ADMIN_ONLY_ITEMS,
-    INSIGHTS_ITEMS,
-    SETTINGS_ITEM,
-    TOP_LEVEL_ITEMS,
-    TRACKER_ITEMS,
-    type NavLinkItem,
-} from '@/lib/navigation';
+import { ADMIN_ONLY_ITEMS, INSIGHTS_ITEMS, SETTINGS_ITEM, TOP_LEVEL_ITEMS, TRACKER_ITEMS, type NavLinkItem } from '@/lib/navigation';
 import { cn } from '@/lib/utils';
 import type { User } from '@/types';
 
@@ -102,11 +95,7 @@ export function handleSignOut(): void {
 
 export function Wordmark({ className }: { className?: string }) {
     return (
-        <Link
-            href="/"
-            aria-label="Homepage"
-            className={cn('text-foreground rounded-md text-base font-semibold tracking-tight', className)}
-        >
+        <Link href="/" aria-label="Homepage" className={cn('text-foreground rounded-md text-base font-semibold tracking-tight', className)}>
             Vantage<span className="text-primary">Jobs</span>
         </Link>
     );
@@ -155,15 +144,7 @@ export function UserMenuItems({
     );
 }
 
-function SheetNavLink({
-    item,
-    currentUrl,
-    onNavigate,
-}: {
-    item: NavLinkItem;
-    currentUrl: string;
-    onNavigate: () => void;
-}) {
+function SheetNavLink({ item, currentUrl, onNavigate }: { item: NavLinkItem; currentUrl: string; onNavigate: () => void }) {
     const Icon = NAV_ICONS[item.href];
     const active = isActive(currentUrl, item.href);
 
@@ -257,9 +238,7 @@ export function MobileNavSheet({
                                     onClick={() => onAppearanceChange(value)}
                                     className={cn(
                                         'min-h-11 flex-1 rounded-md px-3 text-base font-medium',
-                                        appearance === value
-                                            ? 'bg-muted text-foreground'
-                                            : 'text-muted-foreground hover:text-foreground',
+                                        appearance === value ? 'bg-muted text-foreground' : 'text-muted-foreground hover:text-foreground',
                                     )}
                                 >
                                     {APPEARANCE_LABEL[value]}

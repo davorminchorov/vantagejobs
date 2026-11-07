@@ -57,9 +57,7 @@ export default function TwoFactorChallenge(): ReactNode {
                             autoFocus
                             className="font-mono tracking-wide"
                         />
-                        {errors.recovery_code ? (
-                            <p className="text-sm text-destructive">{errors.recovery_code}</p>
-                        ) : null}
+                        {errors.recovery_code ? <p className="text-sm text-destructive">{errors.recovery_code}</p> : null}
                     </div>
                 ) : (
                     <div className="flex flex-col gap-2">
@@ -76,9 +74,7 @@ export default function TwoFactorChallenge(): ReactNode {
                             autoFocus
                             className="font-mono tracking-wide tabular-nums"
                         />
-                        {errors.code ? (
-                            <p className="text-sm text-destructive">{errors.code}</p>
-                        ) : null}
+                        {errors.code ? <p className="text-sm text-destructive">{errors.code}</p> : null}
                     </div>
                 )}
 

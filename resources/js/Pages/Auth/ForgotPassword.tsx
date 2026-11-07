@@ -50,9 +50,7 @@ export default function ForgotPassword({ status }: ForgotPasswordPageProps): Rea
                         required
                         autoFocus
                     />
-                    {errors.email ? (
-                        <p className="text-sm text-destructive">{errors.email}</p>
-                    ) : null}
+                    {errors.email ? <p className="text-sm text-destructive">{errors.email}</p> : null}
                 </div>
 
                 <Button type="submit" disabled={processing} className="w-full">

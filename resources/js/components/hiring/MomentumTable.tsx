@@ -151,15 +151,7 @@ export function MomentumTable({ companies, sort, onSort }: MomentumTableProps) {
     );
 }
 
-function SortableHead({
-    column,
-    sort,
-    onToggle,
-}: {
-    column: (typeof COLUMNS)[number];
-    sort: SortState;
-    onToggle: (key: SortKey) => void;
-}) {
+function SortableHead({ column, sort, onToggle }: { column: (typeof COLUMNS)[number]; sort: SortState; onToggle: (key: SortKey) => void }) {
     const active = sort.key === column.key;
     const Icon = sort.direction === 'asc' ? ArrowUp : ArrowDown;
 

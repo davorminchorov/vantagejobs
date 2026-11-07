@@ -3,14 +3,7 @@ import { useMemo, useState } from 'react';
 
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Button } from '@/components/ui/button';
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-} from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { SectionLabel } from '@/components/ui/section-label';
@@ -164,9 +157,8 @@ export default function AdminParserIndex({
                     title="Parser stats"
                     subtitle={
                         <>
-                            Per-source confidence and corrections, last{' '}
-                            <span className="tabular-nums">{window_days}</span> days. Reads roll-up tables only. Refresh once
-                            the daily 02:30 UTC job has run.
+                            Per-source confidence and corrections, last <span className="tabular-nums">{window_days}</span> days. Reads
+                            roll-up tables only. Refresh once the daily 02:30 UTC job has run.
                         </>
                     }
                     actions={
@@ -196,8 +188,8 @@ export default function AdminParserIndex({
                     >
                         <p className="text-foreground font-medium">No roll-up data yet</p>
                         <p>
-                            Roll-up rows are missing for the last <span className="tabular-nums">{window_days}</span> days.
-                            This is normal on a fresh install. The scheduled job runs at 02:30 UTC.
+                            Roll-up rows are missing for the last <span className="tabular-nums">{window_days}</span> days. This is normal
+                            on a fresh install. The scheduled job runs at 02:30 UTC.
                         </p>
                     </EmptyState>
                 )}
@@ -210,7 +202,9 @@ export default function AdminParserIndex({
                                 <table className="min-w-full text-base sm:text-sm">
                                     <thead>
                                         <tr className="border-border border-b text-left">
-                                            <th className="text-muted-foreground px-3 py-2 text-sm font-medium whitespace-nowrap">Source</th>
+                                            <th className="text-muted-foreground px-3 py-2 text-sm font-medium whitespace-nowrap">
+                                                Source
+                                            </th>
                                             {fields.map((field) => (
                                                 <th
                                                     key={field}
@@ -364,8 +358,8 @@ export default function AdminParserIndex({
                     <DialogHeader>
                         <DialogTitle>Re-parse every listing?</DialogTitle>
                         <DialogDescription>
-                            This re-runs the parser against every aggregator listing for this tenant.
-                            Type <code className="bg-muted rounded-md px-1 font-mono">YES</code> below to confirm.
+                            This re-runs the parser against every aggregator listing for this tenant. Type{' '}
+                            <code className="bg-muted rounded-md px-1 font-mono">YES</code> below to confirm.
                         </DialogDescription>
                     </DialogHeader>
                     <div className="flex flex-col gap-2">
@@ -383,12 +377,7 @@ export default function AdminParserIndex({
                         <Button type="button" variant="outline" onClick={() => setShowConfirm(false)}>
                             Cancel
                         </Button>
-                        <Button
-                            type="button"
-                            variant="destructive"
-                            disabled={confirmText !== 'YES'}
-                            onClick={submitReparseAll}
-                        >
+                        <Button type="button" variant="destructive" disabled={confirmText !== 'YES'} onClick={submitReparseAll}>
                             Re-parse all
                         </Button>
                     </DialogFooter>

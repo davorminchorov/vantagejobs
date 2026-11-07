@@ -36,9 +36,7 @@ function filtersToQuery(filters: RoleFilters): Record<string, string | number> {
 }
 
 function hrefFor(filters: RoleFilters): string {
-    const params = new URLSearchParams(
-        Object.entries(filtersToQuery(filters)).map(([key, value]) => [key, String(value)]),
-    ).toString();
+    const params = new URLSearchParams(Object.entries(filtersToQuery(filters)).map(([key, value]) => [key, String(value)])).toString();
     return params === '' ? '/roles' : `/roles?${params}`;
 }
 
@@ -72,8 +70,7 @@ export default function RolesIndex({ groups, filters, counts, options }: Props) 
     const dismissedView = filters.status === 'dismissed';
 
     const flatRoles = useMemo(() => groups.data.flatMap((group) => group.roles), [groups.data]);
-    const companyName =
-        filters.company !== null ? groups.data.find((group) => group.company.id === filters.company)?.company.name : null;
+    const companyName = filters.company !== null ? groups.data.find((group) => group.company.id === filters.company)?.company.name : null;
 
     function applyFilters(patch: Partial<RoleFilters>) {
         setExpandedIds([]);
@@ -97,8 +94,12 @@ export default function RolesIndex({ groups, filters, counts, options }: Props) 
         if (index < 0 || !ids.includes(focusedRoleId as number)) {
             return;
         }
-        const next = flatRoles.slice(index + 1).find((role) => !ids.includes(role.id))
-            ?? flatRoles.slice(0, index).reverse().find((role) => !ids.includes(role.id));
+        const next =
+            flatRoles.slice(index + 1).find((role) => !ids.includes(role.id)) ??
+            flatRoles
+                .slice(0, index)
+                .reverse()
+                .find((role) => !ids.includes(role.id));
         setFocusedRoleId(next?.id ?? null);
     }
 
@@ -267,7 +268,10 @@ export default function RolesIndex({ groups, filters, counts, options }: Props) 
                     subtitle={
                         <>
                             Open roles at the companies you watch, grouped by company
-                            <span className="hidden md:inline"> · J/K move · Enter expand · X dismiss · P add to applications · O open</span>
+                            <span className="hidden md:inline">
+                                {' '}
+                                · J/K move · Enter expand · X dismiss · P add to applications · O open
+                            </span>
                         </>
                     }
                     actions={
@@ -339,9 +343,7 @@ export default function RolesIndex({ groups, filters, counts, options }: Props) 
                             <NativeSelect
                                 name="workplace"
                                 value={filters.workplace ?? ''}
-                                onChange={(e) =>
-                                    applyFilters({ workplace: (e.currentTarget.value || null) as RoleFilters['workplace'] })
-                                }
+                                onChange={(e) => applyFilters({ workplace: (e.currentTarget.value || null) as RoleFilters['workplace'] })}
                             >
                                 <option value="">Any</option>
                                 {options.workplaces.map((w) => (

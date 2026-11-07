@@ -50,15 +50,7 @@ function SidebarLink({ item, currentUrl }: { item: NavLinkItem; currentUrl: stri
     );
 }
 
-function SidebarGroup({
-    label,
-    items,
-    currentUrl,
-}: {
-    label?: string;
-    items: ReadonlyArray<NavLinkItem>;
-    currentUrl: string;
-}) {
+function SidebarGroup({ label, items, currentUrl }: { label?: string; items: ReadonlyArray<NavLinkItem>; currentUrl: string }) {
     return (
         <div>
             {label ? <NavSectionHeading>{label}</NavSectionHeading> : null}

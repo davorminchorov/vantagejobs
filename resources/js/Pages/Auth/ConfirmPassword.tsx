@@ -44,9 +44,7 @@ export default function ConfirmPassword(): ReactNode {
                         required
                         autoFocus
                     />
-                    {errors.password ? (
-                        <p className="text-sm text-destructive">{errors.password}</p>
-                    ) : null}
+                    {errors.password ? <p className="text-sm text-destructive">{errors.password}</p> : null}
                 </div>
 
                 <Button type="submit" disabled={processing} className="w-full">

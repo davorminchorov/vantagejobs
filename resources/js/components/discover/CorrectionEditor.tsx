@@ -85,15 +85,7 @@ export function CorrectionEditor({ listing, field, debug, onSave, onCancel, onSa
     );
 }
 
-function FieldInput({
-    field,
-    value,
-    onChange,
-}: {
-    field: EditableField;
-    value: CorrectionValue;
-    onChange: (v: CorrectionValue) => void;
-}) {
+function FieldInput({ field, value, onChange }: { field: EditableField; value: CorrectionValue; onChange: (v: CorrectionValue) => void }) {
     if (field === 'remote_type') {
         return (
             <NativeSelect

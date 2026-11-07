@@ -52,9 +52,7 @@ export function RecentSalaries({ samples }: { samples: SalarySample[] }) {
                             </span>
                         </div>
                         <div className="flex items-baseline gap-3 text-sm sm:shrink-0">
-                            <span className="font-medium text-foreground tabular-nums">
-                                {formatRange(sample.min_usd, sample.max_usd)}
-                            </span>
+                            <span className="font-medium text-foreground tabular-nums">{formatRange(sample.min_usd, sample.max_usd)}</span>
                             {sample.currency !== null && sample.currency !== 'USD' ? (
                                 <span className="text-muted-foreground" title={`Posted in ${sample.currency}, converted to USD`}>
                                     from {sample.currency}

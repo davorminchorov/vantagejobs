@@ -76,11 +76,7 @@ export default function CompInsightsPage({ filters, options, bounds, summary, by
                         ))}
                         <option value="all">All listings, incl. non-tech</option>
                     </NativeSelect>
-                    <NativeSelect
-                        aria-label="Seniority"
-                        value={filters.level}
-                        onChange={(event) => update({ level: event.target.value })}
-                    >
+                    <NativeSelect aria-label="Seniority" value={filters.level} onChange={(event) => update({ level: event.target.value })}>
                         <option value="any">Any seniority</option>
                         {options.levels.map((option) => (
                             <option key={option.value} value={option.value}>
@@ -88,11 +84,7 @@ export default function CompInsightsPage({ filters, options, bounds, summary, by
                             </option>
                         ))}
                     </NativeSelect>
-                    <NativeSelect
-                        aria-label="Region"
-                        value={filters.region}
-                        onChange={(event) => update({ region: event.target.value })}
-                    >
+                    <NativeSelect aria-label="Region" value={filters.region} onChange={(event) => update({ region: event.target.value })}>
                         <option value="any">Any region</option>
                         {options.regions.map((option) => (
                             <option key={option.value} value={option.value}>

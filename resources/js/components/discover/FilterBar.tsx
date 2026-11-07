@@ -89,9 +89,7 @@ export function FilterBar({
             {hasActiveFilters ? (
                 <button
                     type="button"
-                    onClick={() =>
-                        onChange({ source: null, seniority: null, region: null, has_comp: false, remote_only: false, q: null })
-                    }
+                    onClick={() => onChange({ source: null, seniority: null, region: null, has_comp: false, remote_only: false, q: null })}
                     className="min-h-10 rounded-md text-muted-foreground underline-offset-4 hover:text-foreground hover:underline focus-visible:outline-2 focus-visible:outline-ring sm:min-h-0"
                 >
                     Clear filters

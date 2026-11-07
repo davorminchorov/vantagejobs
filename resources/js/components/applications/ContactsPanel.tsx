@@ -23,11 +23,15 @@ export function ContactsPanel({ company, contacts, templates }: ContactsPanelPro
 
     function logTouch(contact: ApplicationContact) {
         setPendingTouch(contact.id);
-        router.post(`/follow-ups/${contact.id}/touch`, {}, {
-            preserveScroll: true,
-            preserveState: true,
-            onFinish: () => setPendingTouch(null),
-        });
+        router.post(
+            `/follow-ups/${contact.id}/touch`,
+            {},
+            {
+                preserveScroll: true,
+                preserveState: true,
+                onFinish: () => setPendingTouch(null),
+            },
+        );
     }
 
     return (
@@ -42,9 +46,7 @@ export function ContactsPanel({ company, contacts, templates }: ContactsPanelPro
             </div>
 
             {contacts.length === 0 && !adding ? (
-                <p className="text-base text-pretty text-muted-foreground sm:text-sm">
-                    No contacts at this company yet.
-                </p>
+                <p className="text-base text-pretty text-muted-foreground sm:text-sm">No contacts at this company yet.</p>
             ) : (
                 <ul role="list" className="divide-y divide-border border-y border-border">
                     {contacts.map((contact) => (
@@ -119,12 +121,7 @@ function AddContactForm({ companyId, onDone }: { companyId: number; onDone: () =
             <div className="grid gap-3 sm:grid-cols-2">
                 <div className="flex flex-col gap-1.5">
                     <Label htmlFor="new-contact-name">Name</Label>
-                    <Input
-                        id="new-contact-name"
-                        value={form.data.name}
-                        onChange={(e) => form.setData('name', e.target.value)}
-                        autoFocus
-                    />
+                    <Input id="new-contact-name" value={form.data.name} onChange={(e) => form.setData('name', e.target.value)} autoFocus />
                     {form.errors.name ? <span className="text-sm text-destructive">{form.errors.name}</span> : null}
                 </div>
                 <div className="flex flex-col gap-1.5">
@@ -154,9 +151,7 @@ function AddContactForm({ companyId, onDone }: { companyId: number; onDone: () =
                         value={form.data.linkedin_url}
                         onChange={(e) => form.setData('linkedin_url', e.target.value)}
                     />
-                    {form.errors.linkedin_url ? (
-                        <span className="text-sm text-destructive">{form.errors.linkedin_url}</span>
-                    ) : null}
+                    {form.errors.linkedin_url ? <span className="text-sm text-destructive">{form.errors.linkedin_url}</span> : null}
                 </div>
             </div>
             <div className="flex items-center gap-3">

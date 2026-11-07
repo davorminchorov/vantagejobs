@@ -2,13 +2,7 @@ import { Head, router } from '@inertiajs/react';
 
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { FundedCompanyRow } from '@/components/funded/FundedCompanyRow';
-import type {
-    FundedCompanyGroup,
-    RecentlyFundedFilters,
-    RegionFilter,
-    RoundFilter,
-    SoftwareFilter,
-} from '@/components/funded/types';
+import type { FundedCompanyGroup, RecentlyFundedFilters, RegionFilter, RoundFilter, SoftwareFilter } from '@/components/funded/types';
 import InsightsNav from '@/components/insights/InsightsNav';
 import PageHeader from '@/components/PageHeader';
 import { EmptyState } from '@/components/ui/empty-state';

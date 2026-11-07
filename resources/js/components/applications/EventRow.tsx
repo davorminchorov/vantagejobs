@@ -65,9 +65,7 @@ export function EventRow({ event, timeOnly = false, showOwner = true, onOpenAppl
                     </a>
                 ) : null}
                 {event.notes ? (
-                    <p className="text-base break-words whitespace-pre-wrap text-pretty text-muted-foreground sm:text-sm">
-                        {event.notes}
-                    </p>
+                    <p className="text-base break-words whitespace-pre-wrap text-pretty text-muted-foreground sm:text-sm">{event.notes}</p>
                 ) : null}
             </div>
             <div className="flex shrink-0 items-center gap-2">

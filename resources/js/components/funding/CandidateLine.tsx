@@ -21,13 +21,7 @@ export function CandidateLine({ candidate, isLast, onConfirm, onDismiss }: Candi
 
     return (
         <li className="relative flex gap-3 py-3 pr-3 pl-8 sm:gap-4 sm:pr-4 sm:pl-9">
-            <span
-                aria-hidden="true"
-                className={cn(
-                    'absolute top-0 left-4 w-px bg-border sm:left-[1.125rem]',
-                    isLast ? 'h-5' : 'h-full',
-                )}
-            />
+            <span aria-hidden="true" className={cn('absolute top-0 left-4 w-px bg-border sm:left-[1.125rem]', isLast ? 'h-5' : 'h-full')} />
             <span
                 aria-hidden="true"
                 className="absolute top-[1.0625rem] left-[0.8125rem] size-[0.4375rem] rounded-full bg-muted-foreground/60 ring-4 ring-background sm:left-[0.9375rem]"

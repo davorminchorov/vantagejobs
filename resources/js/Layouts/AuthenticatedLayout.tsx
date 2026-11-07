@@ -20,12 +20,7 @@ export default function AuthenticatedLayout({ children, header }: AuthenticatedL
 
     return (
         <div className="bg-background text-foreground isolate flex min-h-svh flex-col">
-            <SidebarShell
-                user={user}
-                currentUrl={currentUrl}
-                appearance={appearance}
-                onAppearanceChange={setAppearance}
-            />
+            <SidebarShell user={user} currentUrl={currentUrl} appearance={appearance} onAppearanceChange={setAppearance} />
 
             <div className="flex flex-1 flex-col lg:pl-64">
                 {header ? (

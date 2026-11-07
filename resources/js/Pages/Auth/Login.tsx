@@ -52,9 +52,7 @@ export default function Login({ status }: LoginPageProps): ReactNode {
                         required
                         autoFocus
                     />
-                    {errors.email ? (
-                        <p className="text-sm text-destructive">{errors.email}</p>
-                    ) : null}
+                    {errors.email ? <p className="text-sm text-destructive">{errors.email}</p> : null}
                 </div>
 
                 <div className="flex flex-col gap-2">
@@ -68,9 +66,7 @@ export default function Login({ status }: LoginPageProps): ReactNode {
                         onChange={(event) => setData('password', event.target.value)}
                         required
                     />
-                    {errors.password ? (
-                        <p className="text-sm text-destructive">{errors.password}</p>
-                    ) : null}
+                    {errors.password ? <p className="text-sm text-destructive">{errors.password}</p> : null}
                 </div>
 
                 <div className="flex items-center justify-between gap-4">

@@ -1,9 +1,6 @@
 import { useEffect, useState } from 'react';
 
-type DescriptionState =
-    | { status: 'idle' | 'loading' }
-    | { status: 'loaded'; text: string | null }
-    | { status: 'error' };
+type DescriptionState = { status: 'idle' | 'loading' } | { status: 'loaded'; text: string | null } | { status: 'error' };
 
 /** Descriptions already fetched this page visit, keyed by role id. */
 const cache = new Map<number, string | null>();

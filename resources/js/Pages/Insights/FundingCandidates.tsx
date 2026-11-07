@@ -34,11 +34,11 @@ export default function FundingCandidatesPage({ groups, summary }: Props) {
                         summary.headlines > 0 ? (
                             <>
                                 <span className="tabular-nums">
-                                    {summary.headlines} {summary.headlines === 1 ? 'headline' : 'headlines'} across{' '}
-                                    {summary.companies} {summary.companies === 1 ? 'company' : 'companies'}
+                                    {summary.headlines} {summary.headlines === 1 ? 'headline' : 'headlines'} across {summary.companies}{' '}
+                                    {summary.companies === 1 ? 'company' : 'companies'}
                                 </span>{' '}
-                                from the last {summary.max_age_months} months. Confirm records the round on the company;
-                                dismiss drops the headline.
+                                from the last {summary.max_age_months} months. Confirm records the round on the company; dismiss drops the
+                                headline.
                             </>
                         ) : (
                             'Funding news about tracked companies, waiting for review.'
@@ -49,8 +49,8 @@ export default function FundingCandidatesPage({ groups, summary }: Props) {
 
                 {groups.length === 0 ? (
                     <EmptyState>
-                        Nothing to review. Every Monday the news scan looks for funding headlines from the last{' '}
-                        {summary.max_age_months} months that name a tracked company.
+                        Nothing to review. Every Monday the news scan looks for funding headlines from the last {summary.max_age_months}{' '}
+                        months that name a tracked company.
                     </EmptyState>
                 ) : (
                     <div className="flex flex-col gap-4">

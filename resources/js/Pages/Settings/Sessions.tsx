@@ -44,17 +44,13 @@ export default function SessionsPage() {
                                     autoComplete="current-password"
                                     required
                                 />
-                                {errors.password && (
-                                    <p className="text-sm text-destructive">{errors.password}</p>
-                                )}
+                                {errors.password && <p className="text-sm text-destructive">{errors.password}</p>}
                             </div>
                             <div className="flex items-center gap-3">
                                 <Button type="submit" variant="outline" disabled={processing}>
                                     Sign out other sessions
                                 </Button>
-                                {recentlySuccessful && (
-                                    <span className="text-sm text-muted-foreground">Done.</span>
-                                )}
+                                {recentlySuccessful && <span className="text-sm text-muted-foreground">Done.</span>}
                             </div>
                         </div>
                     </SettingsSection>

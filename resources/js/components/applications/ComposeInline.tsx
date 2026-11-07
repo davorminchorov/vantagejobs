@@ -35,7 +35,10 @@ export function ComposeInline({ contactId, templates }: ComposeInlineProps) {
                     'Content-Type': 'application/json',
                     Accept: 'application/json',
                     'X-XSRF-TOKEN': decodeURIComponent(
-                        document.cookie.split('; ').find((c) => c.startsWith('XSRF-TOKEN='))?.split('=')[1] ?? '',
+                        document.cookie
+                            .split('; ')
+                            .find((c) => c.startsWith('XSRF-TOKEN='))
+                            ?.split('=')[1] ?? '',
                     ),
                 },
                 body: JSON.stringify({ template_id: templateId }),
@@ -103,7 +106,11 @@ export function ComposeInline({ contactId, templates }: ComposeInlineProps) {
                     <div className="flex items-center justify-between gap-2">
                         <Label htmlFor={`${idBase}-draft`}>Draft</Label>
                         <Button type="button" variant="ghost" size="sm" onClick={copy}>
-                            {copied ? <Check className="text-emerald-600 dark:text-emerald-400" aria-hidden="true" /> : <Copy aria-hidden="true" />}
+                            {copied ? (
+                                <Check className="text-emerald-600 dark:text-emerald-400" aria-hidden="true" />
+                            ) : (
+                                <Copy aria-hidden="true" />
+                            )}
                             {copied ? 'Copied' : 'Copy'}
                         </Button>
                     </div>

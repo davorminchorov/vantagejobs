@@ -213,13 +213,17 @@ export default function DiscoverIndex({ listings, filters, counts, options }: Pr
     }
 
     function applyFilters(patch: Partial<Filters>) {
-        router.get('/discover', { ...filters, ...patch }, {
-            replace: true,
-            preserveScroll: true,
-            preserveState: true,
-            only: ['listings', 'filters', 'counts'],
-            reset: ['listings'],
-        });
+        router.get(
+            '/discover',
+            { ...filters, ...patch },
+            {
+                replace: true,
+                preserveScroll: true,
+                preserveState: true,
+                only: ['listings', 'filters', 'counts'],
+                reset: ['listings'],
+            },
+        );
     }
 
     /** Bulk completion: drops every affected row from the merged list, mirroring actOn's single-row removal. */
@@ -269,7 +273,10 @@ export default function DiscoverIndex({ listings, filters, counts, options }: Pr
                         <>
                             Showing <span className="tabular-nums">{listings.data.length}</span> of{' '}
                             <span className="tabular-nums">{listings.total}</span> {listings.total === 1 ? 'listing' : 'listings'}
-                            <span className="hidden md:inline"> · J/↓ next · ↑ prev · K keep · X dismiss · S snooze · B bookmark · O open</span>
+                            <span className="hidden md:inline">
+                                {' '}
+                                · J/↓ next · ↑ prev · K keep · X dismiss · S snooze · B bookmark · O open
+                            </span>
                         </>
                     }
                     actions={
@@ -290,36 +297,36 @@ export default function DiscoverIndex({ listings, filters, counts, options }: Pr
                 />
 
                 <div className="flex flex-col gap-3">
-                <StatusTabs current={filters.status} counts={counts} onChange={(status) => applyFilters({ status })} />
+                    <StatusTabs current={filters.status} counts={counts} onChange={(status) => applyFilters({ status })} />
 
-                <FilterBar filters={filters} options={options} onChange={applyFilters} />
+                    <FilterBar filters={filters} options={options} onChange={applyFilters} />
                 </div>
 
                 {listings.total === 0 ? (
                     <DiscoverEmptyState />
                 ) : (
                     <div>
-                    <InfiniteScroll
-                        data="listings"
-                        manual
-                        itemsElement={itemsRef}
-                        next={({ loading, fetch, hasMore }) =>
-                            hasMore ? (
-                                <div className="flex justify-center pt-6">
-                                    <Button variant="outline" onClick={fetch} disabled={loading}>
-                                        {loading ? 'Loading…' : `Load more (${listings.total - listings.data.length} remaining)`}
-                                    </Button>
-                                </div>
-                            ) : null
-                        }
-                    >
-                        {listings.data.length === 0 && (
-                            <p className="py-8 text-center text-base text-pretty text-muted-foreground sm:text-sm">
-                                Nothing left on this page. Load more below.
-                            </p>
-                        )}
-                        <SplitViewLayout {...layoutProps} />
-                    </InfiniteScroll>
+                        <InfiniteScroll
+                            data="listings"
+                            manual
+                            itemsElement={itemsRef}
+                            next={({ loading, fetch, hasMore }) =>
+                                hasMore ? (
+                                    <div className="flex justify-center pt-6">
+                                        <Button variant="outline" onClick={fetch} disabled={loading}>
+                                            {loading ? 'Loading…' : `Load more (${listings.total - listings.data.length} remaining)`}
+                                        </Button>
+                                    </div>
+                                ) : null
+                            }
+                        >
+                            {listings.data.length === 0 && (
+                                <p className="py-8 text-center text-base text-pretty text-muted-foreground sm:text-sm">
+                                    Nothing left on this page. Load more below.
+                                </p>
+                            )}
+                            <SplitViewLayout {...layoutProps} />
+                        </InfiniteScroll>
                     </div>
                 )}
 

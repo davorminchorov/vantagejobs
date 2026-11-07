@@ -22,16 +22,15 @@ interface Props {
 }
 
 export default function NotificationsPage({ settings }: Props) {
-    const { data, setData, post, processing, errors, recentlySuccessful } =
-        useForm<NotificationSettings>({
-            digest_send_time: settings.digest_send_time,
-            dnd_start: settings.dnd_start,
-            dnd_end: settings.dnd_end,
-            digest_skip_empty: settings.digest_skip_empty,
-            notification_email: settings.notification_email,
-            weekly_summary_enabled: settings.weekly_summary_enabled,
-            follow_up_threshold_days: settings.follow_up_threshold_days,
-        });
+    const { data, setData, post, processing, errors, recentlySuccessful } = useForm<NotificationSettings>({
+        digest_send_time: settings.digest_send_time,
+        dnd_start: settings.dnd_start,
+        dnd_end: settings.dnd_end,
+        digest_skip_empty: settings.digest_skip_empty,
+        notification_email: settings.notification_email,
+        weekly_summary_enabled: settings.weekly_summary_enabled,
+        follow_up_threshold_days: settings.follow_up_threshold_days,
+    });
 
     const submit: FormEventHandler = (event) => {
         event.preventDefault();
@@ -41,10 +40,7 @@ export default function NotificationsPage({ settings }: Props) {
     return (
         <>
             <Head title="Notification settings" />
-            <SettingsLayout
-                title="Notifications"
-                description="Control when and where digests and instant alerts are delivered."
-            >
+            <SettingsLayout title="Notifications" description="Control when and where digests and instant alerts are delivered.">
                 <form onSubmit={submit}>
                     <SettingsSection
                         title="Delivery"
@@ -65,9 +61,7 @@ export default function NotificationsPage({ settings }: Props) {
                                 <p className="text-sm text-muted-foreground">
                                     Where digests, instant alerts, and the weekly summary are sent.
                                 </p>
-                                {errors.notification_email && (
-                                    <p className="text-sm text-destructive">{errors.notification_email}</p>
-                                )}
+                                {errors.notification_email && <p className="text-sm text-destructive">{errors.notification_email}</p>}
                             </div>
                             <div className="flex flex-col gap-2">
                                 <Label htmlFor="digest_send_time">Daily digest time</Label>
@@ -82,17 +76,12 @@ export default function NotificationsPage({ settings }: Props) {
                                 <p className="text-sm text-muted-foreground">
                                     Wall-clock time in your timezone the daily digest is dispatched.
                                 </p>
-                                {errors.digest_send_time && (
-                                    <p className="text-sm text-destructive">{errors.digest_send_time}</p>
-                                )}
+                                {errors.digest_send_time && <p className="text-sm text-destructive">{errors.digest_send_time}</p>}
                             </div>
                         </div>
                     </SettingsSection>
 
-                    <SettingsSection
-                        title="Follow-ups"
-                        description="When an applied or screening application counts as quiet."
-                    >
+                    <SettingsSection title="Follow-ups" description="When an applied or screening application counts as quiet.">
                         <div className="flex flex-col gap-2">
                             <Label htmlFor="follow_up_threshold_days">Follow up after (days without activity)</Label>
                             <Input
@@ -132,9 +121,7 @@ export default function NotificationsPage({ settings }: Props) {
                                     onChange={(event) => setData('dnd_start', event.target.value)}
                                     required
                                 />
-                                {errors.dnd_start && (
-                                    <p className="text-sm text-destructive">{errors.dnd_start}</p>
-                                )}
+                                {errors.dnd_start && <p className="text-sm text-destructive">{errors.dnd_start}</p>}
                             </div>
                             <div className="flex flex-col gap-2">
                                 <Label htmlFor="dnd_end">To</Label>
@@ -146,17 +133,12 @@ export default function NotificationsPage({ settings }: Props) {
                                     onChange={(event) => setData('dnd_end', event.target.value)}
                                     required
                                 />
-                                {errors.dnd_end && (
-                                    <p className="text-sm text-destructive">{errors.dnd_end}</p>
-                                )}
+                                {errors.dnd_end && <p className="text-sm text-destructive">{errors.dnd_end}</p>}
                             </div>
                         </fieldset>
                     </SettingsSection>
 
-                    <SettingsSection
-                        title="Digests"
-                        description="Choose which summaries you receive."
-                    >
+                    <SettingsSection title="Digests" description="Choose which summaries you receive.">
                         <div className="flex flex-col gap-5">
                             <label className="flex items-start justify-between gap-4">
                                 <span className="flex min-w-0 flex-col gap-0.5">
@@ -199,9 +181,7 @@ export default function NotificationsPage({ settings }: Props) {
                                 <Button type="submit" disabled={processing}>
                                     Save
                                 </Button>
-                                {recentlySuccessful && (
-                                    <span className="text-sm text-muted-foreground">Saved.</span>
-                                )}
+                                {recentlySuccessful && <span className="text-sm text-muted-foreground">Saved.</span>}
                             </div>
                         </div>
                     </SettingsSection>

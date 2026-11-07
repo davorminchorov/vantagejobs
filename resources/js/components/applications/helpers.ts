@@ -1,10 +1,4 @@
-import type {
-    AgendaEvent,
-    ApplicationRow,
-    ApplicationsFilters,
-    AttentionReason,
-    StatusOption,
-} from './types';
+import type { AgendaEvent, ApplicationRow, ApplicationsFilters, AttentionReason, StatusOption } from './types';
 
 export type BadgeVariant = 'default' | 'success' | 'warning' | 'destructive' | 'secondary' | 'outline';
 
@@ -44,10 +38,7 @@ export function safeHttpUrl(url: string | null | undefined): string | null {
 }
 
 /** Query string for /applications. Defaults are omitted, `past` only applies to the upcoming view. */
-export function buildQuery(
-    filters: ApplicationsFilters,
-    patch: Partial<ApplicationsFilters> = {},
-): Record<string, string | number> {
+export function buildQuery(filters: ApplicationsFilters, patch: Partial<ApplicationsFilters> = {}): Record<string, string | number> {
     const next = { ...filters, ...patch };
     const query: Record<string, string | number> = {};
     if (next.view !== 'all') {

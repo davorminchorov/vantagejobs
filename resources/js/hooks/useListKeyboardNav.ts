@@ -43,23 +43,22 @@ interface UseListKeyboardNavResult {
  * The hook keeps `prefers-reduced-motion` honest: scrolling uses `smooth`
  * behaviour only when the user has not asked to reduce motion.
  */
-export function useListKeyboardNav({
-    itemCount,
-    actions,
-    enabled = true,
-}: UseListKeyboardNavOptions): UseListKeyboardNavResult {
+export function useListKeyboardNav({ itemCount, actions, enabled = true }: UseListKeyboardNavOptions): UseListKeyboardNavResult {
     const [focusIndex, setFocusIndexState] = useState<number>(-1);
     const itemRefs = useRef<Array<HTMLElement | null>>([]);
 
-    const setFocusIndex = useCallback((next: number | ((prev: number) => number)) => {
-        setFocusIndexState((prev) => {
-            const resolved = typeof next === 'function' ? next(prev) : next;
-            if (itemCount === 0) {
-                return -1;
-            }
-            return Math.max(-1, Math.min(itemCount - 1, resolved));
-        });
-    }, [itemCount]);
+    const setFocusIndex = useCallback(
+        (next: number | ((prev: number) => number)) => {
+            setFocusIndexState((prev) => {
+                const resolved = typeof next === 'function' ? next(prev) : next;
+                if (itemCount === 0) {
+                    return -1;
+                }
+                return Math.max(-1, Math.min(itemCount - 1, resolved));
+            });
+        },
+        [itemCount],
+    );
 
     const registerItem = useCallback(
         (index: number) => (el: HTMLElement | null) => {
@@ -81,12 +80,7 @@ export function useListKeyboardNav({
                 return false;
             }
             const tag = el.tagName;
-            return (
-                tag === 'INPUT' ||
-                tag === 'TEXTAREA' ||
-                tag === 'SELECT' ||
-                el.isContentEditable
-            );
+            return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || el.isContentEditable;
         }
 
         function onKey(event: KeyboardEvent): void {

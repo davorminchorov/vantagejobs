@@ -226,7 +226,9 @@ export default function AuditIndex({ logs, filters, options }: Props) {
                                                     <dl className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                                                         <div className="flex min-w-0 flex-col gap-1">
                                                             <dt className="text-foreground text-sm font-medium">User agent</dt>
-                                                            <dd className="text-muted-foreground font-mono text-sm break-all">{log.user_agent ?? '—'}</dd>
+                                                            <dd className="text-muted-foreground font-mono text-sm break-all">
+                                                                {log.user_agent ?? '—'}
+                                                            </dd>
                                                         </div>
                                                         <div className="flex min-w-0 flex-col gap-1">
                                                             <dt className="text-foreground text-sm font-medium">Context</dt>

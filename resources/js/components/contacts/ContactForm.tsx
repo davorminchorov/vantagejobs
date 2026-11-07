@@ -77,12 +77,20 @@ export default function ContactForm({ mode, initial, companies, action, method =
                         />
                     </Field>
 
-                    <Field id="company_id" label="Company" error={form.errors.company_id} hint="Optional. Leave blank for an unaffiliated contact.">
+                    <Field
+                        id="company_id"
+                        label="Company"
+                        error={form.errors.company_id}
+                        hint="Optional. Leave blank for an unaffiliated contact."
+                    >
                         <SelectInput
                             id="company_id"
                             value={form.data.company_id}
                             onChange={(v) => form.setData('company_id', v)}
-                            options={[{ value: '', label: 'No company' }, ...companies.map((c) => ({ value: String(c.id), label: c.name }))]}
+                            options={[
+                                { value: '', label: 'No company' },
+                                ...companies.map((c) => ({ value: String(c.id), label: c.name })),
+                            ]}
                         />
                     </Field>
                 </div>
@@ -163,7 +171,11 @@ function Field({ id, label, error, hint, required, children }: FieldProps) {
                 {required ? <span className="text-destructive"> *</span> : null}
             </Label>
             {children}
-            {error ? <span className="text-base text-destructive sm:text-sm">{error}</span> : hint ? <span className="text-xs text-muted-foreground">{hint}</span> : null}
+            {error ? (
+                <span className="text-base text-destructive sm:text-sm">{error}</span>
+            ) : hint ? (
+                <span className="text-xs text-muted-foreground">{hint}</span>
+            ) : null}
         </div>
     );
 }
@@ -177,12 +189,7 @@ interface SelectInputProps {
 
 function SelectInput({ id, value, onChange, options }: SelectInputProps) {
     return (
-        <NativeSelect
-            id={id}
-            name={id}
-            value={value}
-            onChange={(e) => onChange(e.target.value)}
-        >
+        <NativeSelect id={id} name={id} value={value} onChange={(e) => onChange(e.target.value)}>
             {options.map((option) => (
                 <option key={option.value} value={option.value}>
                     {option.label}

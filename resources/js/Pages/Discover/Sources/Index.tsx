@@ -34,31 +34,43 @@ interface Props {
 
 export default function SourcesIndex({ sources, rules }: Props) {
     function toggle(id: number) {
-        router.post(`/discover/sources/${id}/toggle`, {}, {
-            preserveScroll: true,
-            preserveState: true,
-            only: ['sources'],
-        });
+        router.post(
+            `/discover/sources/${id}/toggle`,
+            {},
+            {
+                preserveScroll: true,
+                preserveState: true,
+                only: ['sources'],
+            },
+        );
     }
 
     function runNow(id: number) {
-        router.post(`/discover/sources/${id}/run`, {}, {
-            preserveScroll: true,
-            preserveState: true,
-            only: ['sources', 'flash'],
-        });
+        router.post(
+            `/discover/sources/${id}/run`,
+            {},
+            {
+                preserveScroll: true,
+                preserveState: true,
+                only: ['sources', 'flash'],
+            },
+        );
     }
 
     function revoke(id: number) {
-        router.post(`/discover/auto-dismiss-rules/${id}/revoke`, {}, {
-            preserveScroll: true,
-            preserveState: true,
-            only: ['rules'],
-        });
+        router.post(
+            `/discover/auto-dismiss-rules/${id}/revoke`,
+            {},
+            {
+                preserveScroll: true,
+                preserveState: true,
+                only: ['rules'],
+            },
+        );
     }
 
     const activeRules = rules.filter((r) => r.auto_dismiss);
-    const inactiveRules = rules.filter((r) => ! r.auto_dismiss);
+    const inactiveRules = rules.filter((r) => !r.auto_dismiss);
 
     return (
         <AuthenticatedLayout>
@@ -153,8 +165,8 @@ export default function SourcesIndex({ sources, rules }: Props) {
                     )}
                     {inactiveRules.length > 0 && (
                         <p className="text-sm text-pretty text-muted-foreground">
-                            <span className="tabular-nums">{inactiveRules.length}</span> {inactiveRules.length === 1 ? 'employer has' : 'employers have'} dismissals on file but
-                            no active rule yet.
+                            <span className="tabular-nums">{inactiveRules.length}</span>{' '}
+                            {inactiveRules.length === 1 ? 'employer has' : 'employers have'} dismissals on file but no active rule yet.
                         </p>
                     )}
                 </section>
