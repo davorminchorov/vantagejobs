@@ -39,10 +39,10 @@ export default function ImportMapPage({ headers, mapping, preview, row_count, or
 
     return (
         <AuthenticatedLayout>
-            <Head title="Import — Map columns" />
+            <Head title="Import: Map columns" />
             <div className="flex flex-col gap-8">
                 <PageHeader
-                    title="Step 2 — Map columns"
+                    title="Step 2: Map columns"
                     subtitle={
                         <>
                             <span className="tabular-nums">{row_count.toLocaleString()}</span> rows
@@ -57,7 +57,7 @@ export default function ImportMapPage({ headers, mapping, preview, row_count, or
                 />
 
                 <form onSubmit={submit} className="flex flex-col gap-8">
-                    <section className="flex flex-col gap-4">
+                    <section className="flex max-w-3xl flex-col gap-4">
                         <div className="flex flex-col gap-1">
                             <h2 className="text-base font-semibold text-balance">Column mapping</h2>
                             <p className="text-base text-pretty text-muted-foreground sm:text-sm">
@@ -87,7 +87,7 @@ export default function ImportMapPage({ headers, mapping, preview, row_count, or
                                             }
                                             className="h-11 focus-visible:outline-0 focus-visible:ring-2 focus-visible:ring-ring"
                                         >
-                                            <option value="">— Skip —</option>
+                                            <option value="">Skip this field</option>
                                             {headers.map((header) => (
                                                 <option key={header} value={header}>
                                                     {header}
@@ -128,7 +128,7 @@ export default function ImportMapPage({ headers, mapping, preview, row_count, or
                                                 {row[field] ? (
                                                     <span className="font-mono">{row[field]}</span>
                                                 ) : (
-                                                    <span className="text-muted-foreground">—</span>
+                                                    <span className="text-muted-foreground">–</span>
                                                 )}
                                             </TableCell>
                                         ))}

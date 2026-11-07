@@ -50,14 +50,52 @@ interface Props {
     };
 }
 
-function outcomeVariant(outcome: string): 'success' | 'destructive' | 'secondary' {
+const ACTION_LABELS: Record<string, string> = {
+    'auth.login.success': 'Signed in',
+    'auth.login.failed': 'Sign-in failed',
+    'auth.login.lockout': 'Locked out after failed sign-ins',
+    'auth.logout': 'Signed out',
+    'auth.password.reset': 'Password reset',
+    'auth.password.reset.cli': 'Password reset (CLI)',
+    'auth.password.updated': 'Password changed',
+    'auth.2fa.enabled': 'Two-factor enabled',
+    'auth.2fa.confirmed': 'Two-factor confirmed',
+    'auth.2fa.disabled': 'Two-factor disabled',
+    'auth.2fa.disabled.cli': 'Two-factor disabled (CLI)',
+    'auth.2fa.challenged': 'Two-factor challenge shown',
+    'auth.2fa.failed': 'Two-factor check failed',
+    'auth.2fa.success': 'Two-factor check passed',
+    'auth.2fa.recovery_code_used': 'Recovery code used',
+    'bulk.perform': 'Bulk action run',
+    'bulk.undo': 'Bulk action undone',
+    'tenant.created': 'Workspace created',
+};
+
+function actionLabel(action: string): string | null {
+    return ACTION_LABELS[action] ?? null;
+}
+
+const OUTCOME_LABELS: Record<string, string> = {
+    success: 'Success',
+    failure: 'Failed',
+};
+
+function outcomeLabel(outcome: string): string {
+    if (OUTCOME_LABELS[outcome]) {
+        return OUTCOME_LABELS[outcome];
+    }
+    const spaced = outcome.replace(/_/g, ' ');
+    return spaced.charAt(0).toUpperCase() + spaced.slice(1);
+}
+
+function outcomeTextClass(outcome: string): string {
     switch (outcome) {
         case 'success':
-            return 'success';
+            return 'text-emerald-700 dark:text-emerald-300';
         case 'failure':
-            return 'destructive';
+            return 'text-rose-700 dark:text-rose-300';
         default:
-            return 'secondary';
+            return 'text-muted-foreground';
     }
 }
 
@@ -120,7 +158,7 @@ export default function AuditIndex({ logs, filters, options }: Props) {
                             >
                                 {actionOptions.map((a) => (
                                     <option key={a} value={a}>
-                                        {a}
+                                        {a === 'all' ? 'All actions' : (actionLabel(a) ?? a)}
                                     </option>
                                 ))}
                             </NativeSelect>
@@ -135,7 +173,7 @@ export default function AuditIndex({ logs, filters, options }: Props) {
                             >
                                 {outcomeOptions.map((o) => (
                                     <option key={o} value={o}>
-                                        {o}
+                                        {o === 'all' ? 'All outcomes' : outcomeLabel(o)}
                                     </option>
                                 ))}
                             </NativeSelect>
@@ -194,11 +232,20 @@ export default function AuditIndex({ logs, filters, options }: Props) {
                                     <Fragment key={log.id}>
                                         <TableRow className="hover:bg-muted/50">
                                             <TableCell className="whitespace-nowrap tabular-nums">
-                                                {log.created_at ? <RelativeDate iso={log.created_at} /> : '—'}
+                                                {log.created_at ? <RelativeDate iso={log.created_at} /> : '–'}
                                             </TableCell>
-                                            <TableCell className="font-mono">{log.action}</TableCell>
                                             <TableCell>
-                                                <Badge variant={outcomeVariant(log.outcome)}>{log.outcome}</Badge>
+                                                {actionLabel(log.action) ? (
+                                                    <>
+                                                        <span className="font-medium">{actionLabel(log.action)}</span>
+                                                        <span className="text-muted-foreground block font-mono text-xs">{log.action}</span>
+                                                    </>
+                                                ) : (
+                                                    <span className="font-mono">{log.action}</span>
+                                                )}
+                                            </TableCell>
+                                            <TableCell>
+                                                <span className={outcomeTextClass(log.outcome)}>{outcomeLabel(log.outcome)}</span>
                                             </TableCell>
                                             <TableCell>
                                                 {log.actor ? (
@@ -207,7 +254,7 @@ export default function AuditIndex({ logs, filters, options }: Props) {
                                                     <Badge variant="outline">anonymous</Badge>
                                                 )}
                                             </TableCell>
-                                            <TableCell className="text-muted-foreground font-mono tabular-nums">{log.ip ?? '—'}</TableCell>
+                                            <TableCell className="text-muted-foreground font-mono tabular-nums">{log.ip ?? '–'}</TableCell>
                                             <TableCell className="text-right">
                                                 <Button
                                                     type="button"
@@ -227,7 +274,7 @@ export default function AuditIndex({ logs, filters, options }: Props) {
                                                         <div className="flex min-w-0 flex-col gap-1">
                                                             <dt className="text-foreground text-sm font-medium">User agent</dt>
                                                             <dd className="text-muted-foreground font-mono text-sm break-all">
-                                                                {log.user_agent ?? '—'}
+                                                                {log.user_agent ?? '–'}
                                                             </dd>
                                                         </div>
                                                         <div className="flex min-w-0 flex-col gap-1">

@@ -28,7 +28,8 @@ const EMPTY: TemplateFormValues = {
 };
 
 export function humanizeCategory(value: string): string {
-    return value.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+    const spaced = value.replace(/_/g, ' ').toLowerCase();
+    return spaced.charAt(0).toUpperCase() + spaced.slice(1);
 }
 
 export default function TemplateForm({ mode, initial, categories, action, method = 'post', onCancel, onSuccess }: TemplateFormProps) {

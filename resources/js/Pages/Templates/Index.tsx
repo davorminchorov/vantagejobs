@@ -4,7 +4,6 @@ import { useMemo, useState } from 'react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import PageHeader from '@/components/PageHeader';
 import TemplateForm, { humanizeCategory } from '@/components/templates/TemplateForm';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -75,21 +74,18 @@ export default function TemplatesIndexPage({ templates, categories }: Props) {
                 ) : (
                     <div className="flex flex-col gap-8">
                         {grouped.map((group) => (
-                            <section key={group.category} className="flex flex-col gap-3">
-                                <div className="flex items-center gap-2">
-                                    <h2 className="text-sm font-medium text-muted-foreground">{humanizeCategory(group.category)}</h2>
-                                    <Badge variant="secondary" className="tabular-nums">
-                                        {group.rows.length}
-                                    </Badge>
-                                </div>
-                                <ul role="list" className="grid gap-4 sm:grid-cols-2">
+                            <section key={group.category} className="flex flex-col gap-1">
+                                <h2 className="text-sm font-medium text-muted-foreground">
+                                    {humanizeCategory(group.category)} <span className="tabular-nums">({group.rows.length})</span>
+                                </h2>
+                                <ul role="list" className="divide-y divide-border border-b border-border">
                                     {group.rows.map((template) => (
-                                        <li key={template.id} className="flex min-w-0 flex-col gap-3 rounded-xl border border-border p-5">
+                                        <li key={template.id} className="flex min-w-0 flex-col gap-2 py-4">
                                             <div className="flex items-start justify-between gap-2">
                                                 <div className="min-w-0">
-                                                    <h3 className="text-base font-semibold text-balance">{template.name}</h3>
+                                                    <h3 className="text-base font-medium text-balance">{template.name}</h3>
                                                     {template.updated_at ? (
-                                                        <p className="text-xs tabular-nums text-muted-foreground">
+                                                        <p className="text-sm tabular-nums text-muted-foreground">
                                                             Updated <RelativeDate iso={template.updated_at} />
                                                         </p>
                                                     ) : null}
@@ -114,9 +110,9 @@ export default function TemplatesIndexPage({ templates, categories }: Props) {
                                                     </Button>
                                                 </div>
                                             </div>
-                                            <pre className="max-h-40 overflow-hidden font-mono text-xs break-words whitespace-pre-wrap text-muted-foreground">
+                                            <p className="line-clamp-3 max-w-3xl text-sm break-words whitespace-pre-wrap text-muted-foreground">
                                                 {template.body}
-                                            </pre>
+                                            </p>
                                         </li>
                                     ))}
                                 </ul>
