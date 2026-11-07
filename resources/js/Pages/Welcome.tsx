@@ -76,7 +76,7 @@ export default function Welcome() {
                         <dl className="grid gap-8 border-t border-border pt-12 sm:grid-cols-3">
                             <Capability
                                 label="Watch"
-                                copy="ATS scrapers for Greenhouse, Lever, and Ashby. Conditional GETs, diff and dedup, every change captured as an event."
+                                copy="ATS scrapers for 13 job boards, from Greenhouse to Workday, plus 15 job aggregators. Conditional GETs, diff and dedup, every change captured as an event."
                             />
                             <Capability
                                 label="Remember"
@@ -91,11 +91,7 @@ export default function Welcome() {
                 </main>
 
                 <footer className="border-t border-border">
-                    <div className="mx-auto flex h-12 w-full max-w-5xl items-center justify-between px-4 text-xs text-muted-foreground sm:px-6">
-                        <span>
-                            Phase <span className="font-mono tabular-nums">1</span> shipped ·{' '}
-                            <span className="font-mono tabular-nums">May 2026</span>
-                        </span>
+                    <div className="mx-auto flex h-12 w-full max-w-5xl items-center justify-end px-4 text-xs text-muted-foreground sm:px-6">
                         <Link href="/up" className="hover:text-foreground">
                             Status
                         </Link>
