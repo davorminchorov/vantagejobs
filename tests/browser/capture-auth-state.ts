@@ -7,8 +7,7 @@
  * write a session to disk.
  *
  * This file is intentionally NOT part of the PHPUnit suite and is NOT wired
- * into the same job as the specs it feeds. Playwright is not a project
- * dependency; run it ad hoc against a running app:
+ * into the same job as the specs it feeds. Run it against a running app:
  *
  *   pnpm exec playwright install chromium
  *   APP_URL=http://localhost:8080 \

@@ -13,6 +13,9 @@
 import { defineConfig } from '@playwright/test';
 
 export default defineConfig({
+    // capture-auth-state.ts doesn't follow the *.spec.ts naming, so the
+    // default testMatch skips it ("No tests found"). List it explicitly.
+    testMatch: ['**/*.spec.ts', '**/tests/browser/capture-auth-state.ts'],
     use: {
         storageState: process.env.STORAGE_STATE,
     },

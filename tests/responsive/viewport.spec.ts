@@ -6,9 +6,8 @@
  * primary nav has collapsed to the hamburger trigger below the `lg` (1024px)
  * breakpoint.
  *
- * This spec is intentionally NOT part of the PHPUnit suite and is NOT wired
- * into CI. Playwright is not a project dependency; run it ad hoc against a
- * running dev server:
+ * This spec is not part of the PHPUnit suite. CI runs it in the non-blocking
+ * browser job; locally, run it against a running dev server:
  *
  *   pnpm exec playwright install chromium
  *   APP_URL=http://localhost STORAGE_STATE=tests/responsive/.auth.json \
