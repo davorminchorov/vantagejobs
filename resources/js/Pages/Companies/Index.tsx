@@ -27,6 +27,7 @@ interface CompanyRow {
     status: string;
     last_checked_at: string | null;
     open_roles_count: number;
+    latest_open_posted_at: string | null;
 }
 
 interface PaginatedCompanies {
@@ -51,6 +52,7 @@ export interface CompanyFilters {
     domain: string | null;
     q: string | null;
     recently_funded: boolean | null;
+    sort: string;
 }
 
 interface Options {
@@ -58,6 +60,7 @@ interface Options {
     statuses: string[];
     ats_types: string[];
     last_checked: string[];
+    sorts: string[];
     stages: string[];
     sizes: string[];
     remote_policies: string[];
@@ -85,6 +88,14 @@ const LAST_CHECKED_LABELS: Record<string, string> = {
     older_than_30d: 'Older than 30 days',
 };
 
+const DEFAULT_SORT = 'newest_posting';
+
+const SORT_LABELS: Record<string, string> = {
+    newest_posting: 'Newest posting',
+    tier: 'Tier',
+    name: 'Name',
+};
+
 const EMPTY_FILTERS: CompanyFilters = {
     tier: [],
     status: [],
@@ -98,6 +109,7 @@ const EMPTY_FILTERS: CompanyFilters = {
     domain: null,
     q: null,
     recently_funded: null,
+    sort: DEFAULT_SORT,
 };
 
 interface QuickChip {
@@ -128,6 +140,7 @@ export function companyFiltersToQuery(filters: CompanyFilters): Record<string, s
     if (filters.domain) params.domain = filters.domain;
     if (filters.q) params.q = filters.q;
     if (filters.recently_funded !== null) params.recently_funded = filters.recently_funded ? '1' : '0';
+    if (filters.sort && filters.sort !== DEFAULT_SORT) params.sort = filters.sort;
     return params;
 }
 
@@ -213,7 +226,8 @@ export default function CompaniesIndexPage({ companies, filters, options }: Prop
     }
 
     function clearFilters() {
-        setLocal(EMPTY_FILTERS);
+        // Clearing filters keeps the chosen sort order.
+        setLocal((prev) => ({ ...EMPTY_FILTERS, sort: prev.sort }));
     }
 
     function applyChip(chip: QuickChip) {
@@ -299,20 +313,39 @@ export default function CompaniesIndexPage({ companies, filters, options }: Prop
                     <aside className="hidden min-w-0 md:block">{filterPanel}</aside>
 
                     <div className="min-w-0 space-y-3">
-                        <div className="flex items-center justify-between md:hidden">
-                            <Sheet>
-                                <SheetTrigger asChild>
-                                    <Button variant="outline" size="sm">
-                                        Filters{hasAnyFilter ? ' •' : ''}
-                                    </Button>
-                                </SheetTrigger>
-                                <SheetContent side="left" className="w-80 overflow-y-auto">
-                                    <SheetHeader>
-                                        <SheetTitle>Filters</SheetTitle>
-                                    </SheetHeader>
-                                    <div className="mt-4">{filterPanel}</div>
-                                </SheetContent>
-                            </Sheet>
+                        <div className="flex items-center justify-between gap-2">
+                            <div className="md:hidden">
+                                <Sheet>
+                                    <SheetTrigger asChild>
+                                        <Button variant="outline" size="sm">
+                                            Filters{hasAnyFilter ? ' •' : ''}
+                                        </Button>
+                                    </SheetTrigger>
+                                    <SheetContent side="left" className="w-80 overflow-y-auto">
+                                        <SheetHeader>
+                                            <SheetTitle>Filters</SheetTitle>
+                                        </SheetHeader>
+                                        <div className="mt-4">{filterPanel}</div>
+                                    </SheetContent>
+                                </Sheet>
+                            </div>
+                            <label className="ml-auto flex items-center gap-2 text-sm text-muted-foreground">
+                                <span className="font-mono text-xs font-medium uppercase tracking-wide">Sort by</span>
+                                <select
+                                    value={local.sort}
+                                    onChange={(e) => patchFilters({ sort: e.target.value })}
+                                    className={cn(
+                                        'h-9 rounded-md border border-input bg-background px-3 py-1 text-sm text-foreground shadow-sm',
+                                        'focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-2',
+                                    )}
+                                >
+                                    {options.sorts.map((sort) => (
+                                        <option key={sort} value={sort}>
+                                            {SORT_LABELS[sort] ?? sort}
+                                        </option>
+                                    ))}
+                                </select>
+                            </label>
                         </div>
 
                         <Card className="rounded-2xl border-border">
@@ -339,6 +372,7 @@ export default function CompaniesIndexPage({ companies, filters, options }: Prop
                                                 <TableHead>Status</TableHead>
                                                 <TableHead>ATS</TableHead>
                                                 <TableHead>Open roles</TableHead>
+                                                <TableHead>Newest posting</TableHead>
                                                 <TableHead>Last checked</TableHead>
                                                 <TableHead className="text-right">Actions</TableHead>
                                             </TableRow>
@@ -419,6 +453,16 @@ export default function CompaniesIndexPage({ companies, filters, options }: Prop
                                                             <span className="font-mono text-xs tabular-nums text-muted-foreground">
                                                                 0
                                                             </span>
+                                                        )}
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        {company.latest_open_posted_at ? (
+                                                            <RelativeDate
+                                                                iso={company.latest_open_posted_at}
+                                                                className="font-mono text-xs tabular-nums text-muted-foreground"
+                                                            />
+                                                        ) : (
+                                                            <span className="font-mono text-xs tabular-nums text-muted-foreground">-</span>
                                                         )}
                                                     </TableCell>
                                                     <TableCell>

@@ -27,8 +27,9 @@ final readonly class ShowCompanyController
             ->when($rolesState === 'open', fn ($query) => $query->where('is_open', true))
             ->when($rolesState === 'closed', fn ($query) => $query->where('is_open', false))
             ->orderByDesc('is_open')
+            ->orderByRaw('posted_at DESC NULLS LAST')
             ->orderByDesc('last_seen_at')
-            ->orderByDesc('posted_at')
+            ->orderByDesc('id')
             ->paginate(15, pageName: 'roles_page')
             ->withQueryString();
 

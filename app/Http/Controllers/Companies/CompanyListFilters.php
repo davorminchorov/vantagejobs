@@ -30,7 +30,8 @@ use Illuminate\Http\Request;
  *     last_checked: ?string,
  *     domain: ?string,
  *     q: ?string,
- *     recently_funded: ?bool
+ *     recently_funded: ?bool,
+ *     sort: string
  * }
  */
 final readonly class CompanyListFilters
@@ -47,6 +48,15 @@ final readonly class CompanyListFilters
         'passed',
         'graveyard',
     ];
+
+    /**
+     * List orderings. `newest_posting` (the default) puts companies whose
+     * newest open role was posted most recently first; companies with no
+     * dated open roles go last, then tier and name.
+     */
+    public const SORT_NEWEST_POSTING = 'newest_posting';
+
+    public const VALID_SORTS = [self::SORT_NEWEST_POSTING, 'tier', 'name'];
 
     public const VALID_LAST_CHECKED = [
         'never',
@@ -79,6 +89,7 @@ final readonly class CompanyListFilters
         public ?string $q,
         public bool $graveyard,
         public ?bool $recentlyFunded,
+        public string $sort = self::SORT_NEWEST_POSTING,
     ) {}
 
     /**
@@ -124,6 +135,7 @@ final readonly class CompanyListFilters
             q: self::nonEmptyString($input['q'] ?? null),
             graveyard: $graveyard,
             recentlyFunded: $recentlyFunded,
+            sort: self::inSet($input['sort'] ?? null, self::VALID_SORTS) ?? self::SORT_NEWEST_POSTING,
         );
     }
 
@@ -202,6 +214,24 @@ final readonly class CompanyListFilters
     }
 
     /**
+     * Order the list by the selected sort. `newest_posting` expects the query
+     * to select `latest_open_posted_at` (see IndexCompaniesController).
+     */
+    public function applySortTo(Builder $query): Builder
+    {
+        match ($this->sort) {
+            'name' => $query->orderBy('name'),
+            'tier' => $query->orderBy('tier')->orderBy('name'),
+            default => $query
+                ->orderByRaw('latest_open_posted_at DESC NULLS LAST')
+                ->orderBy('tier')
+                ->orderBy('name'),
+        };
+
+        return $query->orderBy('id');
+    }
+
+    /**
      * Canonical wire shape for sharing back to the Inertia page and for
      * persistence in saved_views.filters.
      *
@@ -217,7 +247,8 @@ final readonly class CompanyListFilters
      *     last_checked: ?string,
      *     domain: ?string,
      *     q: ?string,
-     *     recently_funded: ?bool
+     *     recently_funded: ?bool,
+     *     sort: string
      * }
      */
     public function toArray(): array
@@ -236,6 +267,7 @@ final readonly class CompanyListFilters
             'q' => $this->q,
             'graveyard' => $this->graveyard,
             'recently_funded' => $this->recentlyFunded,
+            'sort' => $this->sort,
         ];
     }
 

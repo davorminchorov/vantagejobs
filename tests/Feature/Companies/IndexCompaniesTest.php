@@ -258,4 +258,94 @@ final class IndexCompaniesTest extends TestCase
                 ->where('filters.last_checked', null)
                 ->where('filters.q', null));
     }
+
+    #[Test]
+    public function default_sort_puts_the_company_with_the_newest_open_posting_first(): void
+    {
+        $now = CarbonImmutable::now();
+
+        $older = Company::factory()->create(['tier' => 'A', 'name' => 'Alpha']);
+        $newest = Company::factory()->create(['tier' => 'C', 'name' => 'Zeta']);
+        $closedOnly = Company::factory()->create(['tier' => 'A', 'name' => 'Aaron']);
+
+        Role::factory()->create(['company_id' => $older->id, 'is_open' => true, 'posted_at' => $now->subDays(10)]);
+        Role::factory()->create(['company_id' => $newest->id, 'is_open' => true, 'posted_at' => $now->subDay()]);
+        // A closed role, however recent, must not lift the company to the top.
+        Role::factory()->create(['company_id' => $closedOnly->id, 'is_open' => false, 'posted_at' => $now]);
+
+        $this->actingAs($this->user)
+            ->get('/companies')
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->where('filters.sort', 'newest_posting')
+                ->where('options.sorts', ['newest_posting', 'tier', 'name'])
+                ->where('companies.data.0.name', 'Zeta')
+                ->where('companies.data.1.name', 'Alpha')
+                ->where('companies.data.2.name', 'Aaron')
+                ->where('companies.data.2.latest_open_posted_at', null)
+                ->whereType('companies.data.0.latest_open_posted_at', 'string'));
+    }
+
+    #[Test]
+    public function companies_without_dated_open_roles_sort_last_by_tier_then_name(): void
+    {
+        $dated = Company::factory()->create(['tier' => 'C', 'name' => 'Dated']);
+        $undated = Company::factory()->create(['tier' => 'A', 'name' => 'Undated']);
+        Company::factory()->create(['tier' => 'A', 'name' => 'Empty']);
+
+        Role::factory()->create(['company_id' => $dated->id, 'is_open' => true, 'posted_at' => CarbonImmutable::now()->subDays(20)]);
+        Role::factory()->create(['company_id' => $undated->id, 'is_open' => true, 'posted_at' => null]);
+
+        $this->actingAs($this->user)
+            ->get('/companies')
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->where('companies.data.0.name', 'Dated')
+                ->where('companies.data.1.name', 'Empty')
+                ->where('companies.data.2.name', 'Undated'));
+    }
+
+    #[Test]
+    public function sort_by_tier_orders_by_tier_then_name(): void
+    {
+        $recent = Company::factory()->create(['tier' => 'C', 'name' => 'Recent']);
+        Company::factory()->create(['tier' => 'A', 'name' => 'Bravo']);
+        Company::factory()->create(['tier' => 'A', 'name' => 'Alpha']);
+        Role::factory()->create(['company_id' => $recent->id, 'is_open' => true, 'posted_at' => CarbonImmutable::now()]);
+
+        $this->actingAs($this->user)
+            ->get('/companies?sort=tier')
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->where('filters.sort', 'tier')
+                ->where('companies.data.0.name', 'Alpha')
+                ->where('companies.data.1.name', 'Bravo')
+                ->where('companies.data.2.name', 'Recent'));
+    }
+
+    #[Test]
+    public function sort_by_name_ignores_tier(): void
+    {
+        Company::factory()->create(['tier' => 'C', 'name' => 'Alpha']);
+        Company::factory()->create(['tier' => 'A', 'name' => 'Bravo']);
+
+        $this->actingAs($this->user)
+            ->get('/companies?sort=name')
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->where('filters.sort', 'name')
+                ->where('companies.data.0.name', 'Alpha')
+                ->where('companies.data.1.name', 'Bravo'));
+    }
+
+    #[Test]
+    public function unknown_sort_falls_back_to_newest_posting(): void
+    {
+        Company::factory()->create();
+
+        $this->actingAs($this->user)
+            ->get('/companies?sort=drop_table')
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page->where('filters.sort', 'newest_posting'));
+    }
 }

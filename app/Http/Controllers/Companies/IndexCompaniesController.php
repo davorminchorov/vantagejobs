@@ -34,13 +34,13 @@ final readonly class IndexCompaniesController
         $filters = CompanyListFilters::fromRequest($request);
 
         $query = Company::query()
-            ->withCount(['roles as open_roles_count' => fn ($q) => $q->where('is_open', true)]);
+            ->withCount(['roles as open_roles_count' => fn ($q) => $q->where('is_open', true)])
+            ->withMax(['roles as latest_open_posted_at' => fn ($q) => $q->where('is_open', true)], 'posted_at');
 
         $filters->applyTo($query);
+        $filters->applySortTo($query);
 
         $companies = $query
-            ->orderBy('tier')
-            ->orderBy('name')
             ->paginate(20)
             ->withQueryString();
 
@@ -63,6 +63,7 @@ final readonly class IndexCompaniesController
                 'statuses' => CompanyListFilters::VALID_STATUSES,
                 'ats_types' => array_map(fn (AtsType $t) => $t->value, AtsType::cases()),
                 'last_checked' => CompanyListFilters::VALID_LAST_CHECKED,
+                'sorts' => CompanyListFilters::VALID_SORTS,
                 // Phase 4 step 16: stage is now live (sourced from observed
                 // funding_stage values). size/remote_policy/primary_stack
                 // remain placeholders pending Phase 5+ data work.

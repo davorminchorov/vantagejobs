@@ -243,4 +243,27 @@ final class ShowCompanyTest extends TestCase
                 ->where('timeline.0.role_id', null)
                 ->where('timeline.0.role_title', null));
     }
+
+    #[Test]
+    public function roles_list_shows_open_roles_newest_posting_first_with_undated_and_closed_last(): void
+    {
+        $company = Company::factory()->create();
+        $now = CarbonImmutable::now();
+
+        // last_seen_at runs opposite to posted_at so the old last-seen-first
+        // order would fail this test.
+        Role::factory()->create(['company_id' => $company->id, 'title' => 'Closed recent', 'is_open' => false, 'posted_at' => $now]);
+        Role::factory()->create(['company_id' => $company->id, 'title' => 'Open undated', 'is_open' => true, 'posted_at' => null, 'last_seen_at' => $now]);
+        Role::factory()->create(['company_id' => $company->id, 'title' => 'Open old', 'is_open' => true, 'posted_at' => $now->subDays(30), 'last_seen_at' => $now->subHour()]);
+        Role::factory()->create(['company_id' => $company->id, 'title' => 'Open new', 'is_open' => true, 'posted_at' => $now->subDay(), 'last_seen_at' => $now->subHours(2)]);
+
+        $this->actingAs($this->user)
+            ->get("/companies/{$company->id}")
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->where('roles.data.0.title', 'Open new')
+                ->where('roles.data.1.title', 'Open old')
+                ->where('roles.data.2.title', 'Open undated')
+                ->where('roles.data.3.title', 'Closed recent'));
+    }
 }
