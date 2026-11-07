@@ -45,7 +45,7 @@ final class RecentlyFundedTest extends TestCase
 
         $props = $this->page('/insights/recently-funded');
 
-        $this->assertSame(['region' => 'all', 'round' => 'all', 'tracked' => 'hide'], $props['filters']);
+        $this->assertSame(['region' => 'all', 'round' => 'all', 'tracked' => 'hide', 'software' => 'all'], $props['filters']);
         $this->assertSame(['Kabilio', null], array_column($props['groups'], 'company_name'));
 
         $kabilio = $props['groups'][0];
@@ -76,6 +76,28 @@ final class RecentlyFundedTest extends TestCase
             $this->page('/insights/recently-funded?region=mars&round=bogus')['filters'],
             ['region' => 1, 'round' => 1],
         )));
+    }
+
+    #[Test]
+    public function industries_and_software_verdict_are_combined_per_company_and_filterable(): void
+    {
+        $this->announcement('Kabilio', 'tech_eu', '2026-11-05', ['industries' => ['fintech'], 'is_software' => true, 'summary' => 'AI accounting platform.']);
+        $this->announcement('Kabilio', 'techcrunch', '2026-11-06', ['industries' => ['ai'], 'is_software' => true]);
+        $this->announcement('Neela', 'uktn', '2026-11-05', ['industries' => ['biotech'], 'is_software' => false]);
+        $this->announcement('Mixed', 'uktn', '2026-11-04', ['industries' => ['fintech'], 'is_software' => true]);
+        $this->announcement('Mixed', 'tech_eu', '2026-11-03', ['industries' => ['robotics_hardware'], 'is_software' => false]);
+
+        $groups = collect($this->page('/insights/recently-funded')['groups'])->keyBy('company_name');
+
+        $this->assertSame(['AI', 'Fintech'], $groups['Kabilio']['industries']);
+        $this->assertTrue($groups['Kabilio']['is_software']);
+        $this->assertSame('AI accounting platform.', $groups['Kabilio']['headlines'][1]['summary']);
+        $this->assertFalse($groups['Neela']['is_software']);
+        $this->assertNull($groups['Mixed']['is_software']);
+
+        $this->assertSame(['Kabilio'], $this->names('/insights/recently-funded?software=yes'));
+        $this->assertSame(['Neela'], $this->names('/insights/recently-funded?software=no'));
+        $this->assertSame('all', $this->page('/insights/recently-funded?software=maybe')['filters']['software']);
     }
 
     #[Test]

@@ -54,6 +54,17 @@ export function FundedCompanyRow({ group, onDismiss }: FundedCompanyRowProps) {
                     ))}
                 </div>
 
+                {group.industries.length > 0 || group.is_software !== null ? (
+                    <p className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-sm text-muted-foreground">
+                        {group.is_software !== null ? (
+                            <Badge variant={group.is_software ? 'default' : 'secondary'}>
+                                {group.is_software ? 'Software' : 'Hardware / deep tech'}
+                            </Badge>
+                        ) : null}
+                        {group.industries.length > 0 ? <span>{group.industries.join(' · ')}</span> : null}
+                    </p>
+                ) : null}
+
                 <ul role="list" className="flex flex-col gap-2">
                     {visible.map((headline) => {
                         const url = safeUrl(headline.url);
@@ -71,6 +82,11 @@ export function FundedCompanyRow({ group, onDismiss }: FundedCompanyRowProps) {
                                 ) : (
                                     <span className="text-base text-pretty sm:text-sm">{headline.title}</span>
                                 )}
+                                {headline.summary ? (
+                                    <p className="line-clamp-2 max-w-prose text-sm text-pretty text-muted-foreground">
+                                        {headline.summary}
+                                    </p>
+                                ) : null}
                                 <span className="text-sm text-muted-foreground sm:text-xs">
                                     {headline.source} · <span className="tabular-nums">{formatDate(headline.published_at)}</span>
                                 </span>

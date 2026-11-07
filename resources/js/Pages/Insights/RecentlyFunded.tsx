@@ -7,6 +7,7 @@ import type {
     RecentlyFundedFilters,
     RegionFilter,
     RoundFilter,
+    SoftwareFilter,
 } from '@/components/funded/types';
 import InsightsNav from '@/components/insights/InsightsNav';
 import PageHeader from '@/components/PageHeader';
@@ -34,6 +35,12 @@ const ROUNDS: ReadonlyArray<{ value: RoundFilter; label: string }> = [
     { value: 'growth', label: 'Series C and later' },
 ];
 
+const SOFTWARE: ReadonlyArray<{ value: SoftwareFilter; label: string }> = [
+    { value: 'all', label: 'Any company type' },
+    { value: 'yes', label: 'Software' },
+    { value: 'no', label: 'Hardware / deep tech' },
+];
+
 export default function RecentlyFundedPage({ filters, groups, max_age_days }: Props) {
     const update = (changes: Partial<RecentlyFundedFilters>) => {
         const next = { ...filters, ...changes };
@@ -41,6 +48,7 @@ export default function RecentlyFundedPage({ filters, groups, max_age_days }: Pr
         if (next.region !== 'all') query.region = next.region;
         if (next.round !== 'all') query.round = next.round;
         if (next.tracked !== 'hide') query.tracked = next.tracked;
+        if (next.software !== 'all') query.software = next.software;
         router.get('/insights/recently-funded', query, { preserveState: true, preserveScroll: true, replace: true });
     };
 
@@ -48,7 +56,7 @@ export default function RecentlyFundedPage({ filters, groups, max_age_days }: Pr
         router.post(`/insights/recently-funded/${group.announcement_id}/dismiss`, {}, { preserveScroll: true });
     };
 
-    const filtered = filters.region !== 'all' || filters.round !== 'all';
+    const filtered = filters.region !== 'all' || filters.round !== 'all' || filters.software !== 'all';
 
     return (
         <AuthenticatedLayout>
@@ -83,6 +91,17 @@ export default function RecentlyFundedPage({ filters, groups, max_age_days }: Pr
                             </option>
                         ))}
                     </NativeSelect>
+                    <NativeSelect
+                        aria-label="Company type"
+                        value={filters.software}
+                        onChange={(event) => update({ software: event.target.value as SoftwareFilter })}
+                    >
+                        {SOFTWARE.map((option) => (
+                            <option key={option.value} value={option.value}>
+                                {option.label}
+                            </option>
+                        ))}
+                    </NativeSelect>
                     <label className="flex items-center gap-2 text-base sm:text-sm">
                         <input
                             type="checkbox"
@@ -100,7 +119,7 @@ export default function RecentlyFundedPage({ filters, groups, max_age_days }: Pr
                 {groups.length === 0 ? (
                     <EmptyState>
                         {filtered
-                            ? 'No companies match these filters. Most headlines do not name the round, so try All rounds.'
+                            ? 'No companies match these filters. Most headlines do not name the round, and some companies have no clear type, so try widening them.'
                             : 'Nothing new. The feeds are read every morning.'}
                     </EmptyState>
                 ) : (
