@@ -8,6 +8,7 @@ use App\Enums\AtsType;
 use App\Models\Company;
 use App\Models\CompanySnapshot;
 use App\Models\SavedView;
+use App\Signals\Hiring\OpenRoleTrends;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -17,6 +18,8 @@ use Inertia\Response;
 final readonly class IndexCompaniesController
 {
     private const int TREND_DAYS = 90;
+
+    public function __construct(private OpenRoleTrends $trends) {}
 
     public function __invoke(Request $request): Response|RedirectResponse
     {
@@ -64,7 +67,7 @@ final readonly class IndexCompaniesController
             ->paginate(20)
             ->withQueryString();
 
-        $trends = $this->hiringTrends($companies->getCollection()->pluck('id')->all());
+        $trends = $this->trends->daily($companies->getCollection()->pluck('id')->all(), self::TREND_DAYS);
         foreach ($companies->getCollection() as $company) {
             $company->setAttribute('hiring_trend', $trends[$company->id] ?? array_fill(0, self::TREND_DAYS, null));
         }
@@ -98,45 +101,5 @@ final readonly class IndexCompaniesController
                 'primary_stacks' => [],
             ],
         ]);
-    }
-
-    /**
-     * Daily open-role counts for the last 90 days, oldest first, loaded with a
-     * single query. Days without a snapshot repeat the previous known count
-     * (null before the first snapshot in the window, so history is not invented).
-     *
-     * @param  list<int>  $companyIds
-     * @return array<int, list<int|null>>
-     */
-    private function hiringTrends(array $companyIds): array
-    {
-        if ($companyIds === []) {
-            return [];
-        }
-
-        $today = CarbonImmutable::today();
-        $start = $today->subDays(self::TREND_DAYS - 1);
-
-        $byCompany = [];
-        CompanySnapshot::query()
-            ->whereIn('company_id', $companyIds)
-            ->whereBetween('snapshot_date', [$start->toDateString(), $today->toDateString()])
-            ->get(['company_id', 'snapshot_date', 'open_role_count'])
-            ->each(function (CompanySnapshot $snapshot) use (&$byCompany): void {
-                $byCompany[$snapshot->company_id][$snapshot->snapshot_date->toDateString()] = $snapshot->open_role_count;
-            });
-
-        $trends = [];
-        foreach ($byCompany as $companyId => $counts) {
-            $series = [];
-            $last = null;
-            for ($i = 0; $i < self::TREND_DAYS; $i++) {
-                $last = $counts[$start->addDays($i)->toDateString()] ?? $last;
-                $series[] = $last;
-            }
-            $trends[$companyId] = $series;
-        }
-
-        return $trends;
     }
 }

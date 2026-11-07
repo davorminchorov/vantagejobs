@@ -14,12 +14,19 @@ import { formatDate } from '@/lib/dates';
 interface TrendPoint {
     date: string;
     open_role_count: number;
-    listings_count: number;
+    listings_count?: number;
 }
 
 interface Props {
     data: TrendPoint[];
     showListings?: boolean;
+    /** A single line is named by the section title, so the legend can be hidden. */
+    showLegend?: boolean;
+    /**
+     * `step` draws counts as flat until the next snapshot changes them, which
+     * is how daily counts behave; `smooth` interpolates between points.
+     */
+    curve?: 'smooth' | 'step';
     height?: number;
     /** Render the empty state as a single slim line instead of a full-height box. */
     compact?: boolean;
@@ -27,7 +34,17 @@ interface Props {
 
 const AXIS_TICK = { fill: 'var(--muted-foreground)', fontSize: 12 };
 
-export default function HiringTrendChart({ data, showListings = true, height = 240, compact = false }: Props) {
+const COMPACT_NUMBER = new Intl.NumberFormat(undefined, { notation: 'compact', maximumFractionDigits: 1 });
+
+/** "Aug 12" for a YYYY-MM-DD string, read as a calendar date. */
+function shortDate(date: string): string {
+    const parsed = new Date(`${date}T00:00:00`);
+    return Number.isNaN(parsed.getTime())
+        ? date
+        : parsed.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+}
+
+export default function HiringTrendChart({ data, showListings = true, showLegend = true, curve = 'smooth', height = 240, compact = false }: Props) {
     if (data.length === 0) {
         if (compact) {
             return (
@@ -52,17 +69,19 @@ export default function HiringTrendChart({ data, showListings = true, height = 2
                 <CartesianGrid vertical={false} stroke="var(--border)" />
                 <XAxis
                     dataKey="date"
-                    tickFormatter={(d: string) => d.slice(5)}
+                    tickFormatter={shortDate}
+                    minTickGap={32}
                     tick={AXIS_TICK}
                     tickLine={false}
                     axisLine={{ stroke: 'var(--border)' }}
                 />
                 <YAxis
                     allowDecimals={false}
+                    tickFormatter={(value: number) => COMPACT_NUMBER.format(value)}
                     tick={AXIS_TICK}
                     tickLine={false}
                     axisLine={false}
-                    width={36}
+                    width={40}
                 />
                 <Tooltip
                     contentStyle={{
@@ -77,9 +96,9 @@ export default function HiringTrendChart({ data, showListings = true, height = 2
                     cursor={{ stroke: 'var(--border)' }}
                     labelFormatter={(label) => formatDate(String(label))}
                 />
-                <Legend wrapperStyle={{ fontSize: 12, color: 'var(--muted-foreground)' }} />
+                {showLegend ? <Legend wrapperStyle={{ fontSize: 12, color: 'var(--muted-foreground)' }} /> : null}
                 <Line
-                    type="monotone"
+                    type={curve === 'step' ? 'stepAfter' : 'monotone'}
                     dataKey="open_role_count"
                     name="Open roles"
                     stroke="var(--primary)"
