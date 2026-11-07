@@ -25,6 +25,23 @@ export const AUTO_DISMISS_REASON_LABELS: Record<string, string> = {
     job_seeker: 'looks like a job seeker',
 };
 
+/**
+ * The listing's posting URL when it is http(s). Scraped feeds control this
+ * value, so anything else (javascript:, data:) is dropped before it reaches
+ * an href or window.open.
+ */
+export function postingUrl(listing: Listing): string | null {
+    if (!listing.url) {
+        return null;
+    }
+    try {
+        const parsed = new URL(listing.url);
+        return parsed.protocol === 'http:' || parsed.protocol === 'https:' ? parsed.href : null;
+    } catch {
+        return null;
+    }
+}
+
 /** The posting's own comment on Hacker News (HN listings use the comment id as external_id). */
 export function hackerNewsCommentUrl(listing: Listing): string | null {
     if (listing.source?.type !== 'hackernews' || !listing.external_id) {
