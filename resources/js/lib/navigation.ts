@@ -13,6 +13,7 @@ export interface NavLinkItem {
 export const TOP_LEVEL_ITEMS: ReadonlyArray<NavLinkItem> = [
     { name: 'Dashboard', href: '/dashboard' },
     { name: 'Discover', href: '/discover' },
+    { name: 'Roles', href: '/roles' },
     { name: 'Companies', href: '/companies' },
     { name: 'Bookmarks', href: '/bookmarks' },
 ];

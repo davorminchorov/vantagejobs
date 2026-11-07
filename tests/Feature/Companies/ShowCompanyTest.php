@@ -75,7 +75,8 @@ final class ShowCompanyTest extends TestCase
                 ->where('company.ats_type', 'greenhouse')
                 ->where('counts.open_roles', 2)
                 ->where('counts.total_roles', 3)
-                ->has('roles.data', 3)
+                ->has('roles.data', 2)
+                ->where('role_counts', ['open' => 2, 'dismissed' => 0, 'closed' => 1])
                 ->has('timeline', 2)
             );
     }
@@ -172,7 +173,7 @@ final class ShowCompanyTest extends TestCase
                 ->has('roles.data', 1)
                 ->where('roles.data.0.title', 'Senior Backend Engineer')
                 ->where('roles_filters.q', 'backend')
-                ->where('roles_filters.state', null));
+                ->where('roles_filters.state', 'open'));
     }
 
     #[Test]
@@ -201,7 +202,7 @@ final class ShowCompanyTest extends TestCase
             ->get("/companies/{$company->id}?roles_state=bogus")
             ->assertInertia(fn ($page) => $page
                 ->has('roles.data', 2)
-                ->where('roles_filters.state', null));
+                ->where('roles_filters.state', 'open'));
     }
 
     #[Test]
@@ -250,20 +251,114 @@ final class ShowCompanyTest extends TestCase
         $company = Company::factory()->create();
         $now = CarbonImmutable::now();
 
-        // last_seen_at runs opposite to posted_at so the old last-seen-first
-        // order would fail this test.
+        // Undated roles sort by created_at (just now), so 'Open undated'
+        // comes first; closed roles always come last.
         Role::factory()->create(['company_id' => $company->id, 'title' => 'Closed recent', 'is_open' => false, 'posted_at' => $now]);
         Role::factory()->create(['company_id' => $company->id, 'title' => 'Open undated', 'is_open' => true, 'posted_at' => null, 'last_seen_at' => $now]);
         Role::factory()->create(['company_id' => $company->id, 'title' => 'Open old', 'is_open' => true, 'posted_at' => $now->subDays(30), 'last_seen_at' => $now->subHour()]);
         Role::factory()->create(['company_id' => $company->id, 'title' => 'Open new', 'is_open' => true, 'posted_at' => $now->subDay(), 'last_seen_at' => $now->subHours(2)]);
 
         $this->actingAs($this->user)
-            ->get("/companies/{$company->id}")
+            ->get("/companies/{$company->id}?roles_state=all")
             ->assertOk()
             ->assertInertia(fn ($page) => $page
-                ->where('roles.data.0.title', 'Open new')
-                ->where('roles.data.1.title', 'Open old')
-                ->where('roles.data.2.title', 'Open undated')
+                ->where('roles.data.0.title', 'Open undated')
+                ->where('roles.data.1.title', 'Open new')
+                ->where('roles.data.2.title', 'Open old')
                 ->where('roles.data.3.title', 'Closed recent'));
+    }
+
+    #[Test]
+    public function roles_state_filters_open_dismissed_closed_and_all(): void
+    {
+        $company = Company::factory()->create();
+        Role::factory()->create(['company_id' => $company->id, 'title' => 'Open one']);
+        Role::factory()->create(['company_id' => $company->id, 'title' => 'Dismissed one', 'dismissed_at' => now()]);
+        Role::factory()->create(['company_id' => $company->id, 'title' => 'Closed one', 'is_open' => false]);
+        Role::factory()->create(['company_id' => $company->id, 'title' => 'Closed dismissed', 'is_open' => false, 'dismissed_at' => now()]);
+
+        $titles = fn (string $state): array => collect(
+            $this->actingAs($this->user)
+                ->get("/companies/{$company->id}?roles_state={$state}")
+                ->viewData('page')['props']['roles']['data'],
+        )->pluck('title')->sort()->values()->all();
+
+        $this->assertSame(['Open one'], $titles('open'));
+        $this->assertSame(['Dismissed one'], $titles('dismissed'));
+        $this->assertSame(['Closed dismissed', 'Closed one'], $titles('closed'));
+        $this->assertCount(4, $titles('all'));
+        $this->assertSame(['Open one'], $titles('bogus'));
+    }
+
+    #[Test]
+    public function role_counts_are_scoped_by_search_only(): void
+    {
+        $company = Company::factory()->create();
+        Role::factory()->create(['company_id' => $company->id, 'title' => 'Rust A']);
+        Role::factory()->create(['company_id' => $company->id, 'title' => 'Rust B', 'dismissed_at' => now()]);
+        Role::factory()->create(['company_id' => $company->id, 'title' => 'Rust C', 'is_open' => false]);
+        Role::factory()->create(['company_id' => $company->id, 'title' => 'Designer']);
+
+        $this->actingAs($this->user)
+            ->get("/companies/{$company->id}?roles_state=closed")
+            ->assertInertia(fn ($page) => $page
+                ->where('role_counts', ['open' => 2, 'dismissed' => 1, 'closed' => 1])
+                ->where('counts.open_roles', 3));
+
+        $this->actingAs($this->user)
+            ->get("/companies/{$company->id}?roles_q=rust")
+            ->assertInertia(fn ($page) => $page
+                ->where('role_counts', ['open' => 1, 'dismissed' => 1, 'closed' => 1])
+                ->where('roles_filters', ['q' => 'rust', 'state' => 'open']));
+    }
+
+    #[Test]
+    public function search_treats_like_wildcards_literally(): void
+    {
+        $company = Company::factory()->create();
+        Role::factory()->create(['company_id' => $company->id, 'title' => 'Engineer']);
+        Role::factory()->create(['company_id' => $company->id, 'title' => '100% remote']);
+
+        $this->actingAs($this->user)
+            ->get("/companies/{$company->id}?roles_q=%25")
+            ->assertInertia(fn ($page) => $page
+                ->has('roles.data', 1)
+                ->where('roles.data.0.title', '100% remote'));
+    }
+
+    #[Test]
+    public function new_this_week_counts_open_undismissed_recent_roles(): void
+    {
+        $company = Company::factory()->create();
+        Role::factory()->create(['company_id' => $company->id]);
+        Role::factory()->create(['company_id' => $company->id, 'dismissed_at' => now()]);
+        Role::factory()->create(['company_id' => $company->id, 'is_open' => false]);
+        $old = Role::factory()->create(['company_id' => $company->id]);
+        $old->forceFill(['created_at' => now()->subDays(20)])->save();
+
+        $this->actingAs($this->user)
+            ->get("/companies/{$company->id}")
+            ->assertInertia(fn ($page) => $page->where('new_this_week', 1));
+    }
+
+    #[Test]
+    public function role_items_use_the_presenter_shape_plus_is_open_and_no_raw(): void
+    {
+        $company = Company::factory()->create();
+        Role::factory()->create([
+            'company_id' => $company->id,
+            'source' => 'teamtailor',
+            'raw' => ['description' => '<p>Hi</p>'],
+        ]);
+
+        $this->actingAs($this->user)
+            ->get("/companies/{$company->id}")
+            ->assertInertia(fn ($page) => $page
+                ->has('roles.data.0', fn ($role) => $role
+                    ->hasAll(['id', 'title', 'url', 'location', 'workplace_type', 'department', 'team', 'comp_min', 'comp_max', 'comp_currency', 'comp_interval', 'posted_at', 'created_at', 'source', 'pipeline_status', 'dismissed_at'])
+                    ->where('has_description', true)
+                    ->where('is_open', true)
+                    ->missing('raw')
+                    ->missing('company_id')));
     }
 }

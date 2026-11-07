@@ -22,7 +22,7 @@ final class PerformBulkActionRequest extends FormRequest
      */
     private const MATRIX = [
         BulkActionExecutor::ENTITY_COMPANY => ['change_tier', 'tag', 'untag', 'dismiss'],
-        BulkActionExecutor::ENTITY_ROLE => ['tag', 'untag', 'bookmark', 'mark_closed'],
+        BulkActionExecutor::ENTITY_ROLE => ['tag', 'untag', 'bookmark', 'mark_closed', 'dismiss'],
         BulkActionExecutor::ENTITY_LISTING => ['dismiss', 'bookmark', 'keep', 'snooze'],
     ];
 
